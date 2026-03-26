@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>揀貨掃描系統</title>
+</head>
+<body>
+
+<h1>揀貨掃描系統</h1>
+
+員工姓名：<br>
+<input type="text" id="employee"><br><br>
+
+揀貨單流水號：<br>
+<input type="text" id="serial"><br><br>
+
+<button onclick="addRecord()">記錄</button>
+
+<h2>紀錄</h2>
+<table border="1" id="table">
+  <tr>
+    <th>員工</th>
+    <th>流水號</th>
+    <th>時間</th>
+  </tr>
+</table>
+
+<br>
+<button onclick="downloadCSV()">匯出CSV</button>
+
+<script>
+let data = [];
+
+function addRecord() {
+  let employee = document.getElementById("employee").value;
+  let serial = document.getElementById("serial").value;
+  let time = new Date().toLocaleString();
+
+  let record = [employee, serial, time];
+  data.push(record);
+
+  let table = document.getElementById("table");
+  let row = table.insertRow();
+
+  row.insertCell(0).innerText = employee;
+  row.insertCell(1).innerText = serial;
+  row.insertCell(2).innerText = time;
+}
+
+function downloadCSV() {
+  let csv = "員工,流水號,時間\n";
+
+  data.forEach(row => {
+    csv += row.join(",") + "\n";
+  });
+
+  let blob = new Blob([csv], { type: "text/csv" });
+  let url = window.URL.createObjectURL(blob);
+
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "data.csv";
+  a.click();
+}
+</script>
+
+</body>
+</html>
