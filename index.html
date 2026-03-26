@@ -77,7 +77,7 @@
       margin-bottom: 20px;
     }
 
-    h1, h2 {
+    h1, h2, h3 {
       margin-top: 0;
     }
 
@@ -88,7 +88,7 @@
       font-weight: bold;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
       width: 320px;
       max-width: 100%;
       padding: 10px;
@@ -126,6 +126,18 @@
       background: #6b7280;
     }
 
+    button.green {
+      background: #059669;
+    }
+
+    button.orange {
+      background: #ea580c;
+    }
+
+    button.purple {
+      background: #7c3aed;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -138,6 +150,7 @@
       padding: 10px;
       text-align: left;
       font-size: 14px;
+      vertical-align: middle;
     }
 
     th {
@@ -175,16 +188,83 @@
       margin-top: 12px;
       margin-bottom: 12px;
     }
+
+    .grid-table input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 8px;
+    }
+
+    .status-tag {
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .status-not-started {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .status-picking {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .status-pack-wait {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .sub-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .sub-tab-btn {
+      background: #d1d5db;
+      color: #111827;
+    }
+
+    .sub-tab-btn.active {
+      background: #2563eb;
+      color: white;
+    }
+
+    .sub-page {
+      display: none;
+    }
+
+    .sub-page.active {
+      display: block;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .search-row input {
+      width: 360px;
+    }
   </style>
 </head>
 <body>
 
 <div class="layout">
-
   <div class="sidebar">
     <h2>倉庫系統</h2>
     <button class="menu-btn active" onclick="showPage('employeePage', this)">員工管理</button>
     <button class="menu-btn" onclick="showPage('batchPage', this)">撿貨批次作業</button>
+    <button class="menu-btn" onclick="showPage('createBatchPage', this)">建立批次作業</button>
   </div>
 
   <div class="content">
@@ -250,6 +330,7 @@
         <div class="button-row">
           <button onclick="processBatchScan()">送出批次掃描</button>
           <button class="gray" onclick="clearBatchInput()">清空批次欄位</button>
+          <button onclick="exportBatchRecords()">匯出批次Excel</button>
         </div>
 
         <div id="batchMessage" class="message"></div>
@@ -257,6 +338,9 @@
         <table id="batchTable">
           <tr>
             <th>批次編號</th>
+            <th>批次名稱</th>
+            <th>數量</th>
+            <th>類型</th>
             <th>員工編號</th>
             <th>員工姓名</th>
             <th>第一次刷時間</th>
@@ -267,12 +351,120 @@
       </div>
     </div>
 
+    <!-- 建立批次作業頁 -->
+    <div id="createBatchPage" class="page">
+      <div class="card">
+        <h2>建立批次作業</h2>
+
+        <div class="sub-tabs">
+          <button id="createBatchSubBtn" class="sub-tab-btn active" onclick="showCreateBatchSubPage('createBatchSubPage', this)">新增批次</button>
+          <button id="manageBatchSubBtn" class="sub-tab-btn" onclick="showCreateBatchSubPage('manageBatchSubPage', this)">已建立批次管理</button>
+        </div>
+
+        <!-- 新增批次 -->
+        <div id="createBatchSubPage" class="sub-page active">
+          <div class="info-box">
+            <strong>輸入方式：</strong><br>
+            A 欄 = 批次編號<br>
+            B 欄 = 名稱<br>
+            C 欄 = 數量<br>
+            先選目前建立種類，再按 Enter 或按上傳按鈕
+          </div>
+
+          <label for="currentBatchType">目前建立種類</label>
+          <select id="currentBatchType">
+            <option value="一般配">一般配</option>
+            <option value="無包裝">無包裝</option>
+          </select>
+
+          <div class="button-row">
+            <button class="green" onclick="uploadBatchMaster()">上傳目前20格</button>
+            <button class="gray" onclick="clearBatchGrid()">清空20格</button>
+          </div>
+
+          <div id="createBatchMessage" class="message"></div>
+
+          <table class="grid-table" id="batchGridTable">
+            <tr>
+              <th style="width: 60px;">列號</th>
+              <th>A：批次編號</th>
+              <th>B：名稱</th>
+              <th>C：數量</th>
+            </tr>
+          </table>
+        </div>
+
+        <!-- 已建立批次管理 -->
+        <div id="manageBatchSubPage" class="sub-page">
+          <div class="search-row">
+            <input type="text" id="batchSearchKeyword" placeholder="搜尋批次編號 / 名稱 / 類型">
+            <button onclick="renderBatchMaster()">搜尋</button>
+            <button class="gray" onclick="clearBatchSearch()">清空搜尋</button>
+          </div>
+
+          <div class="button-row">
+            <button class="purple" onclick="loadSelectedBatchToEdit()">載入修改</button>
+            <button class="danger" onclick="deleteSelectedBatchMaster()">刪除被勾選批次</button>
+          </div>
+
+          <div id="manageBatchMessage" class="message"></div>
+
+          <table id="batchMasterTable">
+            <tr>
+              <th>勾選</th>
+              <th>批次編號</th>
+              <th>名稱</th>
+              <th>數量</th>
+              <th>類型</th>
+              <th>狀態</th>
+              <th>建立時間</th>
+              <th>操作</th>
+            </tr>
+          </table>
+
+          <div class="card" style="margin-top:20px;">
+            <h3>修改已建立批次</h3>
+
+            <div class="info-box">
+              請先在上方勾選 1 筆資料，再按「載入修改」
+            </div>
+
+            <label for="editOriginalBatchCode">原始批次編號（系統追蹤用）</label>
+            <input type="text" id="editOriginalBatchCode" readonly>
+
+            <label for="editBatchCode">批次編號</label>
+            <input type="text" id="editBatchCode">
+
+            <label for="editBatchName">名稱</label>
+            <input type="text" id="editBatchName">
+
+            <label for="editBatchQty">數量</label>
+            <input type="text" id="editBatchQty">
+
+            <label for="editBatchType">種類</label>
+            <select id="editBatchType">
+              <option value="一般配">一般配</option>
+              <option value="無包裝">無包裝</option>
+            </select>
+
+            <div class="button-row">
+              <button onclick="updateBatchMaster()">修改</button>
+              <button class="gray" onclick="clearBatchEditForm()">清空修改欄位</button>
+            </div>
+
+            <div id="editBatchMessage" class="message"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
   let employees = JSON.parse(localStorage.getItem("employees")) || [];
   let batchRecords = JSON.parse(localStorage.getItem("batchRecords")) || [];
+  let batchMaster = JSON.parse(localStorage.getItem("batchMaster")) || [];
   let currentBatchEmployee = null;
 
   function saveEmployees() {
@@ -283,20 +475,62 @@
     localStorage.setItem("batchRecords", JSON.stringify(batchRecords));
   }
 
+  function saveBatchMaster() {
+    localStorage.setItem("batchMaster", JSON.stringify(batchMaster));
+  }
+
   function showPage(pageId, btn) {
     let pages = document.querySelectorAll(".page");
-    pages.forEach(page => {
-      page.classList.remove("active");
-    });
-
+    pages.forEach(page => page.classList.remove("active"));
     document.getElementById(pageId).classList.add("active");
 
     let buttons = document.querySelectorAll(".menu-btn");
-    buttons.forEach(button => {
-      button.classList.remove("active");
-    });
-
+    buttons.forEach(button => button.classList.remove("active"));
     btn.classList.add("active");
+  }
+
+  function showCreateBatchSubPage(pageId, btn) {
+    let pages = document.querySelectorAll("#createBatchPage .sub-page");
+    pages.forEach(page => page.classList.remove("active"));
+
+    document.getElementById(pageId).classList.add("active");
+
+    let buttons = document.querySelectorAll("#createBatchPage .sub-tab-btn");
+    buttons.forEach(button => button.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  function pad2(num) {
+    return String(num).padStart(2, "0");
+  }
+
+  function formatDate(date) {
+    return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}`;
+  }
+
+  function formatTime24(date) {
+    return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+  }
+
+  function formatDateTime(date) {
+    return `${formatDate(date)} ${formatTime24(date)}`;
+  }
+
+  function getNowString() {
+    return formatDateTime(new Date());
+  }
+
+  function getBatchStatusTag(status) {
+    if (status === "未撿貨") {
+      return `<span class="status-tag status-not-started">${status}</span>`;
+    }
+    if (status === "開始撿貨") {
+      return `<span class="status-tag status-picking">${status}</span>`;
+    }
+    if (status === "待包貨") {
+      return `<span class="status-tag status-pack-wait">${status}</span>`;
+    }
+    return status;
   }
 
   function renderEmployees() {
@@ -313,7 +547,6 @@
 
     employees.forEach((emp, index) => {
       let row = table.insertRow();
-
       row.insertCell(0).innerHTML = `<input type="checkbox" data-code="${emp.code}" class="check">`;
       row.insertCell(1).innerText = emp.code;
       row.insertCell(2).innerText = emp.name;
@@ -369,10 +602,7 @@
     }
 
     let checkedCodes = Array.from(checkedBoxes).map(box => box.dataset.code);
-
-    employees = employees.filter(emp => {
-      return !checkedCodes.includes(emp.code);
-    });
+    employees = employees.filter(emp => !checkedCodes.includes(emp.code));
 
     saveEmployees();
     renderEmployees();
@@ -402,9 +632,7 @@
     let file = event.target.files[0];
     let message = document.getElementById("employeeMessage");
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     let reader = new FileReader();
 
@@ -478,11 +706,6 @@
     document.getElementById("batchEmployeeCode").focus();
   }
 
-  function getNowString() {
-    let now = new Date();
-    return now.toLocaleString();
-  }
-
   function processBatchScan() {
     let batchCode = document.getElementById("batchCode").value.trim();
     let message = document.getElementById("batchMessage");
@@ -500,6 +723,7 @@
     }
 
     let record = batchRecords.find(item => item.batchCode === batchCode);
+    let master = batchMaster.find(item => item.batchCode === batchCode);
 
     if (!record) {
       let newRecord = {
@@ -512,8 +736,24 @@
       };
 
       batchRecords.push(newRecord);
+
+      if (master) {
+        master.status = "開始撿貨";
+      } else {
+        batchMaster.push({
+          batchCode: batchCode,
+          name: "",
+          qty: "",
+          type: "",
+          status: "開始撿貨",
+          createdAt: getNowString()
+        });
+      }
+
       saveBatchRecords();
+      saveBatchMaster();
       renderBatchRecords();
+      renderBatchMaster();
 
       message.innerText = `批次 ${batchCode} 第一次刷卡成功：開始撿貨`;
       message.className = "message";
@@ -521,8 +761,15 @@
       if (record.status === "開始撿貨") {
         record.secondScanTime = getNowString();
         record.status = "待包貨";
+
+        if (master) {
+          master.status = "待包貨";
+        }
+
         saveBatchRecords();
+        saveBatchMaster();
         renderBatchRecords();
+        renderBatchMaster();
 
         message.innerText = `批次 ${batchCode} 第二次刷卡成功：待包貨`;
         message.className = "message";
@@ -544,12 +791,14 @@
 
   function renderBatchRecords() {
     let table = document.getElementById("batchTable");
-
     if (!table) return;
 
     table.innerHTML = `
       <tr>
         <th>批次編號</th>
+        <th>批次名稱</th>
+        <th>數量</th>
+        <th>類型</th>
         <th>員工編號</th>
         <th>員工姓名</th>
         <th>第一次刷時間</th>
@@ -559,24 +808,348 @@
     `;
 
     batchRecords.forEach(record => {
+      let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+
       let row = table.insertRow();
       row.insertCell(0).innerText = record.batchCode;
-      row.insertCell(1).innerText = record.employeeCode;
-      row.insertCell(2).innerText = record.employeeName;
-      row.insertCell(3).innerText = record.firstScanTime;
-      row.insertCell(4).innerText = record.secondScanTime;
-      row.insertCell(5).innerText = record.status;
+      row.insertCell(1).innerText = master.name || "";
+      row.insertCell(2).innerText = master.qty || "";
+      row.insertCell(3).innerText = master.type || "";
+      row.insertCell(4).innerText = record.employeeCode;
+      row.insertCell(5).innerText = record.employeeName;
+      row.insertCell(6).innerText = record.firstScanTime || "";
+      row.insertCell(7).innerText = record.secondScanTime || "";
+      row.insertCell(8).innerHTML = getBatchStatusTag(record.status);
     });
+  }
+
+  function exportBatchRecords() {
+    if (batchRecords.length === 0) {
+      alert("目前沒有批次資料可匯出");
+      return;
+    }
+
+    let exportData = batchRecords.map(record => {
+      let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+
+      let firstDate = "";
+      let firstTime = "";
+      let secondDate = "";
+      let secondTime = "";
+
+      if (record.firstScanTime) {
+        let firstParts = record.firstScanTime.split(" ");
+        firstDate = firstParts[0] || "";
+        firstTime = firstParts[1] || "";
+      }
+
+      if (record.secondScanTime) {
+        let secondParts = record.secondScanTime.split(" ");
+        secondDate = secondParts[0] || "";
+        secondTime = secondParts[1] || "";
+      }
+
+      return {
+        "批次編號": record.batchCode,
+        "批次名稱": master.name || "",
+        "數量": master.qty || "",
+        "類型": master.type || "",
+        "員工編號": record.employeeCode,
+        "員工姓名": record.employeeName,
+        "第一次日期": firstDate,
+        "第一次時間(24H)": firstTime,
+        "第一次完整時間": record.firstScanTime || "",
+        "第二次日期": secondDate,
+        "第二次時間(24H)": secondTime,
+        "第二次完整時間": record.secondScanTime || "",
+        "狀態": record.status
+      };
+    });
+
+    let worksheet = XLSX.utils.json_to_sheet(exportData);
+    let workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "批次紀錄");
+    XLSX.writeFile(workbook, "批次紀錄.xlsx");
+  }
+
+  function renderBatchGrid() {
+    let table = document.getElementById("batchGridTable");
+    if (!table) return;
+
+    table.innerHTML = `
+      <tr>
+        <th style="width: 60px;">列號</th>
+        <th>A：批次編號</th>
+        <th>B：名稱</th>
+        <th>C：數量</th>
+      </tr>
+    `;
+
+    for (let i = 1; i <= 20; i++) {
+      let row = table.insertRow();
+      row.insertCell(0).innerText = i;
+      row.insertCell(1).innerHTML = `<input type="text" id="gridBatchCode${i}" placeholder="批次編號">`;
+      row.insertCell(2).innerHTML = `<input type="text" id="gridBatchName${i}" placeholder="名稱">`;
+      row.insertCell(3).innerHTML = `<input type="text" id="gridBatchQty${i}" placeholder="數量">`;
+    }
+  }
+
+  function clearBatchGrid() {
+    for (let i = 1; i <= 20; i++) {
+      document.getElementById(`gridBatchCode${i}`).value = "";
+      document.getElementById(`gridBatchName${i}`).value = "";
+      document.getElementById(`gridBatchQty${i}`).value = "";
+    }
+
+    let message = document.getElementById("createBatchMessage");
+    message.innerText = "已清空20格";
+    message.className = "message";
+
+    document.getElementById("gridBatchCode1").focus();
+  }
+
+  function uploadBatchMaster() {
+    let message = document.getElementById("createBatchMessage");
+    let newCount = 0;
+    let currentType = document.getElementById("currentBatchType").value;
+
+    for (let i = 1; i <= 20; i++) {
+      let batchCode = document.getElementById(`gridBatchCode${i}`).value.trim();
+      let name = document.getElementById(`gridBatchName${i}`).value.trim();
+      let qty = document.getElementById(`gridBatchQty${i}`).value.trim();
+
+      if (!batchCode && !name && !qty) {
+        continue;
+      }
+
+      if (!batchCode) {
+        message.innerText = `第 ${i} 列缺少批次編號`;
+        message.className = "message danger-text";
+        return;
+      }
+
+      let exists = batchMaster.find(item => item.batchCode === batchCode);
+      if (exists) {
+        continue;
+      }
+
+      batchMaster.push({
+        batchCode: batchCode,
+        name: name,
+        qty: qty,
+        type: currentType,
+        status: "未撿貨",
+        createdAt: getNowString()
+      });
+
+      newCount++;
+    }
+
+    saveBatchMaster();
+    renderBatchMaster();
+
+    if (newCount === 0) {
+      message.innerText = "沒有新增資料，可能是空白或批次編號已存在";
+      message.className = "message danger-text";
+      return;
+    }
+
+    message.innerText = `成功新增 ${newCount} 筆 ${currentType} 批次`;
+    message.className = "message";
+
+    clearBatchGrid();
+  }
+
+  function clearBatchSearch() {
+    document.getElementById("batchSearchKeyword").value = "";
+    renderBatchMaster();
+  }
+
+  function renderBatchMaster() {
+    let table = document.getElementById("batchMasterTable");
+    if (!table) return;
+
+    let keyword = document.getElementById("batchSearchKeyword")
+      ? document.getElementById("batchSearchKeyword").value.trim().toLowerCase()
+      : "";
+
+    let filtered = batchMaster.filter(item => {
+      if (!keyword) return true;
+      return (
+        (item.batchCode || "").toLowerCase().includes(keyword) ||
+        (item.name || "").toLowerCase().includes(keyword) ||
+        (item.type || "").toLowerCase().includes(keyword)
+      );
+    });
+
+    table.innerHTML = `
+      <tr>
+        <th>勾選</th>
+        <th>批次編號</th>
+        <th>名稱</th>
+        <th>數量</th>
+        <th>類型</th>
+        <th>狀態</th>
+        <th>建立時間</th>
+        <th>操作</th>
+      </tr>
+    `;
+
+    filtered.forEach(item => {
+      let row = table.insertRow();
+      row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
+      row.insertCell(1).innerText = item.batchCode;
+      row.insertCell(2).innerText = item.name || "";
+      row.insertCell(3).innerText = item.qty || "";
+      row.insertCell(4).innerText = item.type || "";
+      row.insertCell(5).innerHTML = getBatchStatusTag(item.status || "未撿貨");
+      row.insertCell(6).innerText = item.createdAt || "";
+      row.insertCell(7).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
+    });
+  }
+
+  function deleteBatchMaster(code) {
+    let message = document.getElementById("manageBatchMessage");
+
+    batchMaster = batchMaster.filter(item => item.batchCode !== code);
+    saveBatchMaster();
+    renderBatchMaster();
+
+    message.innerText = `已刪除批次：${code}`;
+    message.className = "message";
+  }
+
+  function deleteSelectedBatchMaster() {
+    let checks = document.querySelectorAll(".batchMasterCheck:checked");
+    let message = document.getElementById("manageBatchMessage");
+
+    if (checks.length === 0) {
+      alert("請先勾選要刪除的批次");
+      return;
+    }
+
+    let codes = Array.from(checks).map(check => check.dataset.code);
+
+    batchMaster = batchMaster.filter(item => !codes.includes(item.batchCode));
+    saveBatchMaster();
+    renderBatchMaster();
+
+    message.innerText = `已刪除 ${codes.length} 筆被勾選批次`;
+    message.className = "message";
+  }
+
+  function loadSelectedBatchToEdit() {
+    let checks = document.querySelectorAll(".batchMasterCheck:checked");
+    let message = document.getElementById("manageBatchMessage");
+    let editMessage = document.getElementById("editBatchMessage");
+
+    if (checks.length === 0) {
+      message.innerText = "請先勾選 1 筆要修改的批次";
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (checks.length > 1) {
+      message.innerText = "一次只能載入 1 筆批次進行修改";
+      message.className = "message danger-text";
+      return;
+    }
+
+    let code = checks[0].dataset.code;
+    let item = batchMaster.find(batch => batch.batchCode === code);
+
+    if (!item) {
+      message.innerText = "找不到該批次資料";
+      message.className = "message danger-text";
+      return;
+    }
+
+    document.getElementById("editOriginalBatchCode").value = item.batchCode;
+    document.getElementById("editBatchCode").value = item.batchCode;
+    document.getElementById("editBatchName").value = item.name || "";
+    document.getElementById("editBatchQty").value = item.qty || "";
+    document.getElementById("editBatchType").value = item.type || "一般配";
+
+    editMessage.innerText = "已載入批次資料，請修改後按『修改』";
+    editMessage.className = "message";
+  }
+
+  function updateBatchMaster() {
+    let originalCode = document.getElementById("editOriginalBatchCode").value.trim();
+    let newCode = document.getElementById("editBatchCode").value.trim();
+    let newName = document.getElementById("editBatchName").value.trim();
+    let newQty = document.getElementById("editBatchQty").value.trim();
+    let newType = document.getElementById("editBatchType").value;
+    let message = document.getElementById("editBatchMessage");
+
+    if (!originalCode) {
+      message.innerText = "請先載入要修改的批次";
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (!newCode) {
+      message.innerText = "批次編號不可空白";
+      message.className = "message danger-text";
+      return;
+    }
+
+    let duplicate = batchMaster.find(item => item.batchCode === newCode && item.batchCode !== originalCode);
+    if (duplicate) {
+      message.innerText = "新的批次編號已存在";
+      message.className = "message danger-text";
+      return;
+    }
+
+    let target = batchMaster.find(item => item.batchCode === originalCode);
+    if (!target) {
+      message.innerText = "找不到原始批次資料";
+      message.className = "message danger-text";
+      return;
+    }
+
+    target.batchCode = newCode;
+    target.name = newName;
+    target.qty = newQty;
+    target.type = newType;
+
+    batchRecords.forEach(record => {
+      if (record.batchCode === originalCode) {
+        record.batchCode = newCode;
+      }
+    });
+
+    saveBatchMaster();
+    saveBatchRecords();
+    renderBatchMaster();
+    renderBatchRecords();
+
+    document.getElementById("editOriginalBatchCode").value = newCode;
+
+    message.innerText = "批次修改成功";
+    message.className = "message";
+  }
+
+  function clearBatchEditForm() {
+    document.getElementById("editOriginalBatchCode").value = "";
+    document.getElementById("editBatchCode").value = "";
+    document.getElementById("editBatchName").value = "";
+    document.getElementById("editBatchQty").value = "";
+    document.getElementById("editBatchType").value = "一般配";
+    document.getElementById("editBatchMessage").innerText = "";
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     renderEmployees();
     renderBatchRecords();
+    renderBatchGrid();
+    renderBatchMaster();
 
     let batchEmployeeInput = document.getElementById("batchEmployeeCode");
     if (batchEmployeeInput) {
       batchEmployeeInput.addEventListener("keydown", function(event) {
         if (event.key === "Enter") {
+          event.preventDefault();
           setBatchEmployee();
         }
       });
@@ -586,7 +1159,22 @@
     if (batchCodeInput) {
       batchCodeInput.addEventListener("keydown", function(event) {
         if (event.key === "Enter") {
+          event.preventDefault();
           processBatchScan();
+        }
+      });
+    }
+
+    for (let i = 1; i <= 20; i++) {
+      ["gridBatchCode", "gridBatchName", "gridBatchQty"].forEach(prefix => {
+        let input = document.getElementById(`${prefix}${i}`);
+        if (input) {
+          input.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              uploadBatchMaster();
+            }
+          });
         }
       });
     }
