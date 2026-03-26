@@ -2,66 +2,595 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>揀貨掃描系統</title>
+  <title>倉庫掃描系統</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f6f8;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #1f2937;
+      color: white;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .menu-btn {
+      width: 100%;
+      display: block;
+      background: #374151;
+      color: white;
+      border: none;
+      padding: 12px;
+      margin-bottom: 10px;
+      text-align: left;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .menu-btn:hover {
+      background: #4b5563;
+    }
+
+    .menu-btn.active {
+      background: #2563eb;
+    }
+
+    .content {
+      flex: 1;
+      padding: 24px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 320px;
+      max-width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .button-row {
+      margin-top: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button.danger {
+      background: #dc2626;
+    }
+
+    button.gray {
+      background: #6b7280;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 10px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f3f4f6;
+    }
+
+    .message {
+      margin-top: 12px;
+      font-weight: bold;
+      color: green;
+    }
+
+    .danger-text {
+      color: red;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 8px;
+      background: #f3f4f6;
+      min-height: 48px;
+    }
+
+    .top-title {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: #eef4ff;
+      border: 1px solid #c7d7fe;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
 <body>
 
-<h1>揀貨掃描系統</h1>
+<div class="layout">
 
-員工姓名：<br>
-<input type="text" id="employee"><br><br>
+  <div class="sidebar">
+    <h2>倉庫系統</h2>
+    <button class="menu-btn active" onclick="showPage('employeePage', this)">員工管理</button>
+    <button class="menu-btn" onclick="showPage('batchPage', this)">撿貨批次作業</button>
+  </div>
 
-揀貨單流水號：<br>
-<input type="text" id="serial"><br><br>
+  <div class="content">
+    <div class="top-title">倉庫掃描系統</div>
 
-<button onclick="addRecord()">記錄</button>
+    <!-- 員工管理頁 -->
+    <div id="employeePage" class="page active">
+      <div class="card">
+        <h2>員工管理區</h2>
 
-<h2>紀錄</h2>
-<table border="1" id="table">
-  <tr>
-    <th>員工</th>
-    <th>流水號</th>
-    <th>時間</th>
-  </tr>
-</table>
+        <label for="employeeCode">員工編號</label>
+        <input type="text" id="employeeCode">
 
-<br>
-<button onclick="downloadCSV()">匯出CSV</button>
+        <label for="employeeName">員工姓名</label>
+        <input type="text" id="employeeName">
+
+        <div class="button-row">
+          <button onclick="addEmployee()">新增員工</button>
+          <button onclick="exportEmployees()">匯出CSV</button>
+          <button onclick="document.getElementById('importFile').click()">匯入Excel</button>
+          <button class="danger" onclick="deleteSelectedEmployees()">刪除被勾選員工</button>
+        </div>
+
+        <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importEmployees(event)">
+
+        <div id="employeeMessage" class="message"></div>
+
+        <table id="employeeTable">
+          <tr>
+            <th>選擇</th>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>操作</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 撿貨批次作業頁 -->
+    <div id="batchPage" class="page">
+      <div class="card">
+        <h2>撿貨批次作業</h2>
+
+        <label for="batchEmployeeCode">掃描員工編號</label>
+        <input type="text" id="batchEmployeeCode" placeholder="請先掃員工條碼">
+
+        <div class="button-row">
+          <button onclick="setBatchEmployee()">確認員工</button>
+          <button class="gray" onclick="clearBatchEmployee()">清空員工</button>
+        </div>
+
+        <div id="batchEmployeeResult" class="result-box"></div>
+
+        <div class="info-box">
+          <strong>作業規則：</strong><br>
+          同一個批次第一次刷 = 開始撿貨<br>
+          同一個批次第二次刷 = 撿貨完成 / 待包貨
+        </div>
+
+        <label for="batchCode">掃描批次編號</label>
+        <input type="text" id="batchCode" placeholder="請掃批次條碼">
+
+        <div class="button-row">
+          <button onclick="processBatchScan()">送出批次掃描</button>
+          <button class="gray" onclick="clearBatchInput()">清空批次欄位</button>
+        </div>
+
+        <div id="batchMessage" class="message"></div>
+
+        <table id="batchTable">
+          <tr>
+            <th>批次編號</th>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>第一次刷時間</th>
+            <th>第二次刷時間</th>
+            <th>狀態</th>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script>
-let data = [];
+  let employees = JSON.parse(localStorage.getItem("employees")) || [];
+  let batchRecords = JSON.parse(localStorage.getItem("batchRecords")) || [];
+  let currentBatchEmployee = null;
 
-function addRecord() {
-  let employee = document.getElementById("employee").value;
-  let serial = document.getElementById("serial").value;
-  let time = new Date().toLocaleString();
+  function saveEmployees() {
+    localStorage.setItem("employees", JSON.stringify(employees));
+  }
 
-  let record = [employee, serial, time];
-  data.push(record);
+  function saveBatchRecords() {
+    localStorage.setItem("batchRecords", JSON.stringify(batchRecords));
+  }
 
-  let table = document.getElementById("table");
-  let row = table.insertRow();
+  function showPage(pageId, btn) {
+    let pages = document.querySelectorAll(".page");
+    pages.forEach(page => {
+      page.classList.remove("active");
+    });
 
-  row.insertCell(0).innerText = employee;
-  row.insertCell(1).innerText = serial;
-  row.insertCell(2).innerText = time;
-}
+    document.getElementById(pageId).classList.add("active");
 
-function downloadCSV() {
-  let csv = "員工,流水號,時間\n";
+    let buttons = document.querySelectorAll(".menu-btn");
+    buttons.forEach(button => {
+      button.classList.remove("active");
+    });
 
-  data.forEach(row => {
-    csv += row.join(",") + "\n";
+    btn.classList.add("active");
+  }
+
+  function renderEmployees() {
+    let table = document.getElementById("employeeTable");
+
+    table.innerHTML = `
+      <tr>
+        <th>選擇</th>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>操作</th>
+      </tr>
+    `;
+
+    employees.forEach((emp, index) => {
+      let row = table.insertRow();
+
+      row.insertCell(0).innerHTML = `<input type="checkbox" data-code="${emp.code}" class="check">`;
+      row.insertCell(1).innerText = emp.code;
+      row.insertCell(2).innerText = emp.name;
+      row.insertCell(3).innerHTML = `<button class="danger" onclick="deleteEmployee(${index})">刪除</button>`;
+    });
+  }
+
+  function addEmployee() {
+    let code = document.getElementById("employeeCode").value.trim();
+    let name = document.getElementById("employeeName").value.trim();
+    let message = document.getElementById("employeeMessage");
+
+    if (!code || !name) {
+      message.innerText = "請輸入完整的員工編號與員工姓名";
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (employees.find(e => e.code === code)) {
+      message.innerText = "員工編號已存在";
+      message.className = "message danger-text";
+      return;
+    }
+
+    employees.push({ code, name });
+    saveEmployees();
+    renderEmployees();
+
+    document.getElementById("employeeCode").value = "";
+    document.getElementById("employeeName").value = "";
+
+    message.innerText = "員工新增成功";
+    message.className = "message";
+  }
+
+  function deleteEmployee(index) {
+    employees.splice(index, 1);
+    saveEmployees();
+    renderEmployees();
+
+    let message = document.getElementById("employeeMessage");
+    message.innerText = "員工已刪除";
+    message.className = "message";
+  }
+
+  function deleteSelectedEmployees() {
+    let checkedBoxes = document.querySelectorAll(".check:checked");
+    let message = document.getElementById("employeeMessage");
+
+    if (checkedBoxes.length === 0) {
+      alert("請先勾選要刪除的員工");
+      return;
+    }
+
+    let checkedCodes = Array.from(checkedBoxes).map(box => box.dataset.code);
+
+    employees = employees.filter(emp => {
+      return !checkedCodes.includes(emp.code);
+    });
+
+    saveEmployees();
+    renderEmployees();
+
+    message.innerText = "已刪除被勾選的員工";
+    message.className = "message";
+  }
+
+  function exportEmployees() {
+    let csv = "員工編號,員工姓名\n";
+
+    employees.forEach(emp => {
+      csv += `${emp.code},${emp.name}\n`;
+    });
+
+    let bom = "\uFEFF";
+    let blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "employees.csv";
+    a.click();
+  }
+
+  function importEmployees(event) {
+    let file = event.target.files[0];
+    let message = document.getElementById("employeeMessage");
+
+    if (!file) {
+      return;
+    }
+
+    let reader = new FileReader();
+
+    reader.onload = function(e) {
+      let data = new Uint8Array(e.target.result);
+      let workbook = XLSX.read(data, { type: "array" });
+
+      let sheet = workbook.Sheets[workbook.SheetNames[0]];
+      let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      let newEmployees = [];
+
+      for (let i = 1; i < rows.length; i++) {
+        let row = rows[i];
+        if (!row || row.length < 2) continue;
+
+        let code = String(row[0] || "").trim();
+        let name = String(row[1] || "").trim();
+
+        if (code && name && !employees.find(e => e.code === code) && !newEmployees.find(e => e.code === code)) {
+          newEmployees.push({ code, name });
+        }
+      }
+
+      employees = employees.concat(newEmployees);
+      saveEmployees();
+      renderEmployees();
+
+      message.innerText = `匯入成功：${newEmployees.length} 筆`;
+      message.className = "message";
+
+      document.getElementById("importFile").value = "";
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  function setBatchEmployee() {
+    let code = document.getElementById("batchEmployeeCode").value.trim();
+    let result = document.getElementById("batchEmployeeResult");
+
+    if (!code) {
+      result.innerHTML = `<span class="danger-text">請先掃描或輸入員工編號</span>`;
+      return;
+    }
+
+    let employee = employees.find(emp => emp.code === code);
+
+    if (!employee) {
+      currentBatchEmployee = null;
+      result.innerHTML = `<span class="danger-text">查無此員工</span>`;
+      return;
+    }
+
+    currentBatchEmployee = employee;
+    result.innerHTML = `
+      <strong>目前作業員工</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}
+    `;
+
+    document.getElementById("batchEmployeeCode").value = "";
+    document.getElementById("batchCode").focus();
+  }
+
+  function clearBatchEmployee() {
+    currentBatchEmployee = null;
+    document.getElementById("batchEmployeeCode").value = "";
+    document.getElementById("batchEmployeeResult").innerHTML = "";
+    document.getElementById("batchMessage").innerText = "";
+    document.getElementById("batchEmployeeCode").focus();
+  }
+
+  function getNowString() {
+    let now = new Date();
+    return now.toLocaleString();
+  }
+
+  function processBatchScan() {
+    let batchCode = document.getElementById("batchCode").value.trim();
+    let message = document.getElementById("batchMessage");
+
+    if (!currentBatchEmployee) {
+      message.innerText = "請先確認員工";
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (!batchCode) {
+      message.innerText = "請先掃描或輸入批次編號";
+      message.className = "message danger-text";
+      return;
+    }
+
+    let record = batchRecords.find(item => item.batchCode === batchCode);
+
+    if (!record) {
+      let newRecord = {
+        batchCode: batchCode,
+        employeeCode: currentBatchEmployee.code,
+        employeeName: currentBatchEmployee.name,
+        firstScanTime: getNowString(),
+        secondScanTime: "",
+        status: "開始撿貨"
+      };
+
+      batchRecords.push(newRecord);
+      saveBatchRecords();
+      renderBatchRecords();
+
+      message.innerText = `批次 ${batchCode} 第一次刷卡成功：開始撿貨`;
+      message.className = "message";
+    } else {
+      if (record.status === "開始撿貨") {
+        record.secondScanTime = getNowString();
+        record.status = "待包貨";
+        saveBatchRecords();
+        renderBatchRecords();
+
+        message.innerText = `批次 ${batchCode} 第二次刷卡成功：待包貨`;
+        message.className = "message";
+      } else {
+        message.innerText = `批次 ${batchCode} 已完成第二次刷卡，目前狀態：${record.status}`;
+        message.className = "message danger-text";
+      }
+    }
+
+    document.getElementById("batchCode").value = "";
+    document.getElementById("batchCode").focus();
+  }
+
+  function clearBatchInput() {
+    document.getElementById("batchCode").value = "";
+    document.getElementById("batchMessage").innerText = "";
+    document.getElementById("batchCode").focus();
+  }
+
+  function renderBatchRecords() {
+    let table = document.getElementById("batchTable");
+
+    if (!table) return;
+
+    table.innerHTML = `
+      <tr>
+        <th>批次編號</th>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>第一次刷時間</th>
+        <th>第二次刷時間</th>
+        <th>狀態</th>
+      </tr>
+    `;
+
+    batchRecords.forEach(record => {
+      let row = table.insertRow();
+      row.insertCell(0).innerText = record.batchCode;
+      row.insertCell(1).innerText = record.employeeCode;
+      row.insertCell(2).innerText = record.employeeName;
+      row.insertCell(3).innerText = record.firstScanTime;
+      row.insertCell(4).innerText = record.secondScanTime;
+      row.insertCell(5).innerText = record.status;
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    renderEmployees();
+    renderBatchRecords();
+
+    let batchEmployeeInput = document.getElementById("batchEmployeeCode");
+    if (batchEmployeeInput) {
+      batchEmployeeInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+          setBatchEmployee();
+        }
+      });
+    }
+
+    let batchCodeInput = document.getElementById("batchCode");
+    if (batchCodeInput) {
+      batchCodeInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+          processBatchScan();
+        }
+      });
+    }
   });
-
-  let blob = new Blob([csv], { type: "text/csv" });
-  let url = window.URL.createObjectURL(blob);
-
-  let a = document.createElement("a");
-  a.href = url;
-  a.download = "data.csv";
-  a.click();
-}
 </script>
 
 </body>
