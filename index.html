@@ -1151,7 +1151,6 @@
 let employees = [];
 let SYSTEM_COMPANY_NAME = "MUYAO";
 let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
-let ACCOUNT_STORAGE_KEY = "warehouseAccounts";
 let accounts = [];
 
 
@@ -1262,15 +1261,59 @@ function normalizeAccount(account, index) {
 function getAccounts() {
   return accounts.map((account, index) => normalizeAccount(account, index));
 }
+async function saveAccountToFirestore(account) {
+  if (!window.db) {
+    console.warn("accounts：Firestore 尚未初始化，無法儲存單筆帳號");
+    return;
+  }
 
-async function saveAccounts(newAccounts) {
-  accounts = newAccounts.map((account, index) => normalizeAccount(account, index));
+  let username = String(account.username || "").trim();
 
-  await saveFirestoreRecords(
-    FIRESTORE_COLLECTIONS.accounts,
-    accounts,
-    "accounts"
-  );
+  if (!username) {
+    console.warn("accounts：缺少 username，無法儲存單筆帳號");
+    return;
+  }
+
+  let normalizedAccount = normalizeAccount(account, 0);
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.accounts)
+      .doc(username)
+      .set({
+        ...normalizedAccount,
+        username: username,
+        updatedAt: getNowString()
+      });
+
+    console.log("accounts 已單筆同步到 Firestore：", username);
+  } catch (error) {
+    console.error("accounts 單筆同步 Firestore 失敗：", error);
+  }
+}
+async function deleteAccountFromFirestore(username) {
+  if (!window.db) {
+    console.warn("accounts：Firestore 尚未初始化，無法刪除單筆帳號");
+    return;
+  }
+
+  let targetUsername = String(username || "").trim();
+
+  if (!targetUsername) {
+    console.warn("accounts：缺少 username，無法刪除單筆帳號");
+    return;
+  }
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.accounts)
+      .doc(targetUsername)
+      .delete();
+
+    console.log("accounts 已從 Firestore 刪除：", targetUsername);
+  } catch (error) {
+    console.error("accounts 刪除 Firestore 失敗：", error);
+  }
 }
 
 async function initializeDefaultAccounts() {
@@ -1316,12 +1359,18 @@ async function initializeDefaultAccounts() {
   }
 
   if (needSyncToFirestore) {
-    await saveAccounts(accounts);
+  let latestDefaultAdmin = accounts.find(
+    account => account.username === defaultAdmin.username
+  );
+
+  if (latestDefaultAdmin) {
+    await saveAccountToFirestore(latestDefaultAdmin);
   }
+}
 }
 
 function findAccount(username, password) {
-  let accounts = getAccounts();
+  accounts = getAccounts();
 
   return accounts.find(account =>
     account.username === username &&
@@ -1410,91 +1459,7 @@ function renderAccounts() {
   });
 }
 
-function updateAccountRole(encodedUsername) {
-  let username = decodeURIComponent(encodedUsername || "");
-  let accounts = getAccounts();
-  let message = document.getElementById("accountMessage");
-  let defaultAdmin = getDefaultAccounts()[0];
-  let roleSelect = document.getElementById(`roleSelect_${encodedUsername}`);
-  let currentUser = getCurrentLoginUser();
 
-  if (!roleSelect) {
-    if (message) {
-      message.innerText = "找不到角色選單";
-      message.className = "message danger-text";
-    }
-    return;
-  }
-
-  let newRole = roleSelect.value;
-  let target = accounts.find(account => account.username === username);
-
-  if (!target) {
-    if (message) {
-      message.innerText = "找不到要修改的帳號";
-      message.className = "message danger-text";
-    }
-    return;
-  }
-
-  if (target.username === defaultAdmin.username && newRole !== "admin") {
-    if (message) {
-      message.innerText = "預設管理員帳號角色不可修改";
-      message.className = "message danger-text";
-    }
-    renderAccounts();
-    return;
-  }
-
-  if (
-    currentUser &&
-    currentUser.accessLevel === "Manager" &&
-    target.systemDepartment !== currentUser.systemDepartment
-  ) {
-    if (message) {
-      message.innerText = "Manager 只能修改自己 systemDepartment 的帳號";
-      message.className = "message danger-text";
-    }
-    renderAccounts();
-    return;
-  }
-
-  if (currentUser && currentUser.accessLevel === "Manager") {
-    let allowedRoles = ["powerUser", "user"];
-
-    if (!allowedRoles.includes(newRole)) {
-      if (message) {
-        message.innerText = "Manager 不能把帳號升級為 manager / admin";
-        message.className = "message danger-text";
-      }
-      renderAccounts();
-      return;
-    }
-  }
-
-  let oldRole = target.role || "";
-  target.role = newRole;
-  saveAccounts(accounts);
-
-  addOperationLog(
-    "更新角色",
-    username,
-    `角色由 ${oldRole || "未設定"} 改為 ${newRole}`
-  );
-
-  if (currentUser && currentUser.username === target.username) {
-    currentUser.role = newRole;
-    saveCurrentLoginUser(currentUser);
-    applyMenuPermissions();
-  }
-
-  renderAccounts();
-
-  if (message) {
-    message.innerText = `${target.username} 的角色已更新為 ${newRole}`;
-    message.className = "message";
-  }
-}
 
 function clearAccountForm() {
   let usernameInput = document.getElementById("accountUsername");
@@ -1563,7 +1528,7 @@ function clearAccountForm() {
   if (usernameInput) usernameInput.focus();
 }
 
-function addAccount() {
+async function addAccount() {
   let usernameInput = document.getElementById("accountUsername");
   let editTargetInput = document.getElementById("accountEditTargetUsername");
   let passwordInput = document.getElementById("accountPassword");
@@ -1636,7 +1601,7 @@ function addAccount() {
     }, accounts.length);
 
     accounts.push(newAccount);
-    saveAccounts(accounts);
+    await saveAccountToFirestore(newAccount);
 
     addOperationLog(
       "新增帳號",
@@ -1703,7 +1668,7 @@ function addAccount() {
   target.workRole = target.workRoles[0] || "";
   target.accessLevel = normalizeAccessLevel(accessLevel);
 
-  saveAccounts(accounts);
+  await saveAccountToFirestore(target);
 
   if (currentUser && currentUser.username === editTargetUsername) {
     currentUser.username = target.username;
@@ -1815,7 +1780,7 @@ if (message) {
 
 if (nameInput) nameInput.focus();
 }
-function deleteSelectedAccounts() {
+async function deleteSelectedAccounts() {
   let checkedBoxes = document.querySelectorAll(".accountCheck:checked");
   let message = document.getElementById("accountMessage");
   let accounts = getAccounts();
@@ -1871,7 +1836,11 @@ function deleteSelectedAccounts() {
     }
   }
 
-  let remainingAccounts = accounts.filter(account => !usernamesToDelete.includes(account.username));
+  
+  for (let i = 0; i < usernamesToDelete.length; i++) {
+    await deleteAccountFromFirestore(usernamesToDelete[i]);
+  }
+  accounts = accounts.filter(account => !usernamesToDelete.includes(account.username));
 
   usernamesToDelete.forEach(username => {
     addOperationLog(
@@ -1881,7 +1850,6 @@ function deleteSelectedAccounts() {
     );
   });
 
-  saveAccounts(remainingAccounts);
   renderAccounts();
 
   if (message) {
@@ -1889,9 +1857,9 @@ function deleteSelectedAccounts() {
     message.className = "message";
   }
 }
-function toggleAccountActive(encodedUsername) {
+async function toggleAccountActive(encodedUsername) {
   let username = decodeURIComponent(encodedUsername || "");
-  let accounts = getAccounts();
+  accounts = getAccounts();
   let message = document.getElementById("accountMessage");
   let defaultAdmin = getDefaultAccounts()[0];
 
@@ -1915,7 +1883,7 @@ function toggleAccountActive(encodedUsername) {
   let newStatusText = target.isActive === false ? "啟用" : "停用";
 
 target.isActive = !target.isActive;
-saveAccounts(accounts);
+await saveAccountToFirestore(target);
 
 addOperationLog(
   "變更帳號狀態",
@@ -2215,37 +2183,7 @@ function applyMenuPermissions() {
 }
 
 
-const ROLE_PAGE_PERMISSIONS = {
-  admin: [
-    "employeePage",
-    "accountPage",
-    "attendancePage",
-    "batchPage",
-    "createBatchPage",
-    "employeeEfficiencyPage",
-    "workstationPage"
-  ],
-  manager: [
-    "employeePage",
-    "accountPage",
-    "attendancePage",
-    "batchPage",
-    "createBatchPage",
-    "employeeEfficiencyPage",
-    "workstationPage"
-  ],
-  powerUser: [
-    "attendancePage",
-    "batchPage",
-    "createBatchPage",
-    "workstationPage"
-  ],
-  user: [
-    "attendancePage",
-    "batchPage",
-    "workstationPage"
-  ]
-};
+
 
 function getUserPermissionList(user) {
   if (!user || !Array.isArray(user.permissions)) {
@@ -2290,9 +2228,6 @@ function hasPagePermission(user, pageId) {
   }
 
   if (pageId === "employeeEfficiencyPage") {
-    return level === "Manager";
-  }
-    if (pageId === "employeeEfficiencyPage") {
     return level === "Manager";
   }
 
@@ -2594,7 +2529,7 @@ function addOperationLog(actionType, target, detail) {
     time: getNowString(),
     operatorUsername: currentUser ? (currentUser.username || "") : "",
     operatorName: currentUser ? (currentUser.name || currentUser.username || "") : "",
-    operatorRole: currentUser ? (currentUser.accessLevel || currentUser.role || "") : "",
+    operatorRole: currentUser ? (currentUser.accessLevel || "") : "",
     actionType: actionType || "",
     target: target || "",
     detail: detail || ""
@@ -2736,14 +2671,6 @@ function handleWorkstationScan() {
   input.value = "";
   input.focus();
 }
-
-  async function saveEmployees() {
-  await saveFirestoreRecords(
-    FIRESTORE_COLLECTIONS.employees,
-    employees,
-    "employees"
-  );
-}
   async function saveEmployeeToFirestore(employee) {
   if (!window.db) {
     console.warn("employee：Firestore 尚未初始化，無法儲存單筆員工");
@@ -2789,12 +2716,40 @@ function handleWorkstationScan() {
     console.error("employee 刪除 Firestore 失敗：", error);
   }
 }
-  async function saveBatchRecords() {
-  await saveFirestoreRecords(
-    "batchRecords",
-    batchRecords,
-    "batchRecords"
-  );
+  async function saveBatchRecordToFirestore(record) {
+  if (!window.db) {
+    console.warn("batchRecords：Firestore 尚未初始化，無法儲存單筆紀錄");
+    return;
+  }
+
+  let batchCode = String(record.batchCode || "").trim();
+  let employeeCode = String(record.employeeCode || "").trim();
+
+  if (!batchCode || !employeeCode) {
+    console.warn("batchRecords：缺少 batchCode 或 employeeCode，無法儲存單筆紀錄");
+    return;
+  }
+
+  let docId = `${batchCode}__${employeeCode}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .doc(docId)
+      .set({
+        batchCode: batchCode,
+        employeeCode: employeeCode,
+        employeeName: String(record.employeeName || "").trim(),
+        firstScanTime: String(record.firstScanTime || "").trim(),
+        secondScanTime: String(record.secondScanTime || "").trim(),
+        status: String(record.status || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("batchRecords 已單筆同步到 Firestore：", docId);
+  } catch (error) {
+    console.error("batchRecords 單筆同步 Firestore 失敗：", error);
+  }
 }
   async function saveBatchMasterToFirestore(batch) {
   if (!window.db) {
@@ -3009,6 +2964,58 @@ function runAttendanceCheckOut(employee) {
     return [];
   }
 }
+async function loadAccountsFromFirestore() {
+  if (!window.db) {
+    console.warn("accounts：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.accounts)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("accounts：Firestore 裡沒有單筆帳號資料");
+      return [];
+    }
+
+    let loadedAccounts = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let username = String(data.username || doc.id || "").trim();
+
+      if (!username) {
+        return;
+      }
+
+      loadedAccounts.push(
+        normalizeAccount(
+          {
+            ...data,
+            username: username
+          },
+          loadedAccounts.length
+        )
+      );
+    });
+
+    loadedAccounts.sort((a, b) => {
+      return String(a.username || "").localeCompare(String(b.username || ""));
+    });
+
+    console.log("accounts 已從 Firestore 單筆文件載入");
+    return loadedAccounts;
+  } catch (error) {
+    console.error("accounts：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
 async function loadEmployeesFromFirestore() {
   if (!window.db) {
     console.warn("employees：Firestore 尚未初始化");
@@ -3054,6 +3061,60 @@ async function loadEmployeesFromFirestore() {
     return loadedEmployees;
   } catch (error) {
     console.error("employees：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
+async function loadBatchRecordsFromFirestore() {
+  if (!window.db) {
+    console.warn("batchRecords：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("batchRecords：Firestore 裡沒有單筆批次紀錄資料");
+      return [];
+    }
+
+    let loadedBatchRecords = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let batchCode = String(data.batchCode || "").trim();
+      let employeeCode = String(data.employeeCode || "").trim();
+
+      if (!batchCode || !employeeCode) {
+        return;
+      }
+
+      loadedBatchRecords.push({
+        batchCode: batchCode,
+        employeeCode: employeeCode,
+        employeeName: String(data.employeeName || "").trim(),
+        firstScanTime: String(data.firstScanTime || "").trim(),
+        secondScanTime: String(data.secondScanTime || "").trim(),
+        status: String(data.status || "").trim()
+      });
+    });
+
+    loadedBatchRecords.sort((a, b) => {
+      let aTime = String(a.firstScanTime || "");
+      let bTime = String(b.firstScanTime || "");
+      return aTime.localeCompare(bTime);
+    });
+
+    console.log("batchRecords 已從 Firestore 單筆文件載入");
+    return loadedBatchRecords;
+  } catch (error) {
+    console.error("batchRecords：讀取單筆 Firestore 文件失敗", error);
     return [];
   }
 }
@@ -3263,7 +3324,7 @@ function showPage(pageId, btn) {
 
   let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
   let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
-  let canExportExcel = currentUser && (currentUser.accessLevel === "admin" || currentUser.role === "manager");
+  let canExportExcel = currentUser && (currentUser.accessLevel === "Admin" || currentUser.accessLevel === "Manager");
 
   if (exportEmployeesBtn) {
     exportEmployeesBtn.style.display = canExportExcel ? "inline-block" : "none";
@@ -4387,7 +4448,10 @@ function getTodayPickingHoursByEmployee(employeeCode) {
     }
 
     employees = employees.concat(newEmployees);
-    await saveEmployees();
+
+    for (let i = 0; i < newEmployees.length; i++) {
+      await saveEmployeeToFirestore(newEmployees[i]);
+    }
     renderEmployees();
 
     message.innerText = `匯入成功：${newEmployees.length} 筆`;
@@ -4658,6 +4722,7 @@ function handleAttendanceScan() {
     };
 
     batchRecords.push(newRecord);
+    await saveBatchRecordToFirestore(newRecord);
 
     if (master) {
       master.status = "開始撿貨";
@@ -4675,7 +4740,6 @@ function handleAttendanceScan() {
       await saveBatchMasterToFirestore(newMaster);
     }
 
-    saveBatchRecords();
     renderBatchRecords();
     renderBatchMaster();
     updateBatchDashboard();
@@ -4706,13 +4770,13 @@ function handleAttendanceScan() {
     if (record.status === "開始撿貨") {
       record.secondScanTime = getNowString();
       record.status = "待包貨";
-
+      // ✅ 新增：單筆更新 Firestore（關鍵）
+      await saveBatchRecordToFirestore(record);
       if (master) {
         master.status = "待包貨";
         await saveBatchMasterToFirestore(master);
       }
 
-      saveBatchRecords();
       renderBatchRecords();
       renderBatchMaster();
       updateBatchDashboard();
@@ -5038,38 +5102,71 @@ function exportWorkstationRecords() {
   async function deleteBatchMaster(code) {
     let message = document.getElementById("manageBatchMessage");
 
+    let relatedRecords = batchRecords.filter(record => record.batchCode === code);
+
+    for (let i = 0; i < relatedRecords.length; i++) {
+      let record = relatedRecords[i];
+      let docId = `${record.batchCode}__${record.employeeCode}`;
+
+      await window.db
+        .collection(FIRESTORE_COLLECTIONS.batchRecords)
+        .doc(docId)
+        .delete();
+    }
+
+    batchRecords = batchRecords.filter(record => record.batchCode !== code);
     batchMaster = batchMaster.filter(item => item.batchCode !== code);
+
     await deleteBatchMasterFromFirestore(code);
+
     renderBatchMaster();
     renderBatchRecords();
     updateBatchDashboard();
+    
 
     message.innerText = `已刪除批次：${code}`;
     message.className = "message";
   }
 
   async function deleteSelectedBatchMaster() {
-    let checks = document.querySelectorAll(".batchMasterCheck:checked");
-    let message = document.getElementById("manageBatchMessage");
+  let checks = document.querySelectorAll(".batchMasterCheck:checked");
+  let message = document.getElementById("manageBatchMessage");
 
-    if (checks.length === 0) {
-      alert("請先勾選要刪除的批次");
-      return;
-    }
-
-    let codes = Array.from(checks).map(check => check.dataset.code);
-    for (let i = 0; i < codes.length; i++) {
-      await deleteBatchMasterFromFirestore(codes[i]);
-    }
-
-    batchMaster = batchMaster.filter(item => !codes.includes(item.batchCode));
-    renderBatchMaster();
-    renderBatchRecords();
-    updateBatchDashboard();
-
-    message.innerText = `已刪除 ${codes.length} 筆被勾選批次`;
-    message.className = "message";
+  if (checks.length === 0) {
+    alert("請先勾選要刪除的批次");
+    return;
   }
+
+  let codes = Array.from(checks).map(check => check.dataset.code);
+
+  for (let i = 0; i < codes.length; i++) {
+    let code = codes[i];
+
+    let relatedRecords = batchRecords.filter(record => record.batchCode === code);
+
+    for (let j = 0; j < relatedRecords.length; j++) {
+      let record = relatedRecords[j];
+      let docId = `${record.batchCode}__${record.employeeCode}`;
+
+      await window.db
+        .collection(FIRESTORE_COLLECTIONS.batchRecords)
+        .doc(docId)
+        .delete();
+    }
+
+    await deleteBatchMasterFromFirestore(code);
+  }
+
+  batchRecords = batchRecords.filter(record => !codes.includes(record.batchCode));
+  batchMaster = batchMaster.filter(item => !codes.includes(item.batchCode));
+
+  renderBatchMaster();
+  renderBatchRecords();
+  updateBatchDashboard();
+
+  message.innerText = `已刪除 ${codes.length} 筆被勾選批次`;
+  message.className = "message";
+}
 
   function loadSelectedBatchToEdit() {
     let checks = document.querySelectorAll(".batchMasterCheck:checked");
@@ -5151,16 +5248,32 @@ function exportWorkstationRecords() {
       await deleteBatchMasterFromFirestore(originalCode);
     }
 
-    batchRecords.forEach(record => {
-      if (record.batchCode === originalCode) {
-        record.batchCode = newCode;
-      }
-    });
+    for (let i = 0; i < batchRecords.length; i++) {
+  let record = batchRecords[i];
 
-    saveBatchRecords();
-    renderBatchMaster();
-    renderBatchRecords();
-    updateBatchDashboard();
+  if (record.batchCode === originalCode) {
+    let oldDocId = `${originalCode}__${record.employeeCode}`;
+    let updatedRecord = {
+      ...record,
+      batchCode: newCode
+    };
+
+    batchRecords[i] = updatedRecord;
+
+    await saveBatchRecordToFirestore(updatedRecord);
+
+    if (oldDocId !== `${newCode}__${record.employeeCode}`) {
+      await window.db
+        .collection(FIRESTORE_COLLECTIONS.batchRecords)
+        .doc(oldDocId)
+        .delete();
+    }
+  }
+}
+
+renderBatchMaster();
+renderBatchRecords();
+updateBatchDashboard();
 
     document.getElementById("editOriginalBatchCode").value = newCode;
 
@@ -5169,22 +5282,13 @@ function exportWorkstationRecords() {
   }
 
   document.addEventListener("DOMContentLoaded", async function () {
-  accounts = await loadFirestoreRecords(
-  FIRESTORE_COLLECTIONS.accounts,
-  "accounts"
-);
+  accounts = await loadAccountsFromFirestore();
 
-if (!accounts || accounts.length === 0) {
-  accounts = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY)) || [];
-}
   await initializeDefaultAccounts();
   checkLoginStatus();
 
-  // ===== employees：Firestore 優先 =====
-employees = await loadFirestoreRecords(
-  FIRESTORE_COLLECTIONS.employees,
-  "employees"
-);
+  // ===== employees：Firestore 單筆文件模式 =====
+employees = await loadEmployeesFromFirestore();
   // ===== operationLogs：Firestore 載入 =====
 operationLogs = await loadFirestoreRecords(
   FIRESTORE_COLLECTIONS.operationLogs,
@@ -5200,10 +5304,7 @@ operationLogs = await loadFirestoreRecords(
   FIRESTORE_COLLECTIONS.workstation,
   "workstationRecords"
 );
-  batchRecords = await loadFirestoreRecords(
-  "batchRecords",
-  "batchRecords"
-);
+  batchRecords = await loadBatchRecordsFromFirestore();
   batchMaster = await loadBatchMasterFromFirestore();
   renderEmployees();
   renderBatchRecords();
