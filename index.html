@@ -1148,10 +1148,11 @@
     
 
 <script>
-let employees = JSON.parse(localStorage.getItem("employees")) || [];
+let employees = [];
 let SYSTEM_COMPANY_NAME = "MUYAO";
 let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
 let ACCOUNT_STORAGE_KEY = "warehouseAccounts";
+let accounts = [];
 
 
 const DEPARTMENT_OPTIONS = ["", "Inbound", "Outbound"];
@@ -1259,39 +1260,64 @@ function normalizeAccount(account, index) {
 
 
 function getAccounts() {
-  let rawAccounts = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY)) || [];
-  return rawAccounts.map((account, index) => normalizeAccount(account, index));
+  return accounts.map((account, index) => normalizeAccount(account, index));
 }
 
-function saveAccounts(accounts) {
-  let normalizedAccounts = accounts.map((account, index) => normalizeAccount(account, index));
-  localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(normalizedAccounts));
+async function saveAccounts(newAccounts) {
+  accounts = newAccounts.map((account, index) => normalizeAccount(account, index));
+
+  await saveFirestoreRecords(
+    FIRESTORE_COLLECTIONS.accounts,
+    accounts,
+    "accounts"
+  );
 }
 
-function initializeDefaultAccounts() {
-  let accounts = getAccounts();
+async function initializeDefaultAccounts() {
+  let currentAccounts = getAccounts();
   let defaultAdmin = getDefaultAccounts()[0];
+  let needSyncToFirestore = false;
 
-  if (!accounts || accounts.length === 0) {
-    saveAccounts([defaultAdmin]);
-    return;
-  }
-
-  let existedAdminIndex = accounts.findIndex(account => account.username === defaultAdmin.username);
-
-  if (existedAdminIndex === -1) {
-    accounts.unshift(defaultAdmin);
+  if (!currentAccounts || currentAccounts.length === 0) {
+    accounts = [normalizeAccount(defaultAdmin, 0)];
+    needSyncToFirestore = true;
   } else {
-    accounts[existedAdminIndex] = {
-  ...accounts[existedAdminIndex],
-  id: accounts[existedAdminIndex].id || defaultAdmin.id,
-  name: accounts[existedAdminIndex].name || defaultAdmin.name,
-  accessLevel: "Admin",
-  isActive: accounts[existedAdminIndex].isActive !== false
-};
+    let existedAdminIndex = currentAccounts.findIndex(
+      account => account.username === defaultAdmin.username
+    );
+
+    if (existedAdminIndex === -1) {
+      currentAccounts.unshift(defaultAdmin);
+      needSyncToFirestore = true;
+    } else {
+      let oldAccount = currentAccounts[existedAdminIndex];
+
+      currentAccounts[existedAdminIndex] = {
+        ...oldAccount,
+        id: oldAccount.id || defaultAdmin.id,
+        name: oldAccount.name || defaultAdmin.name,
+        accessLevel: "Admin",
+        isActive: oldAccount.isActive !== false
+      };
+
+      if (
+        oldAccount.id !== currentAccounts[existedAdminIndex].id ||
+        oldAccount.name !== currentAccounts[existedAdminIndex].name ||
+        oldAccount.accessLevel !== "Admin" ||
+        oldAccount.isActive === false
+      ) {
+        needSyncToFirestore = true;
+      }
+    }
+
+    accounts = currentAccounts.map((account, index) =>
+      normalizeAccount(account, index)
+    );
   }
 
-  saveAccounts(accounts);
+  if (needSyncToFirestore) {
+    await saveAccounts(accounts);
+  }
 }
 
 function findAccount(username, password) {
@@ -2354,10 +2380,10 @@ function showSystemPage() {
     loginPage.style.display = "none";
   }
   // ✅ 控制「貨態追蹤」按鈕權限
-let flowControlBtn = document.getElementById("flowControlBtn");
+let flowControlBtn = document.getElementById("toggleFlowControlBtn");
 
 if (flowControlBtn) {
-  if (hasPagePermission("flowControlPage")) {
+  if (hasPagePermission(currentUser, "flowControlPage")) {
     flowControlBtn.style.display = "inline-block";
   } else {
     flowControlBtn.style.display = "none";
@@ -2439,13 +2465,13 @@ function handleLogout() {
   switchDepartment("logistics");
   showLoginPage();
 }
-let batchRecords = JSON.parse(localStorage.getItem("batchRecords")) || [];
-let batchMaster = JSON.parse(localStorage.getItem("batchMaster")) || [];
-let attendanceRecords = JSON.parse(localStorage.getItem("attendanceRecords")) || [];
-let operationLogs = JSON.parse(localStorage.getItem("operationLogs")) || [];
+let batchRecords = [];
+let batchMaster = [];
+let attendanceRecords = [];
+let operationLogs = [];
 let currentBatchEmployee = null;
 let attendanceMode = "";
-let workstationRecords = JSON.parse(localStorage.getItem("workstationRecords")) || [];
+let workstationRecords = [];
 let workstationMode = "";
 let workstationGroup = "";
 let workstationName = "";
@@ -2547,20 +2573,28 @@ function switchDepartment(department) {
     });
   }
 }
-function saveWorkstationRecords() {
-  localStorage.setItem("workstationRecords", JSON.stringify(workstationRecords));
+async function saveWorkstationRecords() {
+  await saveFirestoreRecords(
+    FIRESTORE_COLLECTIONS.workstation,
+    workstationRecords,
+    "workstationRecords"
+  );
 }
-function saveOperationLogs() {
-  localStorage.setItem("operationLogs", JSON.stringify(operationLogs));
+async function saveOperationLogs() {
+  await saveFirestoreRecords(
+    FIRESTORE_COLLECTIONS.operationLogs,
+    operationLogs,
+    "operationLogs"
+  );
 }
 function addOperationLog(actionType, target, detail) {
   let currentUser = getCurrentLoginUser();
 
   let log = {
     time: getNowString(),
-    operatorUsername: currentUser ? currentUser.username : "",
-    operatorName: currentUser ? (currentUser.name || currentUser.username) : "",
-    operatorRole: currentUser ? currentUser.role : "",
+    operatorUsername: currentUser ? (currentUser.username || "") : "",
+    operatorName: currentUser ? (currentUser.name || currentUser.username || "") : "",
+    operatorRole: currentUser ? (currentUser.accessLevel || currentUser.role || "") : "",
     actionType: actionType || "",
     target: target || "",
     detail: detail || ""
@@ -2703,15 +2737,120 @@ function handleWorkstationScan() {
   input.focus();
 }
 
-  function saveEmployees() {
-    localStorage.setItem("employees", JSON.stringify(employees));
+  async function saveEmployees() {
+  await saveFirestoreRecords(
+    FIRESTORE_COLLECTIONS.employees,
+    employees,
+    "employees"
+  );
+}
+  async function saveEmployeeToFirestore(employee) {
+  if (!window.db) {
+    console.warn("employee：Firestore 尚未初始化，無法儲存單筆員工");
+    return;
   }
 
-  function saveBatchRecords() {
-    localStorage.setItem("batchRecords", JSON.stringify(batchRecords));
+  let employeeCode = String(employee.code || "").trim();
+
+  if (!employeeCode) {
+    console.warn("employee：缺少員工編號，無法儲存單筆員工");
+    return;
   }
-  function saveAttendanceRecords() {
-  localStorage.setItem("attendanceRecords", JSON.stringify(attendanceRecords));
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.employees)
+      .doc(employeeCode)
+      .set({
+        code: employeeCode,
+        name: String(employee.name || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("employee 已單筆同步到 Firestore：", employeeCode);
+  } catch (error) {
+    console.error("employee 單筆同步 Firestore 失敗：", error);
+  }
+}
+  async function deleteEmployeeFromFirestore(employeeCode) {
+  if (!window.db) {
+    console.warn("employee：Firestore 尚未初始化，無法刪除");
+    return;
+  }
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.employees)
+      .doc(String(employeeCode))
+      .delete();
+
+    console.log("employee 已從 Firestore 刪除：", employeeCode);
+  } catch (error) {
+    console.error("employee 刪除 Firestore 失敗：", error);
+  }
+}
+  async function saveBatchRecords() {
+  await saveFirestoreRecords(
+    "batchRecords",
+    batchRecords,
+    "batchRecords"
+  );
+}
+  async function saveBatchMasterToFirestore(batch) {
+  if (!window.db) {
+    console.warn("batchMaster：Firestore 尚未初始化，無法儲存單筆批次");
+    return;
+  }
+
+  let batchCode = String(batch.batchCode || "").trim();
+
+  if (!batchCode) {
+    console.warn("batchMaster：缺少批次編號，無法儲存單筆批次");
+    return;
+  }
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchMaster)
+      .doc(batchCode)
+      .set({
+        batchCode: batchCode,
+        name: String(batch.name || "").trim(),
+        qty: String(batch.qty || "").trim(),
+        type: String(batch.type || "").trim(),
+        status: String(batch.status || "未撿貨").trim(),
+        createdAt: String(batch.createdAt || getNowString()).trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("batchMaster 已單筆同步到 Firestore：", batchCode);
+  } catch (error) {
+    console.error("batchMaster 單筆同步 Firestore 失敗：", error);
+  }
+}
+async function deleteBatchMasterFromFirestore(batchCode) {
+  if (!window.db) {
+    console.warn("batchMaster：Firestore 尚未初始化，無法刪除單筆批次");
+    return;
+  }
+
+  let targetBatchCode = String(batchCode || "").trim();
+
+  if (!targetBatchCode) {
+    console.warn("batchMaster：缺少批次編號，無法刪除單筆批次");
+    return;
+  }
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchMaster)
+      .doc(targetBatchCode)
+      .delete();
+
+    console.log("batchMaster 已從 Firestore 刪除：", targetBatchCode);
+  } catch (error) {
+    console.error("batchMaster 刪除 Firestore 失敗：", error);
+  }
 }
 function runAttendanceCheckIn(employee) {
   let message = document.getElementById("attendanceMessage");
@@ -2832,10 +2971,163 @@ function runAttendanceCheckOut(employee) {
   input.value = "";
   input.focus();
 }
-  function saveBatchMaster() {
-    localStorage.setItem("batchMaster", JSON.stringify(batchMaster));
+  async function saveAttendanceRecords() {
+  await saveFirestoreRecords(
+    FIRESTORE_COLLECTIONS.attendance,
+    attendanceRecords,
+    "attendanceRecords"
+  );
+}
+  async function loadFirestoreRecords(collectionName, logName) {
+  if (!window.db) {
+    console.warn(logName + "：Firestore 尚未初始化");
+    return [];
   }
 
+  try {
+    let doc = await window.db
+      .collection(collectionName)
+      .doc("main")
+      .get();
+
+    if (!doc.exists) {
+      console.warn(logName + "：Firestore 裡沒有資料");
+      return [];
+    }
+
+    let data = doc.data();
+
+    if (data && Array.isArray(data.records)) {
+      console.log(logName + " 已從 Firestore 載入");
+      return data.records;
+    }
+
+    console.warn(logName + "：Firestore 資料格式不正確");
+    return [];
+  } catch (error) {
+    console.error(logName + "：讀取 Firestore 失敗", error);
+    return [];
+  }
+}
+async function loadEmployeesFromFirestore() {
+  if (!window.db) {
+    console.warn("employees：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.employees)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("employees：Firestore 裡沒有單筆員工資料");
+      return [];
+    }
+
+    let loadedEmployees = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let code = String(data.code || doc.id || "").trim();
+      let name = String(data.name || "").trim();
+
+      if (!code || !name) {
+        return;
+      }
+
+      loadedEmployees.push({
+        code: code,
+        name: name
+      });
+    });
+
+    loadedEmployees.sort((a, b) => {
+      return String(a.code).localeCompare(String(b.code));
+    });
+
+    console.log("employees 已從 Firestore 單筆文件載入");
+    return loadedEmployees;
+  } catch (error) {
+    console.error("employees：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
+async function loadBatchMasterFromFirestore() {
+  if (!window.db) {
+    console.warn("batchMaster：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchMaster)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("batchMaster：Firestore 裡沒有單筆批次資料");
+      return [];
+    }
+
+    let loadedBatchMaster = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let batchCode = String(data.batchCode || doc.id || "").trim();
+
+      if (!batchCode) {
+        return;
+      }
+
+      loadedBatchMaster.push({
+        batchCode: batchCode,
+        name: String(data.name || "").trim(),
+        qty: String(data.qty || "").trim(),
+        type: String(data.type || "").trim(),
+        status: String(data.status || "未撿貨").trim(),
+        createdAt: String(data.createdAt || "").trim()
+      });
+    });
+
+    loadedBatchMaster.sort((a, b) => {
+      return String(a.batchCode).localeCompare(String(b.batchCode));
+    });
+
+    console.log("batchMaster 已從 Firestore 單筆文件載入");
+    return loadedBatchMaster;
+  } catch (error) {
+    console.error("batchMaster：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
+async function saveFirestoreRecords(collectionName, records, logName) {
+  if (!window.db) {
+    console.warn(logName + "：Firestore 尚未初始化，無法儲存");
+    return;
+  }
+
+  try {
+    await window.db
+      .collection(collectionName)
+      .doc("main")
+      .set({
+        records: records,
+        updatedAt: getNowString()
+      });
+
+    console.log(logName + " 已同步到 Firestore");
+  } catch (error) {
+    console.error(logName + " 同步 Firestore 失敗：", error);
+  }
+}
 function showPage(pageId, btn) {
   let currentUser = getCurrentLoginUser();
   let targetButton = btn || document.querySelector(`.menu-btn[data-page="${pageId}"]`);
@@ -3159,7 +3451,7 @@ function renderFlowControlTable(filterStatus, filterType) {
   let currentTypeFilter = window.flowControlTypeFilter || "";
   let currentStatusFilter = window.flowControlStatusFilter || "";
 
-  let topButtons = document.querySelectorAll("#flowControlPage .button-row button");
+  let topButtons = document.querySelectorAll("#flowControlPanel .button-row button");
 
   topButtons.forEach((button, index) => {
     if (index === 0) {
@@ -3976,62 +4268,80 @@ function getTodayPickingHoursByEmployee(employeeCode) {
     });
   }
 
-  function addEmployee() {
-    let code = document.getElementById("employeeCode").value.trim();
-    let name = document.getElementById("employeeName").value.trim();
-    let message = document.getElementById("employeeMessage");
+  async function addEmployee() {
+  let code = document.getElementById("employeeCode").value.trim();
+  let name = document.getElementById("employeeName").value.trim();
+  let message = document.getElementById("employeeMessage");
 
-    if (!code || !name) {
-      message.innerText = "請輸入完整的員工編號與員工姓名";
+  if (!code || !name) {
+    message.innerText = "請輸入完整的員工編號與員工姓名";
+    message.className = "message danger-text";
+    return;
+  }
+
+  if (employees.find(e => e.code === code)) {
+    message.innerText = "員工編號已存在";
+    message.className = "message danger-text";
+    return;
+  }
+
+  let newEmployee = { code, name };
+
+  employees.push(newEmployee);
+  await saveEmployeeToFirestore(newEmployee);
+  renderEmployees();
+
+  document.getElementById("employeeCode").value = "";
+  document.getElementById("employeeName").value = "";
+
+  message.innerText = "員工新增成功（單筆上雲）";
+  message.className = "message";
+}
+
+  async function deleteEmployee(index) {
+  let targetEmployee = employees[index];
+  let message = document.getElementById("employeeMessage");
+
+  if (!targetEmployee) {
+    if (message) {
+      message.innerText = "找不到要刪除的員工";
       message.className = "message danger-text";
-      return;
     }
-
-    if (employees.find(e => e.code === code)) {
-      message.innerText = "員工編號已存在";
-      message.className = "message danger-text";
-      return;
-    }
-
-    employees.push({ code, name });
-    saveEmployees();
-    renderEmployees();
-
-    document.getElementById("employeeCode").value = "";
-    document.getElementById("employeeName").value = "";
-
-    message.innerText = "員工新增成功";
-    message.className = "message";
+    return;
   }
 
-  function deleteEmployee(index) {
-    employees.splice(index, 1);
-    saveEmployees();
-    renderEmployees();
+  employees.splice(index, 1);
+  await deleteEmployeeFromFirestore(targetEmployee.code);
+  renderEmployees();
 
-    let message = document.getElementById("employeeMessage");
-    message.innerText = "員工已刪除";
+  if (message) {
+    message.innerText = "員工已刪除（單筆上雲）";
     message.className = "message";
   }
+}
 
-  function deleteSelectedEmployees() {
-    let checkedBoxes = document.querySelectorAll(".check:checked");
-    let message = document.getElementById("employeeMessage");
+  async function deleteSelectedEmployees() {
+  let checkedBoxes = document.querySelectorAll(".check:checked");
+  let message = document.getElementById("employeeMessage");
 
-    if (checkedBoxes.length === 0) {
-      alert("請先勾選要刪除的員工");
-      return;
-    }
-
-    let checkedCodes = Array.from(checkedBoxes).map(box => box.dataset.code);
-    employees = employees.filter(emp => !checkedCodes.includes(emp.code));
-
-    saveEmployees();
-    renderEmployees();
-
-    message.innerText = "已刪除被勾選的員工";
-    message.className = "message";
+  if (checkedBoxes.length === 0) {
+    alert("請先勾選要刪除的員工");
+    return;
   }
+
+  let checkedCodes = Array.from(checkedBoxes).map(box => box.dataset.code);
+
+  employees = employees.filter(emp => !checkedCodes.includes(emp.code));
+
+  for (let i = 0; i < checkedCodes.length; i++) {
+    await deleteEmployeeFromFirestore(checkedCodes[i]);
+  }
+
+  renderEmployees();
+
+  message.innerText = "已刪除被勾選的員工（單筆上雲）";
+  message.className = "message";
+}
 
   function exportEmployees() {
     let csv = "員工編號,員工姓名\n";
@@ -4050,43 +4360,43 @@ function getTodayPickingHoursByEmployee(employeeCode) {
   }
 
   function importEmployees(event) {
-    let file = event.target.files[0];
-    let message = document.getElementById("employeeMessage");
-    if (!file) return;
+  let file = event.target.files[0];
+  let message = document.getElementById("employeeMessage");
+  if (!file) return;
 
-    let reader = new FileReader();
+  let reader = new FileReader();
 
-    reader.onload = function(e) {
-      let data = new Uint8Array(e.target.result);
-      let workbook = XLSX.read(data, { type: "array" });
-      let sheet = workbook.Sheets[workbook.SheetNames[0]];
-      let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  reader.onload = async function(e) {
+    let data = new Uint8Array(e.target.result);
+    let workbook = XLSX.read(data, { type: "array" });
+    let sheet = workbook.Sheets[workbook.SheetNames[0]];
+    let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      let newEmployees = [];
+    let newEmployees = [];
 
-      for (let i = 1; i < rows.length; i++) {
-        let row = rows[i];
-        if (!row || row.length < 2) continue;
+    for (let i = 1; i < rows.length; i++) {
+      let row = rows[i];
+      if (!row || row.length < 2) continue;
 
-        let code = String(row[0] || "").trim();
-        let name = String(row[1] || "").trim();
+      let code = String(row[0] || "").trim();
+      let name = String(row[1] || "").trim();
 
-        if (code && name && !employees.find(e => e.code === code) && !newEmployees.find(e => e.code === code)) {
-          newEmployees.push({ code, name });
-        }
+      if (code && name && !employees.find(e => e.code === code) && !newEmployees.find(e => e.code === code)) {
+        newEmployees.push({ code, name });
       }
+    }
 
-      employees = employees.concat(newEmployees);
-      saveEmployees();
-      renderEmployees();
+    employees = employees.concat(newEmployees);
+    await saveEmployees();
+    renderEmployees();
 
-      message.innerText = `匯入成功：${newEmployees.length} 筆`;
-      message.className = "message";
-      document.getElementById("importFile").value = "";
-    };
+    message.innerText = `匯入成功：${newEmployees.length} 筆`;
+    message.className = "message";
+    document.getElementById("importFile").value = "";
+  };
 
-    reader.readAsArrayBuffer(file);
-  }
+  reader.readAsArrayBuffer(file);
+}
 
   function setBatchEmployee() {
     let code = document.getElementById("batchEmployeeCode").value.trim();
@@ -4222,7 +4532,7 @@ function handleAttendanceScan() {
   if (!attendanceMode) {
     message.innerText = "請先選擇上班模式或下班模式";
     message.className = "message danger-text";
-    input.foucs();
+    input.focus();
     return;
   }
 
@@ -4261,7 +4571,7 @@ function handleAttendanceScan() {
     document.getElementById("batchEmployeeCode").focus();
   }
 
-  function processBatchScan() {
+  async function processBatchScan() {
   let batchCodeInput = document.getElementById("batchCode");
   let batchCode = batchCodeInput.value.trim();
   let message = document.getElementById("batchMessage");
@@ -4351,19 +4661,21 @@ function handleAttendanceScan() {
 
     if (master) {
       master.status = "開始撿貨";
+      await saveBatchMasterToFirestore(master);
     } else {
-      batchMaster.push({
+      let newMaster = {
         batchCode: batchCode,
         name: "",
         qty: "",
         type: "",
         status: "開始撿貨",
         createdAt: getNowString()
-      });
+      };
+      batchMaster.push(newMaster);
+      await saveBatchMasterToFirestore(newMaster);
     }
 
     saveBatchRecords();
-    saveBatchMaster();
     renderBatchRecords();
     renderBatchMaster();
     updateBatchDashboard();
@@ -4397,10 +4709,10 @@ function handleAttendanceScan() {
 
       if (master) {
         master.status = "待包貨";
+        await saveBatchMasterToFirestore(master);
       }
 
       saveBatchRecords();
-      saveBatchMaster();
       renderBatchRecords();
       renderBatchMaster();
       updateBatchDashboard();
@@ -4619,7 +4931,7 @@ function exportWorkstationRecords() {
     document.getElementById("gridBatchCode1").focus();
   }
 
-  function uploadBatchMaster() {
+  async function uploadBatchMaster() {
     let message = document.getElementById("createBatchMessage");
     let newCount = 0;
     let currentType = document.getElementById("currentBatchType").value;
@@ -4644,19 +4956,21 @@ function exportWorkstationRecords() {
         continue;
       }
 
-      batchMaster.push({
+      let newBatch = {
         batchCode: batchCode,
         name: name,
         qty: qty,
         type: currentType,
         status: "未撿貨",
         createdAt: getNowString()
-      });
+      };
+
+      batchMaster.push(newBatch);
+      await saveBatchMasterToFirestore(newBatch);
 
       newCount++;
     }
 
-    saveBatchMaster();
     renderBatchMaster();
     renderBatchRecords();
     updateBatchDashboard();
@@ -4721,11 +5035,11 @@ function exportWorkstationRecords() {
     });
   }
 
-  function deleteBatchMaster(code) {
+  async function deleteBatchMaster(code) {
     let message = document.getElementById("manageBatchMessage");
 
     batchMaster = batchMaster.filter(item => item.batchCode !== code);
-    saveBatchMaster();
+    await deleteBatchMasterFromFirestore(code);
     renderBatchMaster();
     renderBatchRecords();
     updateBatchDashboard();
@@ -4734,7 +5048,7 @@ function exportWorkstationRecords() {
     message.className = "message";
   }
 
-  function deleteSelectedBatchMaster() {
+  async function deleteSelectedBatchMaster() {
     let checks = document.querySelectorAll(".batchMasterCheck:checked");
     let message = document.getElementById("manageBatchMessage");
 
@@ -4744,9 +5058,11 @@ function exportWorkstationRecords() {
     }
 
     let codes = Array.from(checks).map(check => check.dataset.code);
+    for (let i = 0; i < codes.length; i++) {
+      await deleteBatchMasterFromFirestore(codes[i]);
+    }
 
     batchMaster = batchMaster.filter(item => !codes.includes(item.batchCode));
-    saveBatchMaster();
     renderBatchMaster();
     renderBatchRecords();
     updateBatchDashboard();
@@ -4791,7 +5107,7 @@ function exportWorkstationRecords() {
     editMessage.className = "message";
   }
 
-  function updateBatchMaster() {
+  async function updateBatchMaster() {
     let originalCode = document.getElementById("editOriginalBatchCode").value.trim();
     let newCode = document.getElementById("editBatchCode").value.trim();
     let newName = document.getElementById("editBatchName").value.trim();
@@ -4829,6 +5145,11 @@ function exportWorkstationRecords() {
     target.name = newName;
     target.qty = newQty;
     target.type = newType;
+    await saveBatchMasterToFirestore(target);
+
+    if (originalCode !== newCode) {
+      await deleteBatchMasterFromFirestore(originalCode);
+    }
 
     batchRecords.forEach(record => {
       if (record.batchCode === originalCode) {
@@ -4836,7 +5157,6 @@ function exportWorkstationRecords() {
       }
     });
 
-    saveBatchMaster();
     saveBatchRecords();
     renderBatchMaster();
     renderBatchRecords();
@@ -4848,71 +5168,103 @@ function exportWorkstationRecords() {
     message.className = "message";
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    initializeDefaultAccounts();
-    checkLoginStatus();
+  document.addEventListener("DOMContentLoaded", async function () {
+  accounts = await loadFirestoreRecords(
+  FIRESTORE_COLLECTIONS.accounts,
+  "accounts"
+);
 
-    renderEmployees();
-    renderBatchRecords();
-    renderBatchGrid();
-    renderBatchMaster();
-    updateBatchDashboard();
+if (!accounts || accounts.length === 0) {
+  accounts = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY)) || [];
+}
+  await initializeDefaultAccounts();
+  checkLoginStatus();
 
-    let batchEmployeeInput = document.getElementById("batchEmployeeCode");
-    if (batchEmployeeInput) {
-      batchEmployeeInput.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          setBatchEmployee();
-        }
-      });
-    }
+  // ===== employees：Firestore 優先 =====
+employees = await loadFirestoreRecords(
+  FIRESTORE_COLLECTIONS.employees,
+  "employees"
+);
+  // ===== operationLogs：Firestore 載入 =====
+operationLogs = await loadFirestoreRecords(
+  FIRESTORE_COLLECTIONS.operationLogs,
+  "operationLogs"
+);
+  // ===== attendanceRecords：Firestore 優先，localStorage 備援 =====
+  attendanceRecords = await loadFirestoreRecords(
+  FIRESTORE_COLLECTIONS.attendance,
+  "attendanceRecords"
+);
+    // ===== workstationRecords：Firestore 優先，localStorage 備援 =====
+  workstationRecords = await loadFirestoreRecords(
+  FIRESTORE_COLLECTIONS.workstation,
+  "workstationRecords"
+);
+  batchRecords = await loadFirestoreRecords(
+  "batchRecords",
+  "batchRecords"
+);
+  batchMaster = await loadBatchMasterFromFirestore();
+  renderEmployees();
+  renderBatchRecords();
+  renderBatchGrid();
+  renderBatchMaster();
+  updateBatchDashboard();
 
-    let batchCodeInput = document.getElementById("batchCode");
-    if (batchCodeInput) {
-      batchCodeInput.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          processBatchScan();
-        }
-      });
-    }
+  let batchEmployeeInput = document.getElementById("batchEmployeeCode");
+  if (batchEmployeeInput) {
+    batchEmployeeInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        setBatchEmployee();
+      }
+    });
+  }
 
+  let batchCodeInput = document.getElementById("batchCode");
+  if (batchCodeInput) {
+    batchCodeInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        processBatchScan();
+      }
+    });
+  }
 
-    for (let i = 1; i <= 20; i++) {
-      ["gridBatchCode", "gridBatchName", "gridBatchQty"].forEach(prefix => {
-        let input = document.getElementById(`${prefix}${i}`);
-        if (input) {
-          input.addEventListener("keydown", function(event) {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              uploadBatchMaster();
-            }
-          });
-        }
-      });
-    }
+  for (let i = 1; i <= 20; i++) {
+    ["gridBatchCode", "gridBatchName", "gridBatchQty"].forEach(prefix => {
+      let input = document.getElementById(`${prefix}${i}`);
+      if (input) {
+        input.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            uploadBatchMaster();
+          }
+        });
+      }
+    });
+  }
 
-     let attendanceEmployeeInput = document.getElementById("attendanceEmployeeCode");
-    if (attendanceEmployeeInput) {
-      attendanceEmployeeInput.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          handleAttendanceScan();
-        }
-      });
-    }
+  let attendanceEmployeeInput = document.getElementById("attendanceEmployeeCode");
+  if (attendanceEmployeeInput) {
+    attendanceEmployeeInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleAttendanceScan();
+      }
+    });
+  }
 
-    let workstationEmployeeInput = document.getElementById("workstationEmployeeCode");
-    if (workstationEmployeeInput) {
-      workstationEmployeeInput.addEventListener("keydown", function(event) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          handleWorkstationScan();
-        }
-      });
-    }
-  });
+  let workstationEmployeeInput = document.getElementById("workstationEmployeeCode");
+  if (workstationEmployeeInput) {
+    workstationEmployeeInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleWorkstationScan();
+      }
+    });
+  }
+});
 
 </script>
 <!-- Firebase SDK -->
@@ -4935,6 +5287,20 @@ function exportWorkstationRecords() {
 
   // 初始化 Firestore
   window.db = firebase.firestore();
+
+  // Firestore collection 名稱集中管理
+  const FIRESTORE_COLLECTIONS = {
+  attendance: "attendanceRecords",
+  workstation: "workstationRecords",
+  batchRecords: "batchRecords",
+  batchMaster: "batchMaster",
+  employees: "employees",
+  accounts: "accounts",
+  operationLogs: "operationLogs"
+};
+
+  console.log("Firebase 初始化完成");
+  console.log("Firestore 初始化完成", window.db);
 </script>
 </body>
 </html>
