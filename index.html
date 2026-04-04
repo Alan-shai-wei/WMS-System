@@ -321,21 +321,154 @@
     .dashboard-pack-wait .dashboard-value {
       color: #b45309;
     }
+    /* ===== 公司抬頭 ===== */
+.company-header {
+  background: #000;
+  color: #fff;
+  padding: 18px 32px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+/* ===== 部門列 ===== */
+.department-bar {
+  background: #f5f6f8;
+  padding: 14px 32px 10px 32px;
+  margin: 12px 20px 20px 20px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.department-tab {
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 14px 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  background: transparent;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.department-tab:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.department-tab.active {
+  color: #2563eb;
+  background: #eff6ff;
+  border-bottom: 3px solid #2563eb;
+}
+.system-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.user-info-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-weight: bold;
+  color: #111827;
+}
+
+.logout-btn {
+  padding: 6px 10px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  opacity: 0.92;
+}
   </style>
 </head>
 <body>
 
 <div class="layout">
   <div class="sidebar">
-    <h2>倉庫系統</h2>
-    <button class="menu-btn active" onclick="showPage('employeePage', this)">員工管理</button>
-    <button class="menu-btn" onclick="showPage('batchPage', this)">撿貨批次作業</button>
-    <button class="menu-btn" onclick="showPage('createBatchPage', this)">建立批次作業</button>
+    <h2 id="sidebarDepartmentTitle">物流管理部</h2>
+
+    <div id="logisticsMenuArea">
+      <button class="menu-btn active" data-page="employeePage" onclick="showPage('employeePage', this)">員工管理</button>
+      <button class="menu-btn" data-page="accountPage" onclick="showPage('accountPage', this)">帳號管理</button>
+      <button class="menu-btn" data-page="attendancePage" onclick="showPage('attendancePage', this)">上下班打卡</button>
+      <button class="menu-btn" data-page="batchPage" onclick="showPage('batchPage', this)">撿貨批次作業</button>
+      <button class="menu-btn" data-page="createBatchPage" onclick="showPage('createBatchPage', this)">建立批次作業</button>
+      <button class="menu-btn" data-page="employeeEfficiencyPage" onclick="showPage('employeeEfficiencyPage', this)">作業控制塔 Control Tower</button>
+    </div>
+
+    <div id="emptyDepartmentMenuArea" style="display:none;">
+      <div class="info-box" style="
+        background:#374151;
+        border:1px solid #4b5563;
+        color:white;
+        margin-top:12px;
+      ">
+        目前此部門尚未建立功能頁面
+      </div>
+    </div>
   </div>
 
   <div class="content">
-    <div class="top-title">倉庫掃描系統</div>
+    <div class="system-topbar">
+  <div class="company-header">MUYAO</div>
 
+  <div id="userInfoArea" class="user-info-area">
+    <div class="user-avatar">
+      A
+    </div>
+
+    <div id="loginUserName" class="user-name">
+      使用者
+    </div>
+
+    <button onclick="handleLogout()" class="logout-btn">
+      登出
+    </button>
+  </div>
+</div>
+
+<div class="department-bar">
+  <span class="department-tab active" data-department="logistics" onclick="switchDepartment('logistics')">物流管理部</span>
+  <span class="department-tab" data-department="marketing" onclick="switchDepartment('marketing')">行銷部</span>
+  <span class="department-tab" data-department="customerService" onclick="switchDepartment('customerService')">客服部</span>
+  <span class="department-tab" data-department="purchasing" onclick="switchDepartment('purchasing')">採購部</span>
+  <span class="department-tab" data-department="sales" onclick="switchDepartment('sales')">業務部</span>
+  <span class="department-tab" data-department="productDevelopment" onclick="switchDepartment('productDevelopment')">商品開發部</span>
+</div>
+  
     <div id="employeePage" class="page active">
       <div class="card">
         <h2>員工管理區</h2>
@@ -348,7 +481,7 @@
 
         <div class="button-row">
           <button onclick="addEmployee()">新增員工</button>
-          <button onclick="exportEmployees()">匯出CSV</button>
+          <button id="exportEmployeesBtn" onclick="exportEmployees()">匯出CSV</button>
           <button onclick="document.getElementById('importFile').click()">匯入Excel</button>
           <button class="danger" onclick="deleteSelectedEmployees()">刪除被勾選員工</button>
         </div>
@@ -367,7 +500,104 @@
         </table>
       </div>
     </div>
+    <div id="accountPage" class="page">
+  <div class="card">
+    <h2>帳號管理</h2>
 
+    <div class="info-box">
+      這一頁之後會用來管理系統登入帳號。<br>
+      下一步會加入：新增帳號、帳號列表、權限角色、啟用 / 停用。
+    </div>
+
+    <label for="accountUsername">登入帳號</label>
+    <input type="text" id="accountUsername" placeholder="例如：user001">
+    <input type="hidden" id="accountEditTargetUsername">
+
+    <label for="accountPassword">登入密碼</label>
+    <input type="text" id="accountPassword" placeholder="請輸入密碼">
+
+    <label for="accountName">顯示名稱</label>
+    <input type="text" id="accountName" placeholder="例如：王小明">
+
+    
+
+<label for="accountDepartment">Department（部門）</label>
+<select id="accountDepartment">
+  <option value="" selected>請選擇 Department（部門）</option>
+  <option value="Inbound">Inbound（進貨）</option>
+  <option value="Outbound">Outbound（出貨）</option>
+</select>
+<label for="accountSystemDepartment">System Department（系統部門）</label>
+<select id="accountSystemDepartment">
+  <option value="logistics" selected>物流管理部</option>
+  <option value="marketing">行銷部</option>
+  <option value="customerService">客服部</option>
+  <option value="purchasing">採購部</option>
+  <option value="sales">業務部</option>
+  <option value="productDevelopment">商品開發部</option>
+</select>
+
+<label for="accountWorkRole">Work Roles（作業角色，可複選）</label>
+<div class="info-box" style="margin-top:6px; margin-bottom:10px;">
+  Mac 請按住 <strong>Command ⌘</strong> 多選，Windows 請按住 <strong>Ctrl</strong> 多選。
+</div>
+<select id="accountWorkRole" multiple size="7">
+  <option value="Picker">Picker（撿貨）</option>
+  <option value="Sorter">Sorter（配貨）</option>
+  <option value="Packer">Packer（包貨）</option>
+  <option value="Print Operator">Print Operator（印單）</option>
+  <option value="Receiver">Receiver（收貨）</option>
+  <option value="Putaway">Putaway（上架）</option>
+  <option value="Replenisher">Replenisher（補貨）</option>
+</select>
+
+<label for="accountAccessLevel">Access Level（權限等級）</label>
+<select id="accountAccessLevel">
+  <option value="" selected>請選擇 Access Level（權限等級）</option>
+  <option value="Worker">Worker（作業員）</option>
+  <option value="Power Worker">Power Worker（資深作業員）</option>
+  <option value="Leader">Leader（組長）</option>
+  <option value="Manager">Manager（主管）</option>
+  <option value="Admin">Admin（系統管理員）</option>
+</select>
+
+    <div class="button-row">
+  <button id="accountSubmitBtn" onclick="addAccount()">新增帳號</button>
+  <button type="button" class="gray">清空欄位（下一步啟用）</button>
+  <button type="button" class="danger">刪除被勾選帳號（下一步啟用）</button>
+  <button type="button" class="orange">載入修改（下一步啟用）</button>
+  <button id="toggleOperationLogBtn" type="button" class="teal" style="display:none;">
+    顯示操作紀錄
+  </button>
+</div>
+
+    <div id="accountMessage" class="message"></div>
+
+    <table id="accountTable">
+      <tr>
+        <th>帳號</th>
+        <th>顯示名稱</th>
+        <th>角色</th>
+        <th>狀態</th>
+        <th>操作</th>
+      </tr>
+    </table>
+    <div id="operationLogPanel" class="card" style="display:none; margin-top:20px;">
+  <h3>帳號操作紀錄</h3>
+
+  <table id="operationLogTable">
+    <tr>
+      <th>時間</th>
+      <th>操作人</th>
+      <th>角色</th>
+      <th>動作</th>
+      <th>目標</th>
+      <th>內容</th>
+    </tr>
+  </table>
+</div>
+  </div>
+</div>
     <div id="batchPage" class="page">
       <div class="card">
         <h2>撿貨批次作業</h2>
@@ -459,7 +689,7 @@
         <div class="button-row">
           <button onclick="processBatchScan()">送出批次掃描</button>
           <button class="gray" onclick="clearBatchInput()">清空批次欄位</button>
-          <button onclick="exportBatchRecords()">匯出批次Excel</button>
+          <button id="exportBatchRecordsBtn" onclick="exportBatchRecords()">匯出批次Excel</button>
         </div>
 
         <div id="batchMessage" class="message"></div>
@@ -584,14 +814,1894 @@
       </div>
     </div>
 
+        <div id="employeeEfficiencyPage" class="page">
+  <div class="card">
+    <h2>作業控制塔（Control Tower）</h2>
+
+    <div class="button-row">
+     <button id="toggleFlowControlBtn" onclick="toggleFlowControlPanel()">顯示 / 隱藏貨態追蹤</button>
+     <button id="toggleEmployeePerformanceBtn" class="teal" onclick="toggleEmployeePerformancePanel()">顯示 / 隱藏員工績效</button>
+     <button id="toggleWorkstationBtn" class="gray" onclick="toggleWorkstationPanel()">顯示 / 隱藏工位看板</button>
+  </div>
+
+    <div class="info-box">
+      <strong>效率排名邏輯：</strong><br>
+      1. 一般配效率 = 一般配總量 ÷ 撿貨工時。<br>
+      2. 無包裝效率 = 無包裝總PCS ÷ 撿貨工時。<br>
+      3. 若同一員工今天兩種作業都有，依主要作業類型判定效率值。<br>
+      4. 若撿貨工時為 0，效率值以 0 計算。<br>
+      5. 目前只顯示今日前 5 名。
+    </div>
+    <div id="flowControlPanel" style="display:none;">
+  <div class="card" style="margin-top:16px;">
+    <h3>貨態分流（Flow Control）</h3>
+
+    <div class="info-box">
+      這裡將用來顯示倉庫貨物流向與作業分流狀態。
+    </div>
+
+    <div class="button-row">
+      <button class="gray">待撿貨</button>
+      <button class="gray">撿貨中</button>
+      <button class="gray">待包貨</button>
+      <button class="gray">已完成</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>貨態列表</h3>
+
+    <table id="flowControlTable">
+      <tr>
+        <th>批次編號</th>
+        <th>名稱</th>
+        <th>數量</th>
+        <th>目前狀態</th>
+      </tr>
+    </table>
+
+    <div id="flowControlMessage" class="message"></div>
   </div>
 </div>
+    <div id="workstationPanel" style="display:none;">
+  <div class="card" style="margin-top:16px;">
+    <h3>工位管理看板</h3>
+
+    <div class="button-row">
+     <button class="gray" onclick="exportWorkstationRecords()">
+       匯出工位紀錄 XLSX
+     </button>
+   </div>
+    <div id="controlTowerWorkstationCountBoard">
+      <div class="dashboard-section-title">進貨區目前人數</div>
+      <div class="dashboard-grid">
+        <div class="dashboard-card"><div class="dashboard-title">貨櫃</div><div id="ctCount貨櫃" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">驗收</div><div id="ctCount驗收" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">上架</div><div id="ctCount上架" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">補貨</div><div id="ctCount補貨" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">進貨 Leader</div><div id="ctCountInboundLeader" class="dashboard-value">0</div></div>
+      </div>
+
+      <div class="dashboard-section-title">出貨區目前人數</div>
+      <div class="dashboard-grid">
+        <div class="dashboard-card"><div class="dashboard-title">撿貨</div><div id="ctCount撿貨" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">配貨</div><div id="ctCount配貨" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">包貨｜無包裝</div><div id="ctCount包貨無包裝" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">包貨｜一般配</div><div id="ctCount包貨一般配" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">包貨｜宅配</div><div id="ctCount包貨宅配" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">印單</div><div id="ctCount印單" class="dashboard-value">0</div></div>
+        <div class="dashboard-card"><div class="dashboard-title">出貨 Leader</div><div id="ctCountOutboundLeader" class="dashboard-value">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>目前作業中工位</h3>
+
+    <div id="ctActiveWorkstationSummary" class="result-box">
+      這裡之後會顯示：目前誰正在什麼工位作業中
+    </div>
+
+    <table id="ctActiveWorkstationTable">
+      <tr>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>群組</th>
+        <th>工位</th>
+        <th>開始時間</th>
+        <th>狀態</th>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>今日工位紀錄</h3>
+
+    <div class="button-row">
+      <button id="ctTodayFilterBtn" class="green" type="button">只看今天</button>
+      <button id="ctAllFilterBtn" class="gray" type="button">顯示全部</button>
+    </div>
+
+    <div id="ctTodayWorkstationSummary" class="result-box">
+      這裡之後會顯示：今天所有工位刷卡紀錄
+    </div>
+
+    <table id="ctTodayWorkstationTable">
+      <tr>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>群組</th>
+        <th>工位</th>
+        <th>開始時間</th>
+        <th>結束時間</th>
+        <th>狀態</th>
+      </tr>
+    </table>
+  </div>
+</div>
+    <div id="employeePerformancePanel" style="display:none;">
+      <div id="employeeEfficiencySummary" class="message"></div>
+
+      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+        <div class="dashboard-card dashboard-total">
+          <div class="dashboard-title">一般配有排名人數</div>
+          <div class="dashboard-value" id="normalCountValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-picking">
+          <div class="dashboard-title">一般配最高效率</div>
+          <div class="dashboard-value" id="normalTopValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-pack-wait">
+          <div class="dashboard-title">一般配平均效率</div>
+          <div class="dashboard-value" id="normalAvgValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-not-started">
+          <div class="dashboard-title">一般配最低效率</div>
+          <div class="dashboard-value" id="normalMinValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-total">
+          <div class="dashboard-title">無包裝有排名人數</div>
+          <div class="dashboard-value" id="noPackCountValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-picking">
+          <div class="dashboard-title">無包裝最高效率</div>
+          <div class="dashboard-value" id="noPackTopValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-pack-wait">
+          <div class="dashboard-title">無包裝平均效率</div>
+          <div class="dashboard-value" id="noPackAvgValue">0</div>
+        </div>
+
+        <div class="dashboard-card dashboard-not-started">
+          <div class="dashboard-title">無包裝最低效率</div>
+          <div class="dashboard-value" id="noPackMinValue">0</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>今日異常員工清單</h3>
+        <div id="employeeEfficiencyAlertSummary" class="result-box">目前尚無異常員工資料</div>
+
+        <table id="employeeEfficiencyAlertTable">
+          <tr>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>今日判定類型</th>
+            <th>撿貨工時</th>
+            <th>效率值</th>
+          </tr>
+        </table>
+      </div>
+
+      <table id="employeeEfficiencyTable">
+        <tr>
+          <th>排名</th>
+          <th>員工編號</th>
+          <th>員工姓名</th>
+          <th>一般配批次</th>
+          <th>無包裝批次</th>
+          <th>一般配總量</th>
+          <th>無包裝總PCS</th>
+          <th>今日判定類型</th>
+          <th>撿貨工時</th>
+          <th>效率值</th>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="attendancePage" class="page">
+  <div class="card">
+    <h2>上下班打卡 / 工位打卡</h2>
+
+    <div class="button-row">
+      <button
+        id="toggleAttendancePanelBtn"
+        class="green"
+        type="button"
+        onclick="
+          document.getElementById('attendanceMainPanel').style.display='block';
+          document.getElementById('workstationMainPanel').style.display='none';
+          document.getElementById('toggleAttendancePanelBtn').innerText='隱藏上下班打卡';
+          document.getElementById('toggleWorkstationPanelBtn').innerText='顯示工位打卡';
+        "
+      >
+        顯示上下班打卡
+      </button>
+
+      <button
+        id="toggleWorkstationPanelBtn"
+        class="teal"
+        type="button"
+        onclick="
+          document.getElementById('attendanceMainPanel').style.display='none';
+          document.getElementById('workstationMainPanel').style.display='block';
+          document.getElementById('toggleAttendancePanelBtn').innerText='顯示上下班打卡';
+          document.getElementById('toggleWorkstationPanelBtn').innerText='隱藏工位打卡';
+        "
+      >
+        顯示工位打卡
+      </button>
+    </div>
+
+    <div class="info-box">
+      這一頁現在改成雙切換模式。<br>
+      進入頁面時預設不顯示任何內容。<br>
+      請點上方按鈕，切換要操作的畫面。
+    </div>
+
+    <div id="attendanceMainPanel" style="display:none; margin-top:16px;">
+      <div class="card" style="margin-top:0;">
+        <h3>上下班打卡</h3>
+
+        <div class="info-box">
+          請先選擇打卡模式，再連續刷員工編號。
+          <br>此區只處理上班打卡與下班打卡。
+          <br>如果是下班模式，系統之後會自動判斷是否需要先 Check Out。
+        </div>
+
+        <div class="button-row">
+          <button class="green" onclick="setAttendanceMode('checkin')">上班模式</button>
+          <button class="danger" onclick="setAttendanceMode('checkout')">下班模式</button>
+          <button class="gray" onclick="clearAttendanceMode()">清空模式</button>
+        </div>
+
+        <div id="attendanceModeResult" class="result-box">目前尚未選擇打卡模式</div>
+
+        <label for="attendanceEmployeeCode">掃描員工編號</label>
+        <input type="text" id="attendanceEmployeeCode" placeholder="請先選模式，再刷員工條碼">
+
+        <div id="attendanceScanResult" class="result-box"></div>
+        <div id="attendanceMessage" class="message"></div>
+      </div>
+    </div>
+
+    <div id="workstationMainPanel" style="display:none; margin-top:16px;">
+      <div class="card" style="margin-top:0;">
+        <h3>工位打卡</h3>
+
+        <div class="info-box">
+          請先選擇工位模式，再連續刷員工編號。
+          <br>工位群組分成進貨、出貨。
+          <br>Check Out 將會在這個區塊操作。
+          <br>下班打卡時，系統之後也會自動判斷是否需要執行 Check Out。
+        </div>
+
+        <label>工位模式</label>
+        <div class="button-row">
+          <button class="green" onclick="setWorkstationMode('start')">工位開始</button>
+          <button class="danger" onclick="setWorkstationMode('checkout')">Check Out</button>
+          <button class="gray" onclick="clearWorkstationMode()">清空模式</button>
+        </div>
+
+        <div id="workstationModeResult" class="result-box">目前尚未選擇工位模式</div>
+
+        <label>工位群組</label>
+        <div class="button-row">
+          <button class="orange" onclick="setWorkstationGroup('inbound')">進貨</button>
+          <button class="purple" onclick="setWorkstationGroup('outbound')">出貨</button>
+        </div>
+
+        <div id="workstationGroupResult" class="result-box">目前尚未選擇工位群組</div>
+
+        <div id="inboundWorkstationArea" style="display:none;">
+          <label>進貨工位</label>
+          <div class="button-row">
+            <button onclick="setWorkstationName('貨櫃')">貨櫃</button>
+            <button onclick="setWorkstationName('驗收')">驗收</button>
+            <button onclick="setWorkstationName('上架')">上架</button>
+            <button onclick="setWorkstationName('補貨')">補貨</button>
+            <button onclick="setWorkstationName('Leader')">Leader</button>
+          </div>
+        </div>
+
+        <div id="outboundWorkstationArea" style="display:none;">
+          <label>出貨工位</label>
+          <div class="button-row">
+            <button onclick="setWorkstationName('撿貨')">撿貨</button>
+            <button onclick="setWorkstationName('配貨')">配貨</button>
+            <button onclick="setWorkstationName('包貨｜無包裝')">包貨｜無包裝</button>
+            <button onclick="setWorkstationName('包貨｜一般配')">包貨｜一般配</button>
+            <button onclick="setWorkstationName('包貨｜宅配')">包貨｜宅配</button>
+            <button onclick="setWorkstationName('印單')">印單</button>
+            <button onclick="setWorkstationName('Leader')">Leader</button>
+          </div>
+        </div>
+
+        <div id="workstationNameResult" class="result-box">目前尚未選擇工位</div>
+
+        <label for="workstationEmployeeCode">掃描員工編號</label>
+        <input type="text" id="workstationEmployeeCode" placeholder="之後這裡會做成先選模式，再連續刷工號">
+
+        <div id="workstationScanResult" class="result-box"></div>
+        <div id="workstationMessage" class="message"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    
 
 <script>
-  let employees = JSON.parse(localStorage.getItem("employees")) || [];
-  let batchRecords = JSON.parse(localStorage.getItem("batchRecords")) || [];
-  let batchMaster = JSON.parse(localStorage.getItem("batchMaster")) || [];
-  let currentBatchEmployee = null;
+let employees = JSON.parse(localStorage.getItem("employees")) || [];
+let SYSTEM_COMPANY_NAME = "MUYAO";
+let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
+let ACCOUNT_STORAGE_KEY = "warehouseAccounts";
+
+
+const DEPARTMENT_OPTIONS = ["", "Inbound", "Outbound"];
+const WORK_ROLE_OPTIONS = [
+  "Picker",
+  "Sorter",
+  "Packer",
+  "Print Operator",
+  "Receiver",
+  "Putaway",
+  "Replenisher"
+];
+const ACCESS_LEVEL_OPTIONS = ["", "Worker", "Power Worker", "Leader", "Manager", "Admin"];
+function getDefaultAccounts() {
+  return [
+    {
+      id: "ACC_ADMIN_001",
+      username: "alchen0311",
+      password: "newdo1118",
+      name: "Alan Chen",
+      department: "",
+      workRoles: [],
+      accessLevel: "Admin",
+      isActive: true,
+      permissions: ["createBatchPage"]
+    }
+  ];
+}
+
+function normalizeDepartment(value) {
+  let department = String(value || "").trim();
+  return DEPARTMENT_OPTIONS.includes(department) ? department : "";
+}
+
+function normalizeWorkRoles(value) {
+  let sourceList = [];
+
+  if (Array.isArray(value)) {
+    sourceList = value;
+  } else if (typeof value === "string" && value.trim()) {
+    sourceList = [value.trim()];
+  } else {
+    sourceList = [];
+  }
+
+  let normalizedList = sourceList
+    .map(item => String(item || "").trim())
+    .filter(item => WORK_ROLE_OPTIONS.includes(item));
+
+  return [...new Set(normalizedList)];
+}
+
+function normalizeAccessLevel(value) {
+  let accessLevel = String(value || "").trim();
+  return ACCESS_LEVEL_OPTIONS.includes(accessLevel) ? accessLevel : "";
+}
+
+function normalizeAccount(account, index) {
+  let defaultAdmin = getDefaultAccounts()[0];
+
+  let normalizedWorkRoles = normalizeWorkRoles(
+    account.workRoles || account.workRole || []
+  );
+
+  let rawSystemDepartment = String(account.systemDepartment || "").trim();
+
+  let allowedSystemDepartments = [
+    "logistics",
+    "marketing",
+    "customerService",
+    "purchasing",
+    "sales",
+    "productDevelopment"
+  ];
+
+  let fallbackSystemDepartment = "logistics";
+
+  let normalizedSystemDepartment = allowedSystemDepartments.includes(rawSystemDepartment)
+    ? rawSystemDepartment
+    : fallbackSystemDepartment;
+
+  return {
+    id: account.id || `ACC_${Date.now()}_${index}`,
+    username: (account.username || "").trim(),
+    password: (account.password || "").trim(),
+    name: (account.name || account.username || "").trim(),
+    department: normalizeDepartment(account.department),
+
+    // ✅ 新增：系統部門（上方 6 部門切換用）
+    systemDepartment: normalizedSystemDepartment,
+
+    // 新版：正式使用 workRoles 陣列
+    workRoles: normalizedWorkRoles,
+
+    // 舊欄位保留相容，不再作為主欄位使用
+    workRole: normalizedWorkRoles[0] || "",
+
+    accessLevel: normalizeAccessLevel(
+      account.accessLevel || (account.username === defaultAdmin.username ? "Admin" : "")
+    ),
+    isActive: account.isActive !== false,
+    permissions: Array.isArray(account.permissions) ? account.permissions : []
+  };
+}
+
+
+function getAccounts() {
+  let rawAccounts = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY)) || [];
+  return rawAccounts.map((account, index) => normalizeAccount(account, index));
+}
+
+function saveAccounts(accounts) {
+  let normalizedAccounts = accounts.map((account, index) => normalizeAccount(account, index));
+  localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(normalizedAccounts));
+}
+
+function initializeDefaultAccounts() {
+  let accounts = getAccounts();
+  let defaultAdmin = getDefaultAccounts()[0];
+
+  if (!accounts || accounts.length === 0) {
+    saveAccounts([defaultAdmin]);
+    return;
+  }
+
+  let existedAdminIndex = accounts.findIndex(account => account.username === defaultAdmin.username);
+
+  if (existedAdminIndex === -1) {
+    accounts.unshift(defaultAdmin);
+  } else {
+    accounts[existedAdminIndex] = {
+  ...accounts[existedAdminIndex],
+  id: accounts[existedAdminIndex].id || defaultAdmin.id,
+  name: accounts[existedAdminIndex].name || defaultAdmin.name,
+  accessLevel: "Admin",
+  isActive: accounts[existedAdminIndex].isActive !== false
+};
+  }
+
+  saveAccounts(accounts);
+}
+
+function findAccount(username, password) {
+  let accounts = getAccounts();
+
+  return accounts.find(account =>
+    account.username === username &&
+    account.password === password &&
+    account.isActive !== false
+  ) || null;
+}
+
+function getCurrentLoginUser() {
+  return JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY)) || null;
+}
+
+function saveCurrentLoginUser(user) {
+  localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+}
+
+function clearCurrentLoginUser() {
+  localStorage.removeItem(LOGIN_STORAGE_KEY);
+}
+
+function renderAccounts() {
+  let table = document.getElementById("accountTable");
+  if (!table) return;
+
+  let currentUser = getCurrentLoginUser();
+  let toggleLogBtn = document.getElementById("toggleOperationLogBtn");
+  let logPanel = document.getElementById("operationLogPanel");
+
+  if (toggleLogBtn) {
+    toggleLogBtn.style.display = currentUser && currentUser.accessLevel === "Admin" ? "inline-block" : "none";
+  }
+
+  if (logPanel && (!currentUser || currentUser.accessLevel !== "Admin")) {
+    logPanel.style.display = "none";
+  }
+
+  let accounts = getAccounts();
+
+  if (currentUser && currentUser.accessLevel === "Manager") {
+    accounts = accounts.filter(account =>
+      account.systemDepartment === currentUser.systemDepartment
+    );
+  }
+
+  table.innerHTML = `
+    <tr>
+      <th>勾選</th>
+      <th>帳號</th>
+      <th>顯示名稱</th>
+      <th>Department</th>
+      <th>System Department</th>
+      <th>Work Roles</th>
+      <th>Access Level</th>
+      <th>狀態</th>
+      <th>操作</th>
+    </tr>
+  `;
+
+  accounts.forEach(account => {
+    let row = table.insertRow();
+    let encodedUsername = encodeURIComponent(account.username || "");
+    let statusText = account.isActive === false ? "停用" : "啟用";
+
+    row.insertCell(0).innerHTML = `<input type="checkbox" class="accountCheck" data-username="${account.username || ""}">`;
+    row.insertCell(1).innerText = account.username || "";
+    row.insertCell(2).innerText = account.name || "";
+    row.insertCell(3).innerText = account.department || "-";
+    row.insertCell(4).innerText = account.systemDepartment || "-";
+    row.insertCell(5).innerText = account.workRoles && account.workRoles.length > 0
+      ? account.workRoles.join(", ")
+      : "-";
+    row.insertCell(6).innerText = account.accessLevel || "-";
+
+    row.insertCell(7).innerHTML = `
+      <span class="status-tag ${account.isActive === false ? "status-not-started" : "status-picking"}">
+        ${statusText}
+      </span>
+    `;
+
+    row.insertCell(8).innerHTML = `
+      <button class="${account.isActive === false ? "green" : "gray"}"
+        onclick="toggleAccountActive('${encodedUsername}')">
+        ${account.isActive === false ? "啟用" : "停用"}
+      </button>
+    `;
+  });
+}
+
+function updateAccountRole(encodedUsername) {
+  let username = decodeURIComponent(encodedUsername || "");
+  let accounts = getAccounts();
+  let message = document.getElementById("accountMessage");
+  let defaultAdmin = getDefaultAccounts()[0];
+  let roleSelect = document.getElementById(`roleSelect_${encodedUsername}`);
+  let currentUser = getCurrentLoginUser();
+
+  if (!roleSelect) {
+    if (message) {
+      message.innerText = "找不到角色選單";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let newRole = roleSelect.value;
+  let target = accounts.find(account => account.username === username);
+
+  if (!target) {
+    if (message) {
+      message.innerText = "找不到要修改的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (target.username === defaultAdmin.username && newRole !== "admin") {
+    if (message) {
+      message.innerText = "預設管理員帳號角色不可修改";
+      message.className = "message danger-text";
+    }
+    renderAccounts();
+    return;
+  }
+
+  if (
+    currentUser &&
+    currentUser.accessLevel === "Manager" &&
+    target.systemDepartment !== currentUser.systemDepartment
+  ) {
+    if (message) {
+      message.innerText = "Manager 只能修改自己 systemDepartment 的帳號";
+      message.className = "message danger-text";
+    }
+    renderAccounts();
+    return;
+  }
+
+  if (currentUser && currentUser.accessLevel === "Manager") {
+    let allowedRoles = ["powerUser", "user"];
+
+    if (!allowedRoles.includes(newRole)) {
+      if (message) {
+        message.innerText = "Manager 不能把帳號升級為 manager / admin";
+        message.className = "message danger-text";
+      }
+      renderAccounts();
+      return;
+    }
+  }
+
+  let oldRole = target.role || "";
+  target.role = newRole;
+  saveAccounts(accounts);
+
+  addOperationLog(
+    "更新角色",
+    username,
+    `角色由 ${oldRole || "未設定"} 改為 ${newRole}`
+  );
+
+  if (currentUser && currentUser.username === target.username) {
+    currentUser.role = newRole;
+    saveCurrentLoginUser(currentUser);
+    applyMenuPermissions();
+  }
+
+  renderAccounts();
+
+  if (message) {
+    message.innerText = `${target.username} 的角色已更新為 ${newRole}`;
+    message.className = "message";
+  }
+}
+
+function clearAccountForm() {
+  let usernameInput = document.getElementById("accountUsername");
+  let editTargetInput = document.getElementById("accountEditTargetUsername");
+  let passwordInput = document.getElementById("accountPassword");
+  let nameInput = document.getElementById("accountName");
+  let departmentInput = document.getElementById("accountDepartment");
+  let systemDepartmentInput = document.getElementById("accountSystemDepartment");
+  let workRoleInput = document.getElementById("accountWorkRole");
+  let accessLevelInput = document.getElementById("accountAccessLevel");
+  let message = document.getElementById("accountMessage");
+  let submitBtn = document.getElementById("accountSubmitBtn");
+  let currentUser = getCurrentLoginUser();
+
+  if (usernameInput) usernameInput.value = "";
+  if (editTargetInput) editTargetInput.value = "";
+  if (passwordInput) passwordInput.value = "";
+  if (nameInput) nameInput.value = "";
+  if (departmentInput) departmentInput.value = "";
+
+  if (systemDepartmentInput) {
+    if (currentUser && currentUser.accessLevel === "Manager") {
+      systemDepartmentInput.value = currentUser.systemDepartment || "logistics";
+      systemDepartmentInput.disabled = true;
+    } else {
+      systemDepartmentInput.value = "logistics";
+      systemDepartmentInput.disabled = false;
+    }
+  }
+
+  if (accessLevelInput) {
+    accessLevelInput.innerHTML = `
+      <option value="" selected>請選擇 Access Level（權限等級）</option>
+    `;
+
+    if (currentUser && currentUser.accessLevel === "Manager") {
+      accessLevelInput.innerHTML += `
+        <option value="Worker">Worker（作業員）</option>
+        <option value="Power Worker">Power Worker（資深作業員）</option>
+        <option value="Leader">Leader（組長）</option>
+      `;
+    } else {
+      accessLevelInput.innerHTML += `
+        <option value="Worker">Worker（作業員）</option>
+        <option value="Power Worker">Power Worker（資深作業員）</option>
+        <option value="Leader">Leader（組長）</option>
+        <option value="Manager">Manager（主管）</option>
+        <option value="Admin">Admin（系統管理員）</option>
+      `;
+    }
+
+    accessLevelInput.value = "";
+  }
+
+  if (workRoleInput) {
+    Array.from(workRoleInput.options).forEach(option => {
+      option.selected = false;
+    });
+  }
+
+  if (submitBtn) {
+    submitBtn.innerText = "新增帳號";
+  }
+
+  if (message) message.innerText = "";
+  if (usernameInput) usernameInput.focus();
+}
+
+function addAccount() {
+  let usernameInput = document.getElementById("accountUsername");
+  let editTargetInput = document.getElementById("accountEditTargetUsername");
+  let passwordInput = document.getElementById("accountPassword");
+  let nameInput = document.getElementById("accountName");
+  let departmentInput = document.getElementById("accountDepartment");
+  let systemDepartmentInput = document.getElementById("accountSystemDepartment");
+  let workRoleInput = document.getElementById("accountWorkRole");
+  let accessLevelInput = document.getElementById("accountAccessLevel");
+  let message = document.getElementById("accountMessage");
+  let currentUser = getCurrentLoginUser();
+
+  let username = usernameInput ? usernameInput.value.trim() : "";
+  let editTargetUsername = editTargetInput ? editTargetInput.value.trim() : "";
+  let password = passwordInput ? passwordInput.value.trim() : "";
+  let name = nameInput ? nameInput.value.trim() : "";
+  let department = departmentInput ? departmentInput.value : "";
+  let systemDepartment = systemDepartmentInput ? systemDepartmentInput.value : "logistics";
+  let accessLevel = accessLevelInput ? accessLevelInput.value : "";
+
+  let workRoles = [];
+  if (workRoleInput) {
+    workRoles = Array.from(workRoleInput.selectedOptions).map(option => option.value);
+  }
+
+  if (!username || !password || !name) {
+    if (message) {
+      message.innerText = "請輸入完整的帳號、密碼、顯示名稱";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let accounts = getAccounts();
+  let isEditMode = !!editTargetUsername;
+
+  if (currentUser && currentUser.accessLevel === "Manager") {
+    systemDepartment = currentUser.systemDepartment || "logistics";
+
+    let allowedManagerCreateLevels = ["Worker", "Power Worker", "Leader"];
+    if (!allowedManagerCreateLevels.includes(accessLevel)) {
+      if (message) {
+        message.innerText = "Manager 只能建立或修改為 Worker / Power Worker / Leader";
+        message.className = "message danger-text";
+      }
+      return;
+    }
+  }
+
+  if (!isEditMode) {
+    let existed = accounts.find(account => account.username === username);
+    if (existed) {
+      if (message) {
+        message.innerText = "登入帳號已存在，請更換";
+        message.className = "message danger-text";
+      }
+      return;
+    }
+
+    let newAccount = normalizeAccount({
+      id: `ACC_${Date.now()}`,
+      username: username,
+      password: password,
+      name: name,
+      department: department,
+      systemDepartment: systemDepartment,
+      workRoles: workRoles,
+      accessLevel: accessLevel,
+      isActive: true,
+      permissions: []
+    }, accounts.length);
+
+    accounts.push(newAccount);
+    saveAccounts(accounts);
+
+    addOperationLog(
+      "新增帳號",
+      username,
+      `新增帳號，systemDepartment=${newAccount.systemDepartment || "未設定"}，department=${newAccount.department || "未設定"}，workRoles=${newAccount.workRoles && newAccount.workRoles.length > 0 ? newAccount.workRoles.join(", ") : "未設定"}，accessLevel=${newAccount.accessLevel || "未設定"}，顯示名稱=${name}`
+    );
+
+    renderAccounts();
+    clearAccountForm();
+
+    if (message) {
+      message.innerText = "帳號新增成功";
+      message.className = "message";
+    }
+    return;
+  }
+
+  let target = accounts.find(account => account.username === editTargetUsername);
+
+  if (!target) {
+    if (message) {
+      message.innerText = "找不到要修改的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (
+    currentUser &&
+    currentUser.accessLevel === "Manager" &&
+    target.systemDepartment !== currentUser.systemDepartment
+  ) {
+    if (message) {
+      message.innerText = "Manager 只能修改自己 systemDepartment 的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let usernameConflict = accounts.find(account =>
+    account.username === username && account.username !== editTargetUsername
+  );
+
+  if (usernameConflict) {
+    if (message) {
+      message.innerText = "新的登入帳號已存在，請更換";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let oldUsername = target.username || "";
+  let oldSystemDepartment = target.systemDepartment || "";
+  let oldDepartment = target.department || "";
+  let oldAccessLevel = target.accessLevel || "";
+  let oldWorkRoles = Array.isArray(target.workRoles) ? target.workRoles.join(", ") : "";
+
+  target.username = username;
+  target.password = password;
+  target.name = name;
+  target.department = normalizeDepartment(department);
+  target.systemDepartment = systemDepartment;
+  target.workRoles = normalizeWorkRoles(workRoles);
+  target.workRole = target.workRoles[0] || "";
+  target.accessLevel = normalizeAccessLevel(accessLevel);
+
+  saveAccounts(accounts);
+
+  if (currentUser && currentUser.username === editTargetUsername) {
+    currentUser.username = target.username;
+    currentUser.password = target.password;
+    currentUser.name = target.name;
+    currentUser.department = target.department;
+    currentUser.systemDepartment = target.systemDepartment;
+    currentUser.workRoles = target.workRoles;
+    currentUser.workRole = target.workRole;
+    currentUser.accessLevel = target.accessLevel;
+    saveCurrentLoginUser(currentUser);
+    applyMenuPermissions();
+  }
+
+  addOperationLog(
+    "修改帳號",
+    target.username,
+    `帳號由 ${oldUsername || "未設定"} 修改為 ${target.username || "未設定"}，systemDepartment：${oldSystemDepartment || "未設定"} -> ${target.systemDepartment || "未設定"}，department：${oldDepartment || "未設定"} -> ${target.department || "未設定"}，accessLevel：${oldAccessLevel || "未設定"} -> ${target.accessLevel || "未設定"}，workRoles：${oldWorkRoles || "未設定"} -> ${target.workRoles.length > 0 ? target.workRoles.join(", ") : "未設定"}`
+  );
+
+  renderAccounts();
+  clearAccountForm();
+
+  if (message) {
+    message.innerText = "帳號修改成功";
+    message.className = "message";
+  }
+}
+function loadSelectedAccountToForm() {
+  let checkedBoxes = document.querySelectorAll(".accountCheck:checked");
+  let message = document.getElementById("accountMessage");
+
+  let usernameInput = document.getElementById("accountUsername");
+  let editTargetInput = document.getElementById("accountEditTargetUsername");
+  let passwordInput = document.getElementById("accountPassword");
+  let nameInput = document.getElementById("accountName");
+  let departmentInput = document.getElementById("accountDepartment");
+  let systemDepartmentInput = document.getElementById("accountSystemDepartment");
+  let workRoleInput = document.getElementById("accountWorkRole");
+  let accessLevelInput = document.getElementById("accountAccessLevel");
+  let currentUser = getCurrentLoginUser();
+
+  if (checkedBoxes.length === 0) {
+    if (message) {
+      message.innerText = "請先勾選 1 筆要修改的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (checkedBoxes.length > 1) {
+    if (message) {
+      message.innerText = "一次只能載入 1 筆帳號進行修改";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let username = checkedBoxes[0].dataset.username || "";
+  let accounts = getAccounts();
+  let target = accounts.find(account => account.username === username);
+
+  if (!target) {
+    if (message) {
+      message.innerText = "找不到要載入的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (
+    currentUser &&
+    currentUser.accessLevel === "Manager" &&
+    target.systemDepartment !== currentUser.systemDepartment
+  ) {
+    if (message) {
+      message.innerText = "Manager 只能修改自己 systemDepartment 的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (usernameInput) usernameInput.value = target.username || "";
+  if (editTargetInput) editTargetInput.value = target.username || "";
+  if (passwordInput) passwordInput.value = target.password || "";
+  if (nameInput) nameInput.value = target.name || "";
+  if (departmentInput) departmentInput.value = target.department || "";
+  if (systemDepartmentInput) systemDepartmentInput.value = target.systemDepartment || "logistics";
+  if (accessLevelInput) accessLevelInput.value = target.accessLevel || "";
+
+  if (workRoleInput) {
+    let selectedRoles = Array.isArray(target.workRoles) ? target.workRoles : [];
+
+    Array.from(workRoleInput.options).forEach(option => {
+      option.selected = selectedRoles.includes(option.value);
+    });
+  }
+
+  let submitBtn = document.getElementById("accountSubmitBtn");
+
+if (submitBtn) {
+  submitBtn.innerText = "儲存修改";
+}
+
+if (message) {
+  message.innerText = `已載入帳號：${target.username}`;
+  message.className = "message";
+}
+
+if (nameInput) nameInput.focus();
+}
+function deleteSelectedAccounts() {
+  let checkedBoxes = document.querySelectorAll(".accountCheck:checked");
+  let message = document.getElementById("accountMessage");
+  let accounts = getAccounts();
+  let defaultAdmin = getDefaultAccounts()[0];
+  let currentUser = getCurrentLoginUser();
+
+  if (checkedBoxes.length === 0) {
+    if (message) {
+      message.innerText = "請先勾選要刪除的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let usernamesToDelete = Array.from(checkedBoxes).map(box => box.dataset.username || "");
+  let targetsToDelete = accounts.filter(account => usernamesToDelete.includes(account.username));
+
+  if (targetsToDelete.length === 0) {
+    if (message) {
+      message.innerText = "找不到要刪除的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (usernamesToDelete.includes(defaultAdmin.username)) {
+    if (message) {
+      message.innerText = "預設管理員帳號不可刪除";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (currentUser && usernamesToDelete.includes(currentUser.username)) {
+    if (message) {
+      message.innerText = "目前登入中的帳號不可直接刪除";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (currentUser && currentUser.accessLevel === "Manager") {
+    let hasOtherDepartmentTarget = targetsToDelete.some(account =>
+      account.systemDepartment !== currentUser.systemDepartment
+    );
+
+    if (hasOtherDepartmentTarget) {
+      if (message) {
+        message.innerText = "Manager 只能刪除自己 systemDepartment 的帳號";
+        message.className = "message danger-text";
+      }
+      return;
+    }
+  }
+
+  let remainingAccounts = accounts.filter(account => !usernamesToDelete.includes(account.username));
+
+  usernamesToDelete.forEach(username => {
+    addOperationLog(
+      "刪除帳號",
+      username,
+      "帳號已被批次刪除"
+    );
+  });
+
+  saveAccounts(remainingAccounts);
+  renderAccounts();
+
+  if (message) {
+    message.innerText = `已刪除 ${usernamesToDelete.length} 筆帳號`;
+    message.className = "message";
+  }
+}
+function toggleAccountActive(encodedUsername) {
+  let username = decodeURIComponent(encodedUsername || "");
+  let accounts = getAccounts();
+  let message = document.getElementById("accountMessage");
+  let defaultAdmin = getDefaultAccounts()[0];
+
+  let target = accounts.find(account => account.username === username);
+  if (!target) {
+    if (message) {
+      message.innerText = "找不到要變更的帳號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (target.username === defaultAdmin.username && target.isActive !== false) {
+    if (message) {
+      message.innerText = "預設管理員帳號不可停用";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let newStatusText = target.isActive === false ? "啟用" : "停用";
+
+target.isActive = !target.isActive;
+saveAccounts(accounts);
+
+addOperationLog(
+  "變更帳號狀態",
+  username,
+  `帳號已${newStatusText}`
+);
+
+renderAccounts();
+
+  if (message) {
+    message.innerText = `${target.username} 已${target.isActive ? "啟用" : "停用"}`;
+    message.className = "message";
+  }
+}
+
+function bindAccountPageEvents() {
+  if (window.accountPageEventsBound) return;
+
+  let buttons = document.querySelectorAll("#accountPage .button-row button");
+  let toggleLogBtn = document.getElementById("toggleOperationLogBtn");
+
+  if (buttons[0]) {
+  buttons[0].onclick = addAccount;
+  buttons[0].innerText = "新增帳號";
+}
+
+if (buttons[1]) {
+  buttons[1].onclick = clearAccountForm;
+  buttons[1].innerText = "清空欄位";
+}
+
+if (buttons[2]) {
+  buttons[2].onclick = loadSelectedAccountToForm;
+  buttons[2].innerText = "載入修改";
+}
+
+if (buttons[3]) {
+  buttons[3].onclick = deleteSelectedAccounts;
+  buttons[3].innerText = "刪除被勾選帳號";
+}
+
+if (toggleLogBtn) {
+  toggleLogBtn.onclick = toggleOperationLogPanel;
+}
+
+  window.accountPageEventsBound = true;
+}
+function toggleOperationLogPanel() {
+  let panel = document.getElementById("operationLogPanel");
+  let btn = document.getElementById("toggleOperationLogBtn");
+
+  if (!panel || !btn) return;
+
+  if (panel.style.display === "none") {
+    panel.style.display = "block";
+    btn.innerText = "隱藏操作紀錄";
+    renderOperationLogs();
+  } else {
+    panel.style.display = "none";
+    btn.innerText = "顯示操作紀錄";
+  }
+}
+
+function renderOperationLogs() {
+  let table = document.getElementById("operationLogTable");
+  if (!table) return;
+
+  table.innerHTML = `
+    <tr>
+      <th>時間</th>
+      <th>操作人</th>
+      <th>角色</th>
+      <th>動作</th>
+      <th>目標</th>
+      <th>內容</th>
+    </tr>
+  `;
+
+  if (!operationLogs || operationLogs.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+    cell.colSpan = 6;
+    cell.innerText = "目前沒有任何操作紀錄";
+    return;
+  }
+
+  operationLogs.forEach(log => {
+    let row = table.insertRow();
+    row.insertCell(0).innerText = log.time || "";
+    row.insertCell(1).innerText = log.operatorName || log.operatorUsername || "";
+    row.insertCell(2).innerText = log.operatorRole || "";
+    row.insertCell(3).innerText = log.actionType || "";
+    row.insertCell(4).innerText = log.target || "";
+    row.insertCell(5).innerText = log.detail || "";
+  });
+}
+
+function createLoginPageHtml() {
+  return `
+    <div id="loginPage" style="
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+      padding: 24px;
+    ">
+      <div style="
+        width: 100%;
+        max-width: 420px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        padding: 32px;
+      ">
+        <div style="text-align:center; margin-bottom: 24px;">
+          <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">公司名稱</div>
+          <div style="font-size: 28px; font-weight: bold; color: #111827; margin-bottom: 10px;">
+            ${SYSTEM_COMPANY_NAME}
+          </div>
+          <div style="font-size: 18px; font-weight: bold; color: #2563eb;">
+            倉庫掃描系統登入
+          </div>
+        </div>
+
+        <label for="loginUsername" style="display:block; font-weight:bold; margin-bottom:6px;">帳號</label>
+        <input
+          type="text"
+          id="loginUsername"
+          placeholder="請輸入帳號"
+          style="
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 15px;
+          "
+        >
+
+        <label for="loginPassword" style="display:block; font-weight:bold; margin-bottom:6px;">密碼</label>
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="請輸入密碼"
+          style="
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 15px;
+          "
+        >
+
+        <button
+          type="button"
+          onclick="handleLogin()"
+          style="
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+          "
+        >
+          登入系統
+        </button>
+
+        <div id="loginMessage" style="
+          margin-top: 14px;
+          min-height: 24px;
+          font-weight: bold;
+          color: #dc2626;
+          text-align: center;
+        "></div>
+
+
+      </div>
+    </div>
+  `;
+}
+
+function ensureLoginPage() {
+  let loginPage = document.getElementById("loginPage");
+
+  if (!loginPage) {
+    document.body.insertAdjacentHTML("afterbegin", createLoginPageHtml());
+    loginPage = document.getElementById("loginPage");
+  }
+
+  return loginPage;
+}
+
+function showLoginPage() {
+  let layout = document.querySelector(".layout");
+  let loginPage = ensureLoginPage();
+
+  if (layout) {
+    layout.style.display = "none";
+  }
+
+  if (loginPage) {
+    loginPage.style.display = "flex";
+  }
+
+  setTimeout(() => {
+    let usernameInput = document.getElementById("loginUsername");
+    if (usernameInput) usernameInput.focus();
+
+    bindLoginEnterEvent();
+  }, 0);
+}
+function applyMenuPermissions() {
+  let currentUser = getCurrentLoginUser();
+  let menuButtons = document.querySelectorAll(".sidebar .menu-btn");
+
+  if (!currentUser) return;
+
+  menuButtons.forEach(button => {
+    let pageId = button.dataset.page || "";
+    let hasPermission = hasPagePermission(currentUser, pageId);
+
+    let permissionHintMap = {
+      accountPage: "需要 Manager / Admin 權限",
+      employeePage: "需要 Manager / Admin 權限",
+      employeeEfficiencyPage: "需要 Manager / Admin 權限",
+      createBatchPage: "需要 Print Operator 或 Admin 權限",
+      batchPage: "需要 Picker 或 Admin 權限",
+      attendancePage: "需要有效 AccessLevel",
+      workstationPage: "需要有效 AccessLevel"
+    };
+
+        let shouldHideButton =
+      pageId === "attendancePage" && !hasPermission;
+
+    button.style.display = shouldHideButton ? "none" : "block";
+
+    if (hasPermission) {
+      button.disabled = false;
+      button.style.opacity = "1";
+      button.style.cursor = "pointer";
+      button.title = "";
+    } else {
+      button.disabled = true;
+      button.style.opacity = "0.45";
+      button.style.cursor = "not-allowed";
+      button.title = permissionHintMap[pageId] || "你目前沒有這個頁面的權限";
+    }
+  });
+
+  let activeButton = document.querySelector(".sidebar .menu-btn.active");
+
+  if (activeButton && activeButton.style.display === "none") {
+    activeButton.classList.remove("active");
+  }
+
+  if (currentDepartment !== "logistics") {
+    document.querySelectorAll(".page").forEach(page => {
+      page.classList.remove("active");
+    });
+
+    document.querySelectorAll(".sidebar .menu-btn").forEach(button => {
+      button.classList.remove("active");
+    });
+
+    return;
+  }
+
+  let visibleButtons = Array.from(menuButtons).filter(button => !button.disabled);
+  let activePage = document.querySelector(".page.active");
+
+  if (!activePage && visibleButtons.length > 0) {
+    let firstVisibleButton = visibleButtons[0];
+    let targetPageId = firstVisibleButton.dataset.page;
+
+    document.querySelectorAll(".sidebar .menu-btn").forEach(button => {
+      button.classList.remove("active");
+    });
+
+    firstVisibleButton.classList.add("active");
+
+    let targetPage = document.getElementById(targetPageId);
+    if (targetPage) {
+      targetPage.classList.add("active");
+    }
+  }
+
+  let latestActiveButton = document.querySelector(".sidebar .menu-btn.active");
+  if (latestActiveButton && latestActiveButton.disabled) {
+    latestActiveButton.classList.remove("active");
+  }
+}
+
+
+const ROLE_PAGE_PERMISSIONS = {
+  admin: [
+    "employeePage",
+    "accountPage",
+    "attendancePage",
+    "batchPage",
+    "createBatchPage",
+    "employeeEfficiencyPage",
+    "workstationPage"
+  ],
+  manager: [
+    "employeePage",
+    "accountPage",
+    "attendancePage",
+    "batchPage",
+    "createBatchPage",
+    "employeeEfficiencyPage",
+    "workstationPage"
+  ],
+  powerUser: [
+    "attendancePage",
+    "batchPage",
+    "createBatchPage",
+    "workstationPage"
+  ],
+  user: [
+    "attendancePage",
+    "batchPage",
+    "workstationPage"
+  ]
+};
+
+function getUserPermissionList(user) {
+  if (!user || !Array.isArray(user.permissions)) {
+    return [];
+  }
+
+  return user.permissions
+    .map(item => String(item || "").trim())
+    .filter(item => item !== "");
+}
+
+
+
+function hasCustomPagePermission(user, pageId) {
+  let permissions = getUserPermissionList(user);
+
+  return permissions.includes(pageId) ||
+         permissions.includes(`page:${pageId}`);
+}
+
+
+
+
+function hasPagePermission(user, pageId) {
+  if (!user) return false;
+
+  let level = user.accessLevel || "";
+  let workRoles = Array.isArray(user.workRoles) ? user.workRoles : [];
+
+  // ✅ Admin 全頁最高權限，直接通過
+  if (level === "Admin") {
+    return true;
+  }
+
+  // ✅ 管理頁：只限 Manager
+  if (pageId === "accountPage") {
+    return level === "Manager";
+  }
+
+  if (pageId === "employeePage") {
+    return level === "Manager";
+  }
+
+  if (pageId === "employeeEfficiencyPage") {
+    return level === "Manager";
+  }
+    if (pageId === "employeeEfficiencyPage") {
+    return level === "Manager";
+  }
+
+  // ✅ 作業頁：看 WorkRoles
+  if (pageId === "createBatchPage") {
+    return workRoles.includes("Print Operator");
+  }
+
+  if (pageId === "batchPage") {
+    return workRoles.includes("Picker");
+  }
+
+  // ✅ 共通作業頁：只要有 AccessLevel 即可
+  if (pageId === "attendancePage") {
+    return level === "Admin" ||
+           level === "Leader" ||
+           level === "Manager";
+  }
+
+  if (pageId === "workstationPage") {
+    return level === "Admin" ||
+           level === "Leader" ||
+           level === "Manager";
+  }
+
+  const migratedPages = [
+  "accountPage",
+  "employeePage",
+  "employeeEfficiencyPage",
+  "createBatchPage",
+  "batchPage",
+  "attendancePage",
+  "workstationPage"
+];
+
+// ✅ 已切到新權限的頁面，不再允許舊 role 接手放行
+if (migratedPages.includes(pageId)) {
+  if (hasCustomPagePermission(user, pageId)) {
+    return true;
+  }
+
+  return false;
+}
+
+
+
+if (hasCustomPagePermission(user, pageId)) {
+  return true;
+}
+
+return false;
+}
+function showSystemPage() {
+  let layout = document.querySelector(".layout");
+  let loginPage = document.getElementById("loginPage");
+
+  if (layout) {
+    layout.style.display = "flex";
+  }
+
+  let currentUser = getCurrentLoginUser();
+  let nameEl = document.getElementById("loginUserName");
+
+  if (currentUser && nameEl) {
+    nameEl.innerText = currentUser.name || currentUser.username;
+
+    let avatar = nameEl.previousElementSibling;
+    if (avatar) {
+      avatar.innerText = (currentUser.name || currentUser.username || "U")[0];
+    }
+  }
+
+      bindAccountPageEvents();
+  renderAccounts();
+
+  let loginDepartment = currentUser && currentUser.systemDepartment
+    ? currentUser.systemDepartment
+    : "logistics";
+
+  currentDepartment = loginDepartment;
+  switchDepartment(loginDepartment);
+  applyMenuPermissions();
+
+  if (loginPage) {
+    loginPage.style.display = "none";
+  }
+  // ✅ 控制「貨態追蹤」按鈕權限
+let flowControlBtn = document.getElementById("flowControlBtn");
+
+if (flowControlBtn) {
+  if (hasPagePermission("flowControlPage")) {
+    flowControlBtn.style.display = "inline-block";
+  } else {
+    flowControlBtn.style.display = "none";
+  }
+}
+}
+
+function handleLogin() {
+  let usernameInput = document.getElementById("loginUsername");
+  let passwordInput = document.getElementById("loginPassword");
+  let loginMessage = document.getElementById("loginMessage");
+
+  let username = usernameInput ? usernameInput.value.trim() : "";
+  let password = passwordInput ? passwordInput.value.trim() : "";
+
+  if (!username || !password) {
+    if (loginMessage) {
+      loginMessage.innerText = "請輸入帳號與密碼";
+    }
+    return;
+  }
+
+  let matchedAccount = findAccount(username, password);
+
+  if (matchedAccount) {
+    saveCurrentLoginUser(matchedAccount);
+    showSystemPage();
+
+    if (loginMessage) {
+      loginMessage.innerText = "";
+    }
+
+    if (usernameInput) usernameInput.value = "";
+    if (passwordInput) passwordInput.value = "";
+    return;
+  }
+
+  if (loginMessage) {
+    loginMessage.innerText = "帳號或密碼錯誤";
+  }
+}
+
+function bindLoginEnterEvent() {
+  let usernameInput = document.getElementById("loginUsername");
+  let passwordInput = document.getElementById("loginPassword");
+
+  if (usernameInput) {
+    usernameInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleLogin();
+      }
+    });
+  }
+
+  if (passwordInput) {
+    passwordInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleLogin();
+      }
+    });
+  }
+}
+
+function checkLoginStatus() {
+  let currentUser = getCurrentLoginUser();
+
+  if (currentUser) {
+    showSystemPage();
+  } else {
+    showLoginPage();
+  }
+}
+
+function handleLogout() {
+  clearCurrentLoginUser();
+  currentDepartment = "logistics";
+  switchDepartment("logistics");
+  showLoginPage();
+}
+let batchRecords = JSON.parse(localStorage.getItem("batchRecords")) || [];
+let batchMaster = JSON.parse(localStorage.getItem("batchMaster")) || [];
+let attendanceRecords = JSON.parse(localStorage.getItem("attendanceRecords")) || [];
+let operationLogs = JSON.parse(localStorage.getItem("operationLogs")) || [];
+let currentBatchEmployee = null;
+let attendanceMode = "";
+let workstationRecords = JSON.parse(localStorage.getItem("workstationRecords")) || [];
+let workstationMode = "";
+let workstationGroup = "";
+let workstationName = "";
+let workstationRecordFilter = "today";
+let currentDepartment = "logistics";
+
+function switchDepartment(department) {
+  let currentUser = getCurrentLoginUser();
+
+  let userDepartment = currentUser && currentUser.systemDepartment
+    ? currentUser.systemDepartment
+    : "logistics";
+
+  let userAccessLevel = currentUser && currentUser.accessLevel
+    ? currentUser.accessLevel
+    : "";
+
+  let canSwitchAllDepartments =
+    userAccessLevel === "Manager" || userAccessLevel === "Admin";
+
+  let targetDepartment = department;
+
+  if (currentUser && !canSwitchAllDepartments && department !== userDepartment) {
+    alert("你沒有權限切換到其他部門");
+    targetDepartment = userDepartment;
+  }
+
+  currentDepartment = targetDepartment;
+
+  let sidebarDepartmentTitle = document.getElementById("sidebarDepartmentTitle");
+  let logisticsMenuArea = document.getElementById("logisticsMenuArea");
+  let emptyDepartmentMenuArea = document.getElementById("emptyDepartmentMenuArea");
+  let departmentTabs = document.querySelectorAll(".department-tab");
+  let menuButtons = document.querySelectorAll(".sidebar .menu-btn");
+  let pages = document.querySelectorAll(".page");
+
+  let departmentNameMap = {
+    logistics: "物流管理部",
+    marketing: "行銷部",
+    customerService: "客服部",
+    purchasing: "採購部",
+    sales: "業務部",
+    productDevelopment: "商品開發部"
+  };
+
+  if (sidebarDepartmentTitle) {
+    sidebarDepartmentTitle.innerText = departmentNameMap[targetDepartment] || "物流管理部";
+  }
+
+    departmentTabs.forEach(tab => {
+    let tabDepartment = tab.dataset.department || "";
+    let canClickThisTab = canSwitchAllDepartments || tabDepartment === userDepartment;
+
+    if (tabDepartment === targetDepartment) {
+      tab.classList.add("active");
+    } else {
+      tab.classList.remove("active");
+    }
+
+    if (canClickThisTab) {
+      tab.style.opacity = "1";
+      tab.style.cursor = "pointer";
+      tab.style.pointerEvents = "auto";
+      tab.title = "";
+    } else {
+      tab.style.opacity = "0.45";
+      tab.style.cursor = "not-allowed";
+      tab.style.pointerEvents = "none";
+      tab.title = "你沒有權限切換到其他部門";
+    }
+  });
+
+  if (targetDepartment === "logistics") {
+    if (logisticsMenuArea) logisticsMenuArea.style.display = "block";
+    if (emptyDepartmentMenuArea) emptyDepartmentMenuArea.style.display = "none";
+
+    let activePage = document.querySelector(".page.active");
+    let activeButton = document.querySelector(".sidebar .menu-btn.active");
+    let firstVisibleButton = Array.from(menuButtons).find(button => !button.disabled);
+
+    if (!activePage && firstVisibleButton) {
+      showPage(firstVisibleButton.dataset.page, firstVisibleButton);
+    } else if (activePage && !activeButton) {
+      let matchedButton = document.querySelector(`.sidebar .menu-btn[data-page="${activePage.id}"]`);
+      if (matchedButton) {
+        matchedButton.classList.add("active");
+      }
+    }
+  } else {
+    if (logisticsMenuArea) logisticsMenuArea.style.display = "none";
+    if (emptyDepartmentMenuArea) emptyDepartmentMenuArea.style.display = "block";
+
+    pages.forEach(page => {
+      page.classList.remove("active");
+    });
+
+    menuButtons.forEach(button => {
+      button.classList.remove("active");
+    });
+  }
+}
+function saveWorkstationRecords() {
+  localStorage.setItem("workstationRecords", JSON.stringify(workstationRecords));
+}
+function saveOperationLogs() {
+  localStorage.setItem("operationLogs", JSON.stringify(operationLogs));
+}
+function addOperationLog(actionType, target, detail) {
+  let currentUser = getCurrentLoginUser();
+
+  let log = {
+    time: getNowString(),
+    operatorUsername: currentUser ? currentUser.username : "",
+    operatorName: currentUser ? (currentUser.name || currentUser.username) : "",
+    operatorRole: currentUser ? currentUser.role : "",
+    actionType: actionType || "",
+    target: target || "",
+    detail: detail || ""
+  };
+
+  operationLogs.unshift(log);
+  saveOperationLogs();
+}
+function handleWorkstationScan() {
+  let code = document.getElementById("workstationEmployeeCode").value.trim();
+  let message = document.getElementById("workstationMessage");
+  let scanResult = document.getElementById("workstationScanResult");
+  let input = document.getElementById("workstationEmployeeCode");
+
+  if (!workstationMode) {
+    message.innerText = "請先選擇工位模式";
+    message.className = "message danger-text";
+    input.focus();
+    return;
+  }
+
+  if (workstationMode === "start" && !workstationGroup) {
+    message.innerText = "請先選擇工位群組";
+    message.className = "message danger-text";
+    input.focus();
+    return;
+  }
+
+  if (workstationMode === "start" && !workstationName) {
+    message.innerText = "請先選擇工位";
+    message.className = "message danger-text";
+    input.focus();
+    return;
+  }
+
+  if (!code) {
+    message.innerText = "請先掃描或輸入員工編號";
+    message.className = "message danger-text";
+    input.focus();
+    return;
+  }
+
+  let employee = employees.find(emp => emp.code === code);
+
+  if (!employee) {
+    scanResult.innerHTML = `<span class="danger-text">查無此員工</span>`;
+    message.innerText = "";
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+    if (workstationMode === "start") {
+    let currentTime = getNowString();
+
+    let openRecords = workstationRecords.filter(record =>
+      record.employeeCode === employee.code &&
+      !record.endTime
+    );
+
+    openRecords.forEach(record => {
+      record.endTime = currentTime;
+      record.status = "已結束";
+    });
+
+    let newRecord = {
+      employeeCode: employee.code,
+      employeeName: employee.name,
+      group: workstationGroup,
+      workstation: workstationName,
+      startTime: currentTime,
+      endTime: "",
+      status: "作業中"
+    };
+
+    workstationRecords.push(newRecord);
+    saveWorkstationRecords();
+    renderWorkstationCountBoard();
+    renderActiveWorkstationBoard();
+    renderTodayWorkstationBoard();
+
+    scanResult.innerHTML = `
+      <strong>工位打卡成功</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}<br>
+      群組：${workstationGroup === "inbound" ? "進貨" : "出貨"}<br>
+      工位：${workstationName}<br>
+      開始時間：${newRecord.startTime}
+    `;
+
+    if (openRecords.length > 0) {
+      message.innerText = `已自動結束上一個工位，共結束 ${openRecords.length} 筆未完成紀錄，並開始新的工位`;
+    } else {
+      message.innerText = "工位開始成功";
+    }
+
+    message.className = "message";
+  }
+
+  if (workstationMode === "checkout") {
+    let workingRecord = workstationRecords.find(record =>
+      record.employeeCode === employee.code &&
+      !record.endTime
+    );
+
+    if (!workingRecord) {
+      scanResult.innerHTML = `
+        <strong>刷卡員工</strong><br>
+        員工編號：${employee.code}<br>
+        員工姓名：${employee.name}
+      `;
+      message.innerText = "目前沒有進行中的工位，無法 Check Out";
+      message.className = "message danger-text";
+      input.value = "";
+      input.focus();
+      return;
+    }
+
+    workingRecord.endTime = getNowString();
+    workingRecord.status = "已結束";
+    saveWorkstationRecords();
+    renderWorkstationCountBoard();
+    renderActiveWorkstationBoard();
+    renderTodayWorkstationBoard();
+
+    scanResult.innerHTML = `
+      <strong>Check Out 成功</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}<br>
+      群組：${workingRecord.group === "inbound" ? "進貨" : "出貨"}<br>
+      工位：${workingRecord.workstation}<br>
+      結束時間：${workingRecord.endTime}
+    `;
+
+    message.innerText = "Check Out 成功";
+    message.className = "message";
+  }
+
+  input.value = "";
+  input.focus();
+}
 
   function saveEmployees() {
     localStorage.setItem("employees", JSON.stringify(employees));
@@ -600,31 +2710,1093 @@
   function saveBatchRecords() {
     localStorage.setItem("batchRecords", JSON.stringify(batchRecords));
   }
+  function saveAttendanceRecords() {
+  localStorage.setItem("attendanceRecords", JSON.stringify(attendanceRecords));
+}
+function runAttendanceCheckIn(employee) {
+  let message = document.getElementById("attendanceMessage");
+  let scanResult = document.getElementById("attendanceScanResult");
+  let input = document.getElementById("attendanceEmployeeCode");
+  let today = formatDate(new Date());
 
+  let todayRecord = attendanceRecords.find(record =>
+    record.employeeCode === employee.code &&
+    record.date === today
+  );
+
+  if (todayRecord && todayRecord.checkInTime) {
+    scanResult.innerHTML = `
+      <strong>刷卡員工</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}
+    `;
+    message.innerText = "今天已完成上班打卡，不可重複打卡";
+    message.className = "message danger-text";
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+  let newRecord = {
+    employeeCode: employee.code,
+    employeeName: employee.name,
+    date: today,
+    checkInTime: getNowString(),
+    checkOutTime: "",
+    status: "上班中"
+  };
+
+  attendanceRecords.push(newRecord);
+  saveAttendanceRecords();
+
+  scanResult.innerHTML = `
+    <strong>刷卡成功</strong><br>
+    員工編號：${employee.code}<br>
+    員工姓名：${employee.name}<br>
+    模式：上班模式<br>
+    上班時間：${newRecord.checkInTime}
+  `;
+
+  message.innerText = "上班打卡成功";
+  message.className = "message";
+  input.value = "";
+  input.focus();
+}
+
+function runAttendanceCheckOut(employee) {
+  let message = document.getElementById("attendanceMessage");
+  let scanResult = document.getElementById("attendanceScanResult");
+  let input = document.getElementById("attendanceEmployeeCode");
+  let today = formatDate(new Date());
+
+  let todayRecord = attendanceRecords.find(record =>
+    record.employeeCode === employee.code &&
+    record.date === today
+  );
+
+  if (!todayRecord || !todayRecord.checkInTime) {
+    scanResult.innerHTML = `
+      <strong>刷卡員工</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}
+    `;
+    message.innerText = "今天尚未上班，無法下班打卡";
+    message.className = "message danger-text";
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+  if (todayRecord.checkOutTime) {
+    scanResult.innerHTML = `
+      <strong>刷卡員工</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}
+    `;
+    message.innerText = "今天已完成下班打卡，不可重複打卡";
+    message.className = "message danger-text";
+    input.value = "";
+    input.focus();
+    return;
+  }
+
+  todayRecord.checkOutTime = getNowString();
+
+   let workingRecord = workstationRecords.find(record =>
+    record.employeeCode === employee.code &&
+    !record.endTime
+  );
+
+  if (workingRecord) {
+    workingRecord.endTime = getNowString();
+    workingRecord.status = "已結束";
+    saveWorkstationRecords();
+  }
+
+  todayRecord.status = "已下班";
+  saveAttendanceRecords();
+  renderWorkstationCountBoard();
+  renderActiveWorkstationBoard();
+  renderTodayWorkstationBoard();
+
+  scanResult.innerHTML = `
+    <strong>刷卡成功</strong><br>
+    員工編號：${employee.code}<br>
+    員工姓名：${employee.name}<br>
+    模式：下班模式<br>
+    下班時間：${todayRecord.checkOutTime}
+  `;
+
+  message.innerText = "下班打卡成功";
+  message.className = "message";
+  input.value = "";
+  input.focus();
+}
   function saveBatchMaster() {
     localStorage.setItem("batchMaster", JSON.stringify(batchMaster));
   }
 
-  function showPage(pageId, btn) {
-    let pages = document.querySelectorAll(".page");
-    pages.forEach(page => page.classList.remove("active"));
-    document.getElementById(pageId).classList.add("active");
+function showPage(pageId, btn) {
+  let currentUser = getCurrentLoginUser();
+  let targetButton = btn || document.querySelector(`.menu-btn[data-page="${pageId}"]`);
 
-    let buttons = document.querySelectorAll(".menu-btn");
-    buttons.forEach(button => button.classList.remove("active"));
-    btn.classList.add("active");
+  if (pageId === "workstationPage") {
+    targetButton = document.querySelector(`.menu-btn[data-page="attendancePage"]`);
   }
+
+  let hasPermission = hasPagePermission(currentUser, pageId);
+
+  if (!hasPermission) {
+    alert("你沒有權限進入此頁面");
+    return;
+  }
+
+  let pages = document.querySelectorAll(".page");
+  pages.forEach(page => page.classList.remove("active"));
+
+  let targetPage = document.getElementById(pageId);
+  if (!targetPage) return;
+  targetPage.classList.add("active");
+
+  let buttons = document.querySelectorAll(".menu-btn");
+  buttons.forEach(button => button.classList.remove("active"));
+
+  if (targetButton) {
+    targetButton.classList.add("active");
+  }
+
+  if (pageId === "accountPage") {
+    let systemDepartmentInput = document.getElementById("accountSystemDepartment");
+    let accessLevelInput = document.getElementById("accountAccessLevel");
+
+    if (systemDepartmentInput) {
+      if (currentUser && currentUser.accessLevel === "Manager") {
+        systemDepartmentInput.value = currentUser.systemDepartment || "logistics";
+        systemDepartmentInput.disabled = true;
+      } else {
+        systemDepartmentInput.disabled = false;
+      }
+    }
+
+    if (accessLevelInput) {
+      let originalValue = accessLevelInput.value;
+
+      accessLevelInput.innerHTML = `
+        <option value="" selected>請選擇 Access Level（權限等級）</option>
+      `;
+
+      if (currentUser && currentUser.accessLevel === "Manager") {
+        accessLevelInput.innerHTML += `
+          <option value="Worker">Worker（作業員）</option>
+          <option value="Power Worker">Power Worker（資深作業員）</option>
+          <option value="Leader">Leader（組長）</option>
+        `;
+      } else {
+        accessLevelInput.innerHTML += `
+          <option value="Worker">Worker（作業員）</option>
+          <option value="Power Worker">Power Worker（資深作業員）</option>
+          <option value="Leader">Leader（組長）</option>
+          <option value="Manager">Manager（主管）</option>
+          <option value="Admin">Admin（系統管理員）</option>
+        `;
+      }
+
+      accessLevelInput.value = originalValue;
+      if (accessLevelInput.value !== originalValue) {
+        accessLevelInput.value = "";
+      }
+    }
+  }
+
+  if (pageId === "employeeEfficiencyPage") {
+  let flowPanel = document.getElementById("flowControlPanel");
+  let employeePanel = document.getElementById("employeePerformancePanel");
+  let workstationPanel = document.getElementById("workstationPanel");
+
+  let flowBtn = document.getElementById("toggleFlowControlBtn");
+  let employeeBtn = document.getElementById("toggleEmployeePerformanceBtn");
+  let workstationBtn = document.getElementById("toggleWorkstationBtn");
+
+  if (flowPanel) {
+    flowPanel.style.display = "none";
+  }
+
+  if (employeePanel) {
+    employeePanel.style.display = "none";
+  }
+
+  if (workstationPanel) {
+    workstationPanel.style.display = "none";
+  }
+
+  if (flowBtn) {
+    flowBtn.innerText = "顯示 / 隱藏貨態追蹤";
+  }
+
+  if (employeeBtn) {
+    employeeBtn.innerText = "顯示 / 隱藏員工績效";
+  }
+
+  if (workstationBtn) {
+    workstationBtn.innerText = "顯示 / 隱藏工位看板";
+  }
+
+  renderEmployeeEfficiencyBoard();
+}
+    if (pageId === "flowControlPage") {
+    renderFlowControlTable();
+  }
+  if (pageId === "batchPage") {
+    let dashboard = document.getElementById("batchDashboardPanel");
+    let exportBatchRecordsBtn = document.getElementById("exportBatchRecordsBtn");
+    let canManageBatchPage = currentUser && (currentUser.accessLevel === "Manager" || currentUser.accessLevel === "Admin");
+
+    if (dashboard) {
+      if (canManageBatchPage) {
+        if (dashboard.classList.contains("active")) {
+          dashboard.style.display = "block";
+        } else {
+          dashboard.style.display = "none";
+        }
+      } else {
+        dashboard.classList.remove("active");
+        dashboard.style.display = "none";
+      }
+    }
+
+    if (exportBatchRecordsBtn) {
+      exportBatchRecordsBtn.style.display = canManageBatchPage ? "inline-block" : "none";
+    }
+  }
+
+  let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
+  let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
+  let canExportExcel = currentUser && (currentUser.accessLevel === "admin" || currentUser.role === "manager");
+
+  if (exportEmployeesBtn) {
+    exportEmployeesBtn.style.display = canExportExcel ? "inline-block" : "none";
+  }
+
+  if (exportWorkstationRecordsBtn) {
+    exportWorkstationRecordsBtn.style.display = canExportExcel ? "inline-block" : "none";
+  }
+}
+  
+
 
   function showCreateBatchSubPage(pageId, btn) {
     let pages = document.querySelectorAll("#createBatchPage .sub-page");
     pages.forEach(page => page.classList.remove("active"));
 
-    document.getElementById(pageId).classList.add("active");
+    let targetPage = document.getElementById(pageId);
+    if (!targetPage) return;
+    targetPage.classList.add("active");
 
     let buttons = document.querySelectorAll("#createBatchPage .sub-tab-btn");
     buttons.forEach(button => button.classList.remove("active"));
     btn.classList.add("active");
   }
+
+  function clearBatchEditForm() {
+    document.getElementById("editOriginalBatchCode").value = "";
+    document.getElementById("editBatchCode").value = "";
+    document.getElementById("editBatchName").value = "";
+    document.getElementById("editBatchQty").value = "";
+    document.getElementById("editBatchType").value = "一般配";
+    document.getElementById("editBatchMessage").innerText = "";
+  }
+  function renderActiveWorkstationBoard() {
+  let targets = [
+    {
+      summaryId: "activeWorkstationSummary",
+      tableId: "activeWorkstationTable"
+    },
+    {
+      summaryId: "ctActiveWorkstationSummary",
+      tableId: "ctActiveWorkstationTable"
+    }
+  ];
+
+  let activeRecords = workstationRecords.filter(record => !record.endTime);
+
+  targets.forEach(target => {
+    let summary = document.getElementById(target.summaryId);
+    let table = document.getElementById(target.tableId);
+
+    if (!summary || !table) return;
+
+    table.innerHTML = `
+      <tr>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>群組</th>
+        <th>工位</th>
+        <th>開始時間</th>
+        <th>狀態</th>
+      </tr>
+    `;
+
+    if (activeRecords.length === 0) {
+      summary.innerHTML = `目前沒有作業中的工位資料`;
+      return;
+    }
+
+    summary.innerHTML = `目前共有 <strong>${activeRecords.length}</strong> 筆作業中的工位資料`;
+
+    activeRecords.forEach(record => {
+      let row = table.insertRow();
+      row.insertCell(0).innerText = record.employeeCode || "";
+      row.insertCell(1).innerText = record.employeeName || "";
+      row.insertCell(2).innerText = record.group === "inbound" ? "進貨" : "出貨";
+      row.insertCell(3).innerText = record.workstation || "";
+      row.insertCell(4).innerText = record.startTime || "";
+      row.insertCell(5).innerText = record.status || "作業中";
+    });
+  });
+}
+function renderTodayWorkstationBoard() {
+  let targets = [
+    {
+      summaryId: "todayWorkstationSummary",
+      tableId: "todayWorkstationTable",
+      todayBtnId: "todayFilterBtn",
+      allBtnId: "allFilterBtn"
+    },
+    {
+      summaryId: "ctTodayWorkstationSummary",
+      tableId: "ctTodayWorkstationTable",
+      todayBtnId: "ctTodayFilterBtn",
+      allBtnId: "ctAllFilterBtn"
+    }
+  ];
+
+  let today = formatDate(new Date());
+  let recordsToShow = [];
+
+  if (workstationRecordFilter === "all") {
+    recordsToShow = workstationRecords;
+  } else {
+    recordsToShow = workstationRecords.filter(record => {
+      return (record.startTime || "").startsWith(today);
+    });
+  }
+
+  targets.forEach(target => {
+    let summary = document.getElementById(target.summaryId);
+    let table = document.getElementById(target.tableId);
+    let todayBtn = document.getElementById(target.todayBtnId);
+    let allBtn = document.getElementById(target.allBtnId);
+
+    if (!summary || !table) return;
+
+    if (todayBtn) {
+      todayBtn.className = workstationRecordFilter === "today" ? "green" : "gray";
+      todayBtn.onclick = function() {
+        setWorkstationRecordFilter("today");
+      };
+    }
+
+    if (allBtn) {
+      allBtn.className = workstationRecordFilter === "all" ? "green" : "gray";
+      allBtn.onclick = function() {
+        setWorkstationRecordFilter("all");
+      };
+    }
+
+    table.innerHTML = `
+      <tr>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>群組</th>
+        <th>工位</th>
+        <th>開始時間</th>
+        <th>結束時間</th>
+        <th>狀態</th>
+      </tr>
+    `;
+
+    if (recordsToShow.length === 0) {
+      if (workstationRecordFilter === "all") {
+        summary.innerHTML = `目前沒有任何工位紀錄`;
+      } else {
+        summary.innerHTML = `今天（${today}）沒有任何工位紀錄`;
+      }
+      return;
+    }
+
+    if (workstationRecordFilter === "all") {
+      summary.innerHTML = `目前顯示全部工位紀錄，共 <strong>${recordsToShow.length}</strong> 筆`;
+    } else {
+      summary.innerHTML = `今天（${today}）共有 <strong>${recordsToShow.length}</strong> 筆工位紀錄`;
+    }
+
+    recordsToShow.forEach(record => {
+      let row = table.insertRow();
+      row.insertCell(0).innerText = record.employeeCode || "";
+      row.insertCell(1).innerText = record.employeeName || "";
+      row.insertCell(2).innerText = record.group === "inbound" ? "進貨" : "出貨";
+      row.insertCell(3).innerText = record.workstation || "";
+      row.insertCell(4).innerText = record.startTime || "";
+      row.insertCell(5).innerText = record.endTime || "";
+      row.insertCell(6).innerText = record.status || "";
+    });
+  });
+}
+function renderFlowControlTable(filterStatus, filterType) {
+  let table = document.getElementById("flowControlTable");
+  let message = document.getElementById("flowControlMessage");
+
+  if (!table || !message) return;
+
+  if (typeof filterType === "string") {
+    window.flowControlTypeFilter = filterType;
+  }
+
+  if (typeof filterStatus === "string") {
+    window.flowControlStatusFilter = filterStatus;
+  }
+
+  let currentTypeFilter = window.flowControlTypeFilter || "";
+  let currentStatusFilter = window.flowControlStatusFilter || "";
+
+  let topButtons = document.querySelectorAll("#flowControlPage .button-row button");
+
+  topButtons.forEach((button, index) => {
+    if (index === 0) {
+      button.style.display = "inline-block";
+      button.innerText = "一般配";
+      button.onclick = function() {
+        renderFlowControlTable("", "一般配");
+      };
+      button.className = currentTypeFilter === "一般配" ? "green" : "gray";
+    } else if (index === 1) {
+      button.style.display = "inline-block";
+      button.innerText = "無包裝";
+      button.onclick = function() {
+        renderFlowControlTable("", "無包裝");
+      };
+      button.className = currentTypeFilter === "無包裝" ? "green" : "gray";
+    } else {
+      button.style.display = "none";
+    }
+  });
+
+  if (!currentTypeFilter) {
+    currentTypeFilter = "一般配";
+    window.flowControlTypeFilter = "一般配";
+  }
+
+  let statusButtonList = [];
+  let statusLabelMap = {};
+  let statusValueMap = {};
+
+  if (currentTypeFilter === "一般配") {
+    statusButtonList = ["待撿貨", "撿貨完成", "待配貨"];
+    statusLabelMap = {
+      "待撿貨": "待撿貨",
+      "撿貨完成": "撿貨完成",
+      "待配貨": "待配貨"
+    };
+    statusValueMap = {
+      "待撿貨": "未撿貨",
+      "撿貨完成": "開始撿貨",
+      "待配貨": "待包貨"
+    };
+  } else if (currentTypeFilter === "無包裝") {
+    statusButtonList = ["待撿貨", "撿貨完成", "待包貨"];
+    statusLabelMap = {
+      "待撿貨": "待撿貨",
+      "撿貨完成": "撿貨完成",
+      "待包貨": "待包貨"
+    };
+    statusValueMap = {
+      "待撿貨": "未撿貨",
+      "撿貨完成": "開始撿貨",
+      "待包貨": "待包貨"
+    };
+  }
+
+  if (!statusButtonList.includes(currentStatusFilter)) {
+    currentStatusFilter = "";
+    window.flowControlStatusFilter = "";
+  }
+
+  message.innerHTML = `
+    <div style="margin-bottom:10px; font-weight:bold;">目前流程：${currentTypeFilter}</div>
+    <div class="button-row" id="flowStatusButtonGroup" style="margin-top:0; margin-bottom:10px;"></div>
+    <div id="flowControlSummaryText"></div>
+  `;
+
+  let flowStatusButtonGroup = document.getElementById("flowStatusButtonGroup");
+  let flowControlSummaryText = document.getElementById("flowControlSummaryText");
+
+  if (flowStatusButtonGroup) {
+    statusButtonList.forEach(statusKey => {
+      let button = document.createElement("button");
+      button.innerText = statusLabelMap[statusKey] || statusKey;
+      button.className = currentStatusFilter === statusKey ? "green" : "gray";
+      button.onclick = function() {
+        renderFlowControlTable(statusKey, currentTypeFilter);
+      };
+      flowStatusButtonGroup.appendChild(button);
+    });
+  }
+
+  table.innerHTML = `
+    <tr>
+      <th>批次編號</th>
+      <th>名稱</th>
+      <th>類型</th>
+      <th>數量</th>
+      <th>目前狀態</th>
+    </tr>
+  `;
+
+  if (!batchMaster || batchMaster.length === 0) {
+    if (flowControlSummaryText) {
+      flowControlSummaryText.innerText = "目前沒有任何批次資料";
+      flowControlSummaryText.className = "danger-text";
+    }
+    return;
+  }
+
+  let filteredBatchMaster = batchMaster.filter(batch => {
+    return (batch.type || "") === currentTypeFilter;
+  });
+
+  if (currentStatusFilter) {
+    filteredBatchMaster = filteredBatchMaster.filter(batch => {
+      let batchStatus = batch.status || "未撿貨";
+      return batchStatus === statusValueMap[currentStatusFilter];
+    });
+  }
+
+  let statusSortOrder = {
+    "未撿貨": 1,
+    "開始撿貨": 2,
+    "待包貨": 3,
+    "已完成": 4
+  };
+
+  filteredBatchMaster.sort((a, b) => {
+    let aStatus = statusSortOrder[a.status || "未撿貨"] || 999;
+    let bStatus = statusSortOrder[b.status || "未撿貨"] || 999;
+
+    if (aStatus !== bStatus) {
+      return aStatus - bStatus;
+    }
+
+    return String(a.batchCode || "").localeCompare(String(b.batchCode || ""));
+  });
+
+  let summaryStatusText = currentStatusFilter ? currentStatusFilter : "全部";
+
+  if (flowControlSummaryText) {
+    flowControlSummaryText.innerText = `類型：${currentTypeFilter}｜流程：${summaryStatusText}｜共 ${filteredBatchMaster.length} 筆`;
+    flowControlSummaryText.className = "";
+  }
+
+  if (filteredBatchMaster.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+    cell.colSpan = 5;
+    cell.innerText = "目前沒有符合條件的資料";
+    return;
+  }
+
+  filteredBatchMaster.forEach(batch => {
+    let row = table.insertRow();
+    let currentStatus = batch.status || "未撿貨";
+
+    row.insertCell(0).innerText = batch.batchCode || "";
+    row.insertCell(1).innerText = batch.name || "";
+    row.insertCell(2).innerText = batch.type || "";
+    row.insertCell(3).innerText = batch.qty || "";
+    row.insertCell(4).innerHTML = getBatchStatusTag(currentStatus);
+  });
+}
+function renderWorkstationCountBoard() {
+  let activeRecords = workstationRecords.filter(record => !record.endTime);
+
+  let counts = {
+    "貨櫃": 0,
+    "驗收": 0,
+    "上架": 0,
+    "補貨": 0,
+    "InboundLeader": 0,
+    "撿貨": 0,
+    "配貨": 0,
+    "包貨｜無包裝": 0,
+    "包貨｜一般配": 0,
+    "包貨｜宅配": 0,
+    "印單": 0,
+    "OutboundLeader": 0
+  };
+
+  activeRecords.forEach(record => {
+    if (record.group === "inbound" && record.workstation === "Leader") {
+      counts["InboundLeader"]++;
+    } else if (record.group === "outbound" && record.workstation === "Leader") {
+      counts["OutboundLeader"]++;
+    } else if (counts.hasOwnProperty(record.workstation)) {
+      counts[record.workstation]++;
+    }
+  });
+
+  let idMapList = [
+    { id: "count貨櫃", value: counts["貨櫃"] },
+    { id: "count驗收", value: counts["驗收"] },
+    { id: "count上架", value: counts["上架"] },
+    { id: "count補貨", value: counts["補貨"] },
+    { id: "countInboundLeader", value: counts["InboundLeader"] },
+    { id: "count撿貨", value: counts["撿貨"] },
+    { id: "count配貨", value: counts["配貨"] },
+    { id: "count包貨無包裝", value: counts["包貨｜無包裝"] },
+    { id: "count包貨一般配", value: counts["包貨｜一般配"] },
+    { id: "count包貨宅配", value: counts["包貨｜宅配"] },
+    { id: "count印單", value: counts["印單"] },
+    { id: "countOutboundLeader", value: counts["OutboundLeader"] },
+
+    { id: "ctCount貨櫃", value: counts["貨櫃"] },
+    { id: "ctCount驗收", value: counts["驗收"] },
+    { id: "ctCount上架", value: counts["上架"] },
+    { id: "ctCount補貨", value: counts["補貨"] },
+    { id: "ctCountInboundLeader", value: counts["InboundLeader"] },
+    { id: "ctCount撿貨", value: counts["撿貨"] },
+    { id: "ctCount配貨", value: counts["配貨"] },
+    { id: "ctCount包貨無包裝", value: counts["包貨｜無包裝"] },
+    { id: "ctCount包貨一般配", value: counts["包貨｜一般配"] },
+    { id: "ctCount包貨宅配", value: counts["包貨｜宅配"] },
+    { id: "ctCount印單", value: counts["印單"] },
+    { id: "ctCountOutboundLeader", value: counts["OutboundLeader"] }
+  ];
+
+  idMapList.forEach(item => {
+    let el = document.getElementById(item.id);
+    if (el) {
+      el.innerText = item.value;
+    }
+  });
+}
+  function toggleEmployeePerformancePanel() {
+  let employeePanel = document.getElementById("employeePerformancePanel");
+  let flowPanel = document.getElementById("flowControlPanel");
+  let wsPanel = document.getElementById("workstationPanel");
+
+  let employeeBtn = document.getElementById("toggleEmployeePerformanceBtn");
+  let flowBtn = document.getElementById("toggleFlowControlBtn");
+  let workstationBtn = document.getElementById("toggleWorkstationBtn");
+
+  if (!employeePanel) return;
+
+  let isOpening = employeePanel.style.display === "none" || employeePanel.style.display === "";
+
+  if (isOpening) {
+    if (flowPanel) {
+      flowPanel.style.display = "none";
+    }
+
+    if (wsPanel) {
+      wsPanel.style.display = "none";
+    }
+
+    if (flowBtn) {
+      flowBtn.innerText = "顯示貨態追蹤";
+    }
+
+    if (workstationBtn) {
+      workstationBtn.innerText = "顯示工位看板";
+    }
+
+    employeePanel.style.display = "block";
+
+    if (employeeBtn) {
+      employeeBtn.innerText = "隱藏員工績效";
+    }
+
+    renderEmployeeEfficiencyBoard();
+  } else {
+    employeePanel.style.display = "none";
+
+    if (employeeBtn) {
+      employeeBtn.innerText = "顯示員工績效";
+    }
+  }
+}
+
+function toggleFlowControlPanel() {
+  let flowPanel = document.getElementById("flowControlPanel");
+  let employeePanel = document.getElementById("employeePerformancePanel");
+  let wsPanel = document.getElementById("workstationPanel");
+
+  let flowBtn = document.getElementById("toggleFlowControlBtn");
+  let employeeBtn = document.getElementById("toggleEmployeePerformanceBtn");
+  let workstationBtn = document.getElementById("toggleWorkstationBtn");
+
+  if (!flowPanel) return;
+
+  let isOpening = flowPanel.style.display === "none" || flowPanel.style.display === "";
+
+  if (isOpening) {
+    if (employeePanel) {
+      employeePanel.style.display = "none";
+    }
+
+    if (wsPanel) {
+      wsPanel.style.display = "none";
+    }
+
+    if (employeeBtn) {
+      employeeBtn.innerText = "顯示員工績效";
+    }
+
+    if (workstationBtn) {
+      workstationBtn.innerText = "顯示工位看板";
+    }
+
+    flowPanel.style.display = "block";
+
+    if (flowBtn) {
+      flowBtn.innerText = "隱藏貨態追蹤";
+    }
+
+    renderFlowControlTable();
+  } else {
+    flowPanel.style.display = "none";
+
+    if (flowBtn) {
+      flowBtn.innerText = "顯示貨態追蹤";
+    }
+  }
+}
+function toggleWorkstationPanel() {
+  let wsPanel = document.getElementById("workstationPanel");
+  let flowPanel = document.getElementById("flowControlPanel");
+  let employeePanel = document.getElementById("employeePerformancePanel");
+
+  let flowBtn = document.getElementById("toggleFlowControlBtn");
+  let employeeBtn = document.getElementById("toggleEmployeePerformanceBtn");
+  let workstationBtn = document.getElementById("toggleWorkstationBtn");
+
+  if (!wsPanel) return;
+
+  let isOpening = wsPanel.style.display === "none" || wsPanel.style.display === "";
+
+  if (isOpening) {
+    if (flowPanel) {
+      flowPanel.style.display = "none";
+    }
+
+    if (employeePanel) {
+      employeePanel.style.display = "none";
+    }
+
+    if (flowBtn) {
+      flowBtn.innerText = "顯示貨態追蹤";
+    }
+
+    if (employeeBtn) {
+      employeeBtn.innerText = "顯示員工績效";
+    }
+
+    wsPanel.style.display = "block";
+
+    if (workstationBtn) {
+      workstationBtn.innerText = "隱藏工位看板";
+    }
+
+    renderWorkstationCountBoard();
+    renderActiveWorkstationBoard();
+    renderTodayWorkstationBoard();
+  } else {
+    wsPanel.style.display = "none";
+
+    if (workstationBtn) {
+      workstationBtn.innerText = "顯示工位看板";
+    }
+  }
+}
+  function renderEmployeeEfficiencyBoard() {
+  let table = document.getElementById("employeeEfficiencyTable");
+  let summary = document.getElementById("employeeEfficiencySummary");
+
+  if (!table || !summary) return;
+
+  table.innerHTML = `
+    <tr>
+      <th>排名</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>一般配批次</th>
+      <th>無包裝批次</th>
+      <th>一般配總量</th>
+      <th>無包裝總PCS</th>
+      <th>今日判定類型</th>
+      <th>撿貨工時</th>
+      <th>效率值</th>
+    </tr>
+  `;
+
+  if (batchRecords.length === 0) {
+    summary.innerHTML = `目前沒有任何批次掃描紀錄`;
+    return;
+  }
+
+  let today = formatDate(new Date());
+  let todayRecords = batchRecords.filter(record => {
+    if (!record.firstScanTime) return false;
+    return record.firstScanTime.startsWith(today);
+  });
+
+  if (todayRecords.length === 0) {
+    summary.innerHTML = `今天（${today}）沒有任何批次掃描紀錄`;
+    return;
+  }
+
+  let employeeMap = {};
+
+  todayRecords.forEach(record => {
+    let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+    let type = master.type || "";
+    let qty = safeQty(master.qty);
+
+    if (!record.employeeCode) return;
+
+    if (!employeeMap[record.employeeCode]) {
+      employeeMap[record.employeeCode] = {
+        employeeCode: record.employeeCode,
+        employeeName: record.employeeName || "",
+        normalQty: 0,
+        noPackQty: 0,
+        normalBatchCount: 0,
+        noPackBatchCount: 0,
+        pickingHours: getTodayPickingHoursByEmployee(record.employeeCode),
+        judgeType: "",
+        judgeValue: 0
+      };
+    }
+
+    if (type === "一般配") {
+      employeeMap[record.employeeCode].normalQty += qty;
+      employeeMap[record.employeeCode].normalBatchCount += 1;
+    } else if (type === "無包裝") {
+      employeeMap[record.employeeCode].noPackQty += qty;
+      employeeMap[record.employeeCode].noPackBatchCount += 1;
+    }
+  });
+
+  let rankingData = Object.values(employeeMap).map(emp => {
+    let normalEfficiency = emp.pickingHours > 0
+      ? Number((emp.normalQty / emp.pickingHours).toFixed(2))
+      : 0;
+
+    let noPackEfficiency = emp.pickingHours > 0
+      ? Number((emp.noPackQty / emp.pickingHours).toFixed(2))
+      : 0;
+
+    if (emp.noPackBatchCount > emp.normalBatchCount) {
+      emp.judgeType = "無包裝";
+      emp.judgeValue = noPackEfficiency;
+    } else if (emp.normalBatchCount > emp.noPackBatchCount) {
+      emp.judgeType = "一般配";
+      emp.judgeValue = normalEfficiency;
+    } else {
+      if (emp.noPackQty > emp.normalQty) {
+        emp.judgeType = "無包裝";
+        emp.judgeValue = noPackEfficiency;
+      } else {
+        emp.judgeType = "一般配";
+        emp.judgeValue = normalEfficiency;
+      }
+    }
+
+    emp.normalEfficiency = normalEfficiency;
+    emp.noPackEfficiency = noPackEfficiency;
+
+    return emp;
+  });
+
+  let normalRanking = rankingData
+    .filter(emp => emp.judgeType === "一般配")
+    .sort((a, b) => b.judgeValue - a.judgeValue);
+
+  let noPackRanking = rankingData
+    .filter(emp => emp.judgeType === "無包裝")
+    .sort((a, b) => b.judgeValue - a.judgeValue);
+
+  let displayRanking = [...normalRanking.slice(0, 5), ...noPackRanking.slice(0, 5)];
+
+  if (displayRanking.length === 0) {
+    summary.innerHTML = `今天（${today}）沒有可計算的員工效率資料`;
+    return;
+  }
+
+  summary.innerHTML = `
+    今天（${today}）共統計 <strong>${rankingData.length}</strong> 位員工。<br>
+    一般配排名：<strong>${normalRanking.length}</strong> 人｜
+    無包裝排名：<strong>${noPackRanking.length}</strong> 人
+  `;
+
+  let normalCountValue = document.getElementById("normalCountValue");
+let normalTopValue = document.getElementById("normalTopValue");
+let normalAvgValue = document.getElementById("normalAvgValue");
+let normalMinValue = document.getElementById("normalMinValue");
+
+let noPackCountValue = document.getElementById("noPackCountValue");
+let noPackTopValue = document.getElementById("noPackTopValue");
+let noPackAvgValue = document.getElementById("noPackAvgValue");
+let noPackMinValue = document.getElementById("noPackMinValue");
+
+let normalCount = normalRanking.length;
+let noPackCount = noPackRanking.length;
+
+let normalTop = normalRanking.length > 0
+  ? Math.max(...normalRanking.map(emp => emp.judgeValue))
+  : 0;
+
+let normalAvg = normalRanking.length > 0
+  ? Number((normalRanking.reduce((sum, emp) => sum + emp.judgeValue, 0) / normalRanking.length).toFixed(2))
+  : 0;
+
+let normalMin = normalRanking.length > 0
+  ? Math.min(...normalRanking.map(emp => emp.judgeValue))
+  : 0;
+
+let noPackTop = noPackRanking.length > 0
+  ? Math.max(...noPackRanking.map(emp => emp.judgeValue))
+  : 0;
+
+let noPackAvg = noPackRanking.length > 0
+  ? Number((noPackRanking.reduce((sum, emp) => sum + emp.judgeValue, 0) / noPackRanking.length).toFixed(2))
+  : 0;
+
+let noPackMin = noPackRanking.length > 0
+  ? Math.min(...noPackRanking.map(emp => emp.judgeValue))
+  : 0;
+
+if (normalCountValue) {
+  normalCountValue.innerText = normalCount;
+}
+
+if (normalTopValue) {
+  normalTopValue.innerText = Number(normalTop).toFixed(2);
+}
+
+if (normalAvgValue) {
+  normalAvgValue.innerText = Number(normalAvg).toFixed(2);
+}
+
+if (normalMinValue) {
+  normalMinValue.innerText = Number(normalMin).toFixed(2);
+}
+
+if (noPackCountValue) {
+  noPackCountValue.innerText = noPackCount;
+}
+
+if (noPackTopValue) {
+  noPackTopValue.innerText = Number(noPackTop).toFixed(2);
+}
+
+if (noPackAvgValue) {
+  noPackAvgValue.innerText = Number(noPackAvg).toFixed(2);
+}
+
+if (noPackMinValue) {
+  noPackMinValue.innerText = Number(noPackMin).toFixed(2);
+}
+
+  let normalRankNumber = 1;
+let noPackRankNumber = 1;
+
+displayRanking.forEach(emp => {
+  let row = table.insertRow();
+
+  let currentRank = emp.judgeType === "一般配"
+    ? `一般配 #${normalRankNumber++}`
+    : `無包裝 #${noPackRankNumber++}`;
+
+  row.insertCell(0).innerText = currentRank;
+  row.insertCell(1).innerText = emp.employeeCode;
+  row.insertCell(2).innerText = emp.employeeName;
+  row.insertCell(3).innerText = emp.normalBatchCount;
+  row.insertCell(4).innerText = emp.noPackBatchCount;
+  row.insertCell(5).innerText = emp.normalQty;
+  row.insertCell(6).innerText = emp.noPackQty;
+  row.insertCell(7).innerText = emp.judgeType;
+
+  let minutes = Math.round(emp.pickingHours * 60);
+  row.insertCell(8).innerText = `${minutes} 分鐘（${emp.pickingHours}H）`;
+
+  let efficiencyCell = row.insertCell(9);
+  let value = Number(emp.judgeValue);
+  efficiencyCell.innerText = value.toFixed(2);
+
+  let currentAvg = emp.judgeType === "一般配" ? normalAvg : noPackAvg;
+  let highThreshold = currentAvg * 1.2;
+  let lowThreshold = currentAvg * 0.8;
+
+  if (value > highThreshold) {
+    efficiencyCell.style.color = "#f59e0b";
+  } else if (value < lowThreshold) {
+    efficiencyCell.style.color = "#ef4444";
+  } else {
+    efficiencyCell.style.color = "#22c55e";
+  }
+});
+
+let alertSummary = document.getElementById("employeeEfficiencyAlertSummary");
+let alertTable = document.getElementById("employeeEfficiencyAlertTable");
+
+if (alertTable) {
+  alertTable.innerHTML = `
+    <tr>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>今日判定類型</th>
+      <th>撿貨工時</th>
+      <th>效率值</th>
+    </tr>
+  `;
+}
+
+let abnormalEmployees = rankingData.filter(emp => {
+  let currentAvg = emp.judgeType === "一般配" ? normalAvg : noPackAvg;
+  let lowThreshold = currentAvg * 0.8;
+
+  return emp.judgeValue < lowThreshold;
+});
+
+if (!alertSummary || !alertTable) {
+  return;
+}
+
+if (abnormalEmployees.length === 0) {
+  alertSummary.innerHTML = `今天（${today}）沒有低於各自類型平均值 80% 的異常員工`;
+} else {
+  alertSummary.innerHTML = `
+    今天（${today}）共有 <strong>${abnormalEmployees.length}</strong> 位異常員工
+    （依各自作業類型的平均效率 80% 以下判定）
+  `;
+
+  abnormalEmployees
+    .sort((a, b) => a.judgeValue - b.judgeValue)
+    .forEach(emp => {
+      let row = alertTable.insertRow();
+      row.insertCell(0).innerText = emp.employeeCode;
+      row.insertCell(1).innerText = emp.employeeName;
+      row.insertCell(2).innerText = emp.judgeType;
+
+      let minutes = Math.round(emp.pickingHours * 60);
+      row.insertCell(3).innerText = `${minutes} 分鐘（${emp.pickingHours}H）`;
+
+      let efficiencyCell = row.insertCell(4);
+      efficiencyCell.innerText = Number(emp.judgeValue).toFixed(2);
+      efficiencyCell.style.color = "#ef4444";
+      efficiencyCell.style.fontWeight = "bold";
+    });
+}
+}
 
   function pad2(num) {
     return String(num).padStart(2, "0");
@@ -663,6 +3835,59 @@
     let num = Number(value);
     return isNaN(num) ? 0 : num;
   }
+  function parseDateTimeString(dateTimeStr) {
+  if (!dateTimeStr) return null;
+
+  let parts = dateTimeStr.split(" ");
+  if (parts.length < 2) return null;
+
+  let datePart = parts[0].replace(/\//g, "-");
+  let timePart = parts[1];
+
+  let date = new Date(`${datePart}T${timePart}`);
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function getDurationHours(startTime, endTime) {
+  let startDate = parseDateTimeString(startTime);
+  let endDate = parseDateTimeString(endTime);
+
+  if (!startDate || !endDate) return 0;
+
+  let diffMs = endDate - startDate;
+  if (diffMs <= 0) return 0;
+
+  let minutes = diffMs / 1000 / 60;
+
+  if (minutes > 0 && minutes < 1) {
+    minutes = 1;
+  }
+
+  return Number((minutes / 60).toFixed(2));
+}
+
+function getTodayPickingHoursByEmployee(employeeCode) {
+  let today = formatDate(new Date());
+
+  let pickingRecords = workstationRecords.filter(record => {
+    return record.employeeCode === employeeCode &&
+      record.workstation === "撿貨" &&
+      (record.startTime || "").startsWith(today);
+  });
+
+  let totalHours = 0;
+
+  pickingRecords.forEach(record => {
+    let endTime = record.endTime || getNowString();
+    totalHours += getDurationHours(record.startTime, endTime);
+  });
+
+  return Number(totalHours.toFixed(2));
+}
 
   function sumQtyBy(filterFn) {
     return batchMaster
@@ -671,10 +3896,28 @@
   }
 
   function toggleBatchDashboard() {
-    let panel = document.getElementById("batchDashboardPanel");
-    panel.classList.toggle("active");
+  let currentUser = getCurrentLoginUser();
+  let panel = document.getElementById("batchDashboardPanel");
+
+  if (!panel) return;
+
+  let canManageBatchPage = currentUser && (currentUser.accessLevel === "Manager" || currentUser.accessLevel === "Admin");
+
+  if (!canManageBatchPage) {
+    panel.classList.remove("active");
+    panel.style.display = "none";
+    return;
+  }
+
+  if (panel.classList.contains("active")) {
+    panel.classList.remove("active");
+    panel.style.display = "none";
+  } else {
+    panel.classList.add("active");
+    panel.style.display = "block";
     updateBatchDashboard();
   }
+}
 
   function updateBatchDashboard() {
     let total = batchMaster.length;
@@ -792,7 +4035,6 @@
 
   function exportEmployees() {
     let csv = "員工編號,員工姓名\n";
-
     employees.forEach(emp => {
       csv += `${emp.code},${emp.name}\n`;
     });
@@ -810,7 +4052,6 @@
   function importEmployees(event) {
     let file = event.target.files[0];
     let message = document.getElementById("employeeMessage");
-
     if (!file) return;
 
     let reader = new FileReader();
@@ -818,7 +4059,6 @@
     reader.onload = function(e) {
       let data = new Uint8Array(e.target.result);
       let workbook = XLSX.read(data, { type: "array" });
-
       let sheet = workbook.Sheets[workbook.SheetNames[0]];
       let rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
@@ -842,7 +4082,6 @@
 
       message.innerText = `匯入成功：${newEmployees.length} 筆`;
       message.className = "message";
-
       document.getElementById("importFile").value = "";
     };
 
@@ -876,6 +4115,143 @@
     document.getElementById("batchEmployeeCode").value = "";
     document.getElementById("batchCode").focus();
   }
+function setAttendanceMode(mode) {
+  let modeResult = document.getElementById("attendanceModeResult");
+  let message = document.getElementById("attendanceMessage");
+  let scanResult = document.getElementById("attendanceScanResult");
+
+  attendanceMode = mode;
+
+  if (mode === "checkin") {
+    modeResult.innerHTML = `<strong>目前模式：</strong>上班模式`;
+  } else if (mode === "checkout") {
+    modeResult.innerHTML = `<strong>目前模式：</strong>下班模式`;
+  }
+
+  scanResult.innerHTML = "";
+  message.innerText = "";
+  document.getElementById("attendanceEmployeeCode").value = "";
+  document.getElementById("attendanceEmployeeCode").focus();
+}
+
+function clearAttendanceMode() {
+  attendanceMode = "";
+  document.getElementById("attendanceModeResult").innerHTML = "目前尚未選擇打卡模式";
+  document.getElementById("attendanceEmployeeCode").value = "";
+  document.getElementById("attendanceScanResult").innerHTML = "";
+  document.getElementById("attendanceMessage").innerText = "";
+}
+function setWorkstationMode(mode) {
+  let modeResult = document.getElementById("workstationModeResult");
+  let message = document.getElementById("workstationMessage");
+  let scanResult = document.getElementById("workstationScanResult");
+  let input = document.getElementById("workstationEmployeeCode");
+
+  workstationMode = mode;
+
+  if (mode === "start") {
+    modeResult.innerHTML = `<strong>目前模式：</strong>工位開始`;
+  } else if (mode === "checkout") {
+    modeResult.innerHTML = `<strong>目前模式：</strong>Check Out`;
+  }
+
+  message.innerText = "";
+  scanResult.innerHTML = "";
+  input.value = "";
+  input.focus();
+}
+
+function clearWorkstationMode() {
+  workstationMode = "";
+  document.getElementById("workstationModeResult").innerHTML = "目前尚未選擇工位模式";
+  document.getElementById("workstationEmployeeCode").value = "";
+  document.getElementById("workstationScanResult").innerHTML = "";
+  document.getElementById("workstationMessage").innerText = "";
+}
+function setWorkstationGroup(group) {
+  let groupResult = document.getElementById("workstationGroupResult");
+  let inboundArea = document.getElementById("inboundWorkstationArea");
+  let outboundArea = document.getElementById("outboundWorkstationArea");
+  let message = document.getElementById("workstationMessage");
+
+  workstationGroup = group;
+
+  if (group === "inbound") {
+    groupResult.innerHTML = "<strong>目前工位群組：</strong>進貨";
+    inboundArea.style.display = "block";
+    outboundArea.style.display = "none";
+  } else if (group === "outbound") {
+    groupResult.innerHTML = "<strong>目前工位群組：</strong>出貨";
+    inboundArea.style.display = "none";
+    outboundArea.style.display = "block";
+  }
+
+  message.innerText = "";
+}
+function setWorkstationName(name) {
+  workstationName = name;
+
+  let result = document.getElementById("workstationNameResult");
+  let message = document.getElementById("workstationMessage");
+
+  result.innerHTML = `<strong>目前工位：</strong>${name}`;
+  message.innerText = "";
+}
+function setWorkstationRecordFilter(filter) {
+  workstationRecordFilter = filter;
+
+  let todayBtn = document.getElementById("todayFilterBtn");
+  let allBtn = document.getElementById("allFilterBtn");
+
+  if (todayBtn) {
+    todayBtn.className = filter === "today" ? "green" : "gray";
+  }
+
+  if (allBtn) {
+    allBtn.className = filter === "all" ? "green" : "gray";
+  }
+
+  renderTodayWorkstationBoard();
+}
+function handleAttendanceScan() {
+  let code = document.getElementById("attendanceEmployeeCode").value.trim();
+  let message = document.getElementById("attendanceMessage");
+  let scanResult = document.getElementById("attendanceScanResult");
+  let input = document.getElementById("attendanceEmployeeCode");
+
+  if (!attendanceMode) {
+    message.innerText = "請先選擇上班模式或下班模式";
+    message.className = "message danger-text";
+    input.foucs();
+    return;
+  }
+
+  if (!code) {
+    message.innerText = "請先掃描或輸入員工編號";
+    message.className = "message danger-text";
+    input.focus();
+    return;
+  }
+
+  let employee = employees.find(emp => emp.code === code);
+
+  if (!employee) {
+    scanResult.innerHTML = `<span class="danger-text">查無此員工</span>`;
+    message.innerText = "";
+    document.getElementById("attendanceEmployeeCode").value = "";
+    return;
+  }
+
+  if (attendanceMode === "checkin") {
+    runAttendanceCheckIn(employee);
+    return;
+  }
+
+  if (attendanceMode === "checkout") {
+    runAttendanceCheckOut(employee);
+    return;
+  }
+}
 
   function clearBatchEmployee() {
     currentBatchEmployee = null;
@@ -886,47 +4262,141 @@
   }
 
   function processBatchScan() {
-    let batchCode = document.getElementById("batchCode").value.trim();
-    let message = document.getElementById("batchMessage");
+  let batchCodeInput = document.getElementById("batchCode");
+  let batchCode = batchCodeInput.value.trim();
+  let message = document.getElementById("batchMessage");
+  let employeeResult = document.getElementById("batchEmployeeResult");
 
-    if (!currentBatchEmployee) {
-      message.innerText = "請先確認員工";
+  function showBatchError(mainText, subText) {
+    if (message) {
+      message.innerHTML = `
+        <div><strong>批次作業失敗</strong></div>
+        <div>${mainText}</div>
+        ${subText ? `<div style="margin-top:4px;">${subText}</div>` : ""}
+      `;
       message.className = "message danger-text";
-      return;
     }
+  }
 
-    if (!batchCode) {
-      message.innerText = "請先掃描或輸入批次編號";
-      message.className = "message danger-text";
-      return;
+  function showBatchSuccess(mainText, subText) {
+    if (message) {
+      message.innerHTML = `
+        <div><strong>批次作業成功</strong></div>
+        <div>${mainText}</div>
+        ${subText ? `<div style="margin-top:4px;">${subText}</div>` : ""}
+      `;
+      message.className = "message";
     }
+  }
 
-    let record = batchRecords.find(item => item.batchCode === batchCode);
-    let master = batchMaster.find(item => item.batchCode === batchCode);
+  if (!currentBatchEmployee) {
+    showBatchError("請先確認員工", "請先掃描員工編號，再開始批次作業");
+    return;
+  }
 
-    if (!record) {
-      let newRecord = {
+  let workingRecord = workstationRecords.find(record =>
+    record.employeeCode === currentBatchEmployee.code &&
+    !record.endTime
+  );
+
+  if (!workingRecord) {
+    showBatchError(
+      `員工 ${currentBatchEmployee.name} 目前沒有工位作業中`,
+      "請先到工位打卡，並進入「撿貨」工位後再開始批次"
+    );
+    return;
+  }
+
+  if (workingRecord.workstation !== "撿貨") {
+    showBatchError(
+      `員工 ${currentBatchEmployee.name} 目前工位為「${workingRecord.workstation}」`,
+      "只有在「撿貨」工位才能開始批次作業"
+    );
+    return;
+  }
+
+  if (!batchCode) {
+    showBatchError("請先掃描或輸入批次編號", "目前尚未收到批次條碼");
+    return;
+  }
+
+  let record = batchRecords.find(item => item.batchCode === batchCode);
+  let master = batchMaster.find(item => item.batchCode === batchCode);
+
+  let employeeOpenBatch = batchRecords.find(item =>
+    item.employeeCode === currentBatchEmployee.code &&
+    item.status === "開始撿貨" &&
+    item.batchCode !== batchCode
+  );
+
+  if (!record && employeeOpenBatch) {
+    showBatchError(
+      `員工 ${currentBatchEmployee.name} 目前還有未完成批次：${employeeOpenBatch.batchCode}`,
+      "請先完成原本批次，再開始新的批次"
+    );
+    return;
+  }
+
+  if (!record) {
+    let newRecord = {
+      batchCode: batchCode,
+      employeeCode: currentBatchEmployee.code,
+      employeeName: currentBatchEmployee.name,
+      firstScanTime: getNowString(),
+      secondScanTime: "",
+      status: "開始撿貨"
+    };
+
+    batchRecords.push(newRecord);
+
+    if (master) {
+      master.status = "開始撿貨";
+    } else {
+      batchMaster.push({
         batchCode: batchCode,
-        employeeCode: currentBatchEmployee.code,
-        employeeName: currentBatchEmployee.name,
-        firstScanTime: getNowString(),
-        secondScanTime: "",
-        status: "開始撿貨"
-      };
+        name: "",
+        qty: "",
+        type: "",
+        status: "開始撿貨",
+        createdAt: getNowString()
+      });
+    }
 
-      batchRecords.push(newRecord);
+    saveBatchRecords();
+    saveBatchMaster();
+    renderBatchRecords();
+    renderBatchMaster();
+    updateBatchDashboard();
+
+    if (employeeResult) {
+      employeeResult.innerHTML = `
+        <strong>目前作業員工</strong><br>
+        員工編號：${currentBatchEmployee.code}<br>
+        員工姓名：${currentBatchEmployee.name}<br>
+        目前批次：${batchCode}<br>
+        狀態：開始撿貨
+      `;
+    }
+
+    showBatchSuccess(
+      `批次 ${batchCode} 第一次刷卡成功`,
+      "目前狀態：開始撿貨"
+    );
+  } else {
+    if (record.employeeCode !== currentBatchEmployee.code) {
+      showBatchError(
+        `批次 ${batchCode} 目前是由員工 ${record.employeeName} 作業中`,
+        "不能由其他員工接續刷卡"
+      );
+      return;
+    }
+
+    if (record.status === "開始撿貨") {
+      record.secondScanTime = getNowString();
+      record.status = "待包貨";
 
       if (master) {
-        master.status = "開始撿貨";
-      } else {
-        batchMaster.push({
-          batchCode: batchCode,
-          name: "",
-          qty: "",
-          type: "",
-          status: "開始撿貨",
-          createdAt: getNowString()
-        });
+        master.status = "待包貨";
       }
 
       saveBatchRecords();
@@ -935,34 +4405,31 @@
       renderBatchMaster();
       updateBatchDashboard();
 
-      message.innerText = `批次 ${batchCode} 第一次刷卡成功：開始撿貨`;
-      message.className = "message";
-    } else {
-      if (record.status === "開始撿貨") {
-        record.secondScanTime = getNowString();
-        record.status = "待包貨";
-
-        if (master) {
-          master.status = "待包貨";
-        }
-
-        saveBatchRecords();
-        saveBatchMaster();
-        renderBatchRecords();
-        renderBatchMaster();
-        updateBatchDashboard();
-
-        message.innerText = `批次 ${batchCode} 第二次刷卡成功：待包貨`;
-        message.className = "message";
-      } else {
-        message.innerText = `批次 ${batchCode} 已完成第二次刷卡，目前狀態：${record.status}`;
-        message.className = "message danger-text";
+      if (employeeResult) {
+        employeeResult.innerHTML = `
+          <strong>目前作業員工</strong><br>
+          員工編號：${currentBatchEmployee.code}<br>
+          員工姓名：${currentBatchEmployee.name}<br>
+          剛完成批次：${batchCode}<br>
+          狀態：待包貨
+        `;
       }
-    }
 
-    document.getElementById("batchCode").value = "";
-    document.getElementById("batchCode").focus();
+      showBatchSuccess(
+        `批次 ${batchCode} 第二次刷卡成功`,
+        "目前狀態：待包貨"
+      );
+    } else {
+      showBatchError(
+        `批次 ${batchCode} 已不可再次刷卡`,
+        `目前狀態：${record.status}`
+      );
+    }
   }
+
+  batchCodeInput.value = "";
+  batchCodeInput.focus();
+}
 
   function clearBatchInput() {
     document.getElementById("batchCode").value = "";
@@ -1005,54 +4472,117 @@
   }
 
   function exportBatchRecords() {
-    if (batchRecords.length === 0) {
-      alert("目前沒有批次資料可匯出");
-      return;
-    }
-
-    let exportData = batchRecords.map(record => {
-      let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
-
-      let firstDate = "";
-      let firstTime = "";
-      let secondDate = "";
-      let secondTime = "";
-
-      if (record.firstScanTime) {
-        let firstParts = record.firstScanTime.split(" ");
-        firstDate = firstParts[0] || "";
-        firstTime = firstParts[1] || "";
-      }
-
-      if (record.secondScanTime) {
-        let secondParts = record.secondScanTime.split(" ");
-        secondDate = secondParts[0] || "";
-        secondTime = secondParts[1] || "";
-      }
-
-      return {
-        "批次編號": record.batchCode,
-        "批次名稱": master.name || "",
-        "數量": master.qty || "",
-        "類型": master.type || "",
-        "員工編號": record.employeeCode,
-        "員工姓名": record.employeeName,
-        "第一次日期": firstDate,
-        "第一次時間(24H)": firstTime,
-        "第一次完整時間": record.firstScanTime || "",
-        "第二次日期": secondDate,
-        "第二次時間(24H)": secondTime,
-        "第二次完整時間": record.secondScanTime || "",
-        "狀態": record.status
-      };
-    });
-
-    let worksheet = XLSX.utils.json_to_sheet(exportData);
-    let workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "批次紀錄");
-    XLSX.writeFile(workbook, "批次紀錄.xlsx");
+  if (batchRecords.length === 0) {
+    alert("目前沒有批次資料可匯出");
+    return;
   }
 
+  let exportData = batchRecords.map(record => {
+    let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+
+    let firstDate = "";
+    let firstTime = "";
+    let secondDate = "";
+    let secondTime = "";
+
+    if (record.firstScanTime) {
+      let firstParts = record.firstScanTime.split(" ");
+      firstDate = firstParts[0] || "";
+      firstTime = firstParts[1] || "";
+    }
+
+    if (record.secondScanTime) {
+      let secondParts = record.secondScanTime.split(" ");
+      secondDate = secondParts[0] || "";
+      secondTime = secondParts[1] || "";
+    }
+
+    return {
+      "批次編號": record.batchCode,
+      "批次名稱": master.name || "",
+      "數量": master.qty || "",
+      "類型": master.type || "",
+      "員工編號": record.employeeCode,
+      "員工姓名": record.employeeName,
+      "第一次日期": firstDate,
+      "第一次時間(24H)": firstTime,
+      "第一次完整時間": record.firstScanTime || "",
+      "第二次日期": secondDate,
+      "第二次時間(24H)": secondTime,
+      "第二次完整時間": record.secondScanTime || "",
+      "狀態": record.status
+    };
+  });
+
+  let worksheet = XLSX.utils.json_to_sheet(exportData);
+  let workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "批次紀錄");
+  XLSX.writeFile(workbook, "批次紀錄.xlsx");
+}
+function exportWorkstationRecords() {
+  let today = formatDate(new Date());
+  let recordsToExport = [];
+
+  if (workstationRecordFilter === "all") {
+    recordsToExport = workstationRecords;
+  } else {
+    recordsToExport = workstationRecords.filter(record => {
+      return (record.startTime || "").startsWith(today);
+    });
+  }
+
+  if (recordsToExport.length === 0) {
+    alert("目前沒有可匯出的工位紀錄");
+    return;
+  }
+
+  function splitDateTime(dateTimeStr) {
+    if (!dateTimeStr) {
+      return { date: "", time: "" };
+    }
+
+    let parts = dateTimeStr.split(" ");
+    let date = parts[0] || "";
+    let time = parts[1] || "";
+
+    if (time) {
+      let t = time.split(":");
+      let h = String(t[0] || "00").padStart(2, "0");
+      let m = String(t[1] || "00").padStart(2, "0");
+      let s = String(t[2] || "00").padStart(2, "0");
+      time = `${h}:${m}:${s}`;
+    }
+
+    return { date, time };
+  }
+
+  let exportData = recordsToExport.map(record => {
+    let start = splitDateTime(record.startTime);
+    let end = splitDateTime(record.endTime);
+
+    return {
+      "員工編號": record.employeeCode || "",
+      "員工姓名": record.employeeName || "",
+      "群組": record.group === "inbound" ? "進貨" : "出貨",
+      "工位": record.workstation || "",
+      "開始日期": start.date,
+      "開始時間(24H)": start.time,
+      "結束日期": end.date,
+      "結束時間(24H)": end.time,
+      "狀態": record.status || ""
+    };
+  });
+
+  let worksheet = XLSX.utils.json_to_sheet(exportData);
+  let workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "工位紀錄");
+
+  let fileName = workstationRecordFilter === "all"
+    ? "工位紀錄_全部.xlsx"
+    : `工位紀錄_${today.replace(/\//g, "")}.xlsx`;
+
+  XLSX.writeFile(workbook, fileName);
+}
   function renderBatchGrid() {
     let table = document.getElementById("batchGridTable");
     if (!table) return;
@@ -1318,16 +4848,10 @@
     message.className = "message";
   }
 
-  function clearBatchEditForm() {
-    document.getElementById("editOriginalBatchCode").value = "";
-    document.getElementById("editBatchCode").value = "";
-    document.getElementById("editBatchName").value = "";
-    document.getElementById("editBatchQty").value = "";
-    document.getElementById("editBatchType").value = "一般配";
-    document.getElementById("editBatchMessage").innerText = "";
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
+    initializeDefaultAccounts();
+    checkLoginStatus();
+
     renderEmployees();
     renderBatchRecords();
     renderBatchGrid();
@@ -1354,6 +4878,7 @@
       });
     }
 
+
     for (let i = 1; i <= 20; i++) {
       ["gridBatchCode", "gridBatchName", "gridBatchQty"].forEach(prefix => {
         let input = document.getElementById(`${prefix}${i}`);
@@ -1367,8 +4892,49 @@
         }
       });
     }
-  });
-</script>
 
+     let attendanceEmployeeInput = document.getElementById("attendanceEmployeeCode");
+    if (attendanceEmployeeInput) {
+      attendanceEmployeeInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleAttendanceScan();
+        }
+      });
+    }
+
+    let workstationEmployeeInput = document.getElementById("workstationEmployeeCode");
+    if (workstationEmployeeInput) {
+      workstationEmployeeInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          handleWorkstationScan();
+        }
+      });
+    }
+  });
+
+</script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDzrD3hXpHxW7BUUiGBhfHnhEEI07-5mps",
+    authDomain: "wms-system-97ea4.firebaseapp.com",
+    projectId: "wms-system-97ea4",
+    storageBucket: "wms-system-97ea4.firebasestorage.app",
+    messagingSenderId: "941756670540",
+    appId: "1:941756670540:web:11b3f69e0860ac64034ae9",
+    measurementId: "G-J9P3QFZSBJ"
+  };
+
+  // 初始化 Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // 初始化 Firestore
+  window.db = firebase.firestore();
+</script>
 </body>
 </html>
