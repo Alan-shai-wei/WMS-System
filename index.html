@@ -778,6 +778,8 @@
             C 欄 = 數量<br>
             先選目前建立種類，再按 Enter 或按上傳按鈕
           </div>
+          <label for="batchWorkDate">目標作業日期</label>
+          <input type="date" id="batchWorkDate">
 
           <label for="currentBatchType">目前建立種類</label>
           <select id="currentBatchType">
@@ -819,6 +821,7 @@
           <table id="batchMasterTable">
             <tr>
               <th>勾選</th>
+              <th>目標作業日期</th>
               <th>批次編號</th>
               <th>名稱</th>
               <th>數量</th>
@@ -841,6 +844,9 @@
 
             <label for="editBatchCode">批次編號</label>
             <input type="text" id="editBatchCode">
+
+            <label for="editBatchWorkDate">目標作業日期</label>
+            <input type="date" id="editBatchWorkDate">
 
             <label for="editBatchName">名稱</label>
             <input type="text" id="editBatchName">
@@ -2973,6 +2979,7 @@ async function saveSortBatchRecordToFirestore(record) {
       .doc(batchCode)
       .set({
         batchCode: batchCode,
+        workDate: String(batch.workDate || "").trim(),
         name: String(batch.name || "").trim(),
         qty: String(batch.qty || "").trim(),
         type: String(batch.type || "").trim(),
@@ -3434,6 +3441,7 @@ async function loadBatchMasterFromFirestore() {
 
       loadedBatchMaster.push({
         batchCode: batchCode,
+        workDate: String(data.workDate || "").trim(),
         name: String(data.name || "").trim(),
         qty: String(data.qty || "").trim(),
         type: String(data.type || "").trim(),
@@ -3635,13 +3643,14 @@ function showPage(pageId, btn) {
   }
 
   function clearBatchEditForm() {
-    document.getElementById("editOriginalBatchCode").value = "";
-    document.getElementById("editBatchCode").value = "";
-    document.getElementById("editBatchName").value = "";
-    document.getElementById("editBatchQty").value = "";
-    document.getElementById("editBatchType").value = "一般配";
-    document.getElementById("editBatchMessage").innerText = "";
-  }
+  document.getElementById("editOriginalBatchCode").value = "";
+  document.getElementById("editBatchCode").value = "";
+  document.getElementById("editBatchWorkDate").value = "";
+  document.getElementById("editBatchName").value = "";
+  document.getElementById("editBatchQty").value = "";
+  document.getElementById("editBatchType").value = "一般配";
+  document.getElementById("editBatchMessage").innerText = "";
+}
   function renderActiveWorkstationBoard() {
   let targets = [
     {
@@ -5581,60 +5590,105 @@ function exportWorkstationRecords() {
   }
 
   async function uploadBatchMaster() {
-    let message = document.getElementById("createBatchMessage");
-    let newCount = 0;
-    let currentType = document.getElementById("currentBatchType").value;
+  let message = document.getElementById("createBatchMessage");
+  let currentType = document.getElementById("currentBatchType").value;
+  let workDate = document.getElementById("batchWorkDate").value.trim();
 
-    for (let i = 1; i <= 20; i++) {
-      let batchCode = document.getElementById(`gridBatchCode${i}`).value.trim();
-      let name = document.getElementById(`gridBatchName${i}`).value.trim();
-      let qty = document.getElementById(`gridBatchQty${i}`).value.trim();
+  if (!workDate) {
+    message.innerText = "請先選擇目標作業日期";
+    message.className = "message danger-text";
+    return;
+  }
 
-      if (!batchCode && !name && !qty) {
-        continue;
-      }
+  let workDateCode = workDate.replace(/-/g, "").slice(2);
+  let rowsToCreate = [];
+  let inputtedRowCount = 0;
 
-      if (!batchCode) {
-        message.innerText = `第 ${i} 列缺少批次編號`;
-        message.className = "message danger-text";
-        return;
-      }
+  for (let i = 1; i <= 20; i++) {
+    let batchCode = document.getElementById(`gridBatchCode${i}`).value.trim();
+    let name = document.getElementById(`gridBatchName${i}`).value.trim();
+    let qty = document.getElementById(`gridBatchQty${i}`).value.trim();
 
-      let exists = batchMaster.find(item => item.batchCode === batchCode);
-      if (exists) {
-        continue;
-      }
-
-      let newBatch = {
-        batchCode: batchCode,
-        name: name,
-        qty: qty,
-        type: currentType,
-        status: "未撿貨",
-        createdAt: getNowString()
-      };
-
-      batchMaster.push(newBatch);
-      await saveBatchMasterToFirestore(newBatch);
-
-      newCount++;
+    if (!batchCode && !name && !qty) {
+      continue;
     }
 
-    renderBatchMaster();
-    renderBatchRecords();
-    updateBatchDashboard();
+    inputtedRowCount++;
 
-    if (newCount === 0) {
-      message.innerText = "沒有新增資料，可能是空白或批次編號已存在";
+    if (!batchCode) {
+      message.innerText = `第 ${i} 列缺少批次編號`;
       message.className = "message danger-text";
       return;
     }
 
-    message.innerText = `成功新增 ${newCount} 筆 ${currentType} 批次`;
-    message.className = "message";
+    let batchDateCode = batchCode.slice(0, 6);
 
-    clearBatchGrid();
+    if (batchDateCode !== workDateCode) {
+      message.innerText = `第 ${i} 列批次編號日期與目標作業日期不一致`;
+      message.className = "message danger-text";
+      return;
+    }
+
+    let hasW = batchCode.includes("-W");
+
+    if (currentType === "一般配" && hasW) {
+      message.innerText = `第 ${i} 列類型是一般配，批次編號不可包含 W`;
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (currentType === "無包裝" && !hasW) {
+      message.innerText = `第 ${i} 列類型是無包裝，批次編號必須包含 W`;
+      message.className = "message danger-text";
+      return;
+    }
+
+    let existsInBatchMaster = batchMaster.find(item => item.batchCode === batchCode);
+    if (existsInBatchMaster) {
+      message.innerText = `第 ${i} 列批次編號已存在`;
+      message.className = "message danger-text";
+      return;
+    }
+
+    let existsInCurrentUpload = rowsToCreate.find(item => item.batchCode === batchCode);
+    if (existsInCurrentUpload) {
+      message.innerText = `第 ${i} 列批次編號與本次上傳其他列重複`;
+      message.className = "message danger-text";
+      return;
+    }
+
+    rowsToCreate.push({
+      batchCode: batchCode,
+      workDate: workDate,
+      name: name,
+      qty: qty,
+      type: currentType,
+      status: "未撿貨",
+      createdAt: getNowString()
+    });
   }
+
+  if (inputtedRowCount === 0) {
+    message.innerText = "目前沒有可建立的資料";
+    message.className = "message danger-text";
+    return;
+  }
+
+  for (let i = 0; i < rowsToCreate.length; i++) {
+    let newBatch = rowsToCreate[i];
+    batchMaster.push(newBatch);
+    await saveBatchMasterToFirestore(newBatch);
+  }
+
+  renderBatchMaster();
+  renderBatchRecords();
+  updateBatchDashboard();
+
+  message.innerText = `成功新增 ${rowsToCreate.length} 筆 ${currentType} 批次`;
+  message.className = "message";
+
+  clearBatchGrid();
+}
 
   function clearBatchSearch() {
     document.getElementById("batchSearchKeyword").value = "";
@@ -5661,6 +5715,7 @@ function exportWorkstationRecords() {
     table.innerHTML = `
       <tr>
         <th>勾選</th>
+        <th>目標作業日期</th>
         <th>批次編號</th>
         <th>名稱</th>
         <th>數量</th>
@@ -5673,14 +5728,15 @@ function exportWorkstationRecords() {
 
     filtered.forEach(item => {
       let row = table.insertRow();
-      row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
-      row.insertCell(1).innerText = item.batchCode;
-      row.insertCell(2).innerText = item.name || "";
-      row.insertCell(3).innerText = item.qty || "";
-      row.insertCell(4).innerText = item.type || "";
-      row.insertCell(5).innerHTML = getBatchStatusTag(item.status || "未撿貨");
-      row.insertCell(6).innerText = item.createdAt || "";
-      row.insertCell(7).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
+            row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
+            row.insertCell(1).innerText = item.workDate || "";
+            row.insertCell(2).innerText = item.batchCode || "";
+            row.insertCell(3).innerText = item.name || "";
+            row.insertCell(4).innerText = item.qty || "";
+            row.insertCell(5).innerText = item.type || "";
+            row.insertCell(6).innerHTML = getBatchStatusTag(item.status || "未撿貨");
+            row.insertCell(7).innerText = item.createdAt || "";
+            row.insertCell(8).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
     });
   }
 
@@ -5779,11 +5835,12 @@ function exportWorkstationRecords() {
       return;
     }
 
-    document.getElementById("editOriginalBatchCode").value = item.batchCode;
-    document.getElementById("editBatchCode").value = item.batchCode;
-    document.getElementById("editBatchName").value = item.name || "";
-    document.getElementById("editBatchQty").value = item.qty || "";
-    document.getElementById("editBatchType").value = item.type || "一般配";
+        document.getElementById("editOriginalBatchCode").value = item.batchCode;
+        document.getElementById("editBatchCode").value = item.batchCode;
+        document.getElementById("editBatchWorkDate").value = item.workDate || "";
+        document.getElementById("editBatchName").value = item.name || "";
+        document.getElementById("editBatchQty").value = item.qty || "";
+        document.getElementById("editBatchType").value = item.type || "一般配";
 
     editMessage.innerText = "已載入批次資料，請修改後按『修改』";
     editMessage.className = "message";
@@ -5792,6 +5849,7 @@ function exportWorkstationRecords() {
   async function updateBatchMaster() {
     let originalCode = document.getElementById("editOriginalBatchCode").value.trim();
     let newCode = document.getElementById("editBatchCode").value.trim();
+    let newWorkDate = document.getElementById("editBatchWorkDate").value.trim();
     let newName = document.getElementById("editBatchName").value.trim();
     let newQty = document.getElementById("editBatchQty").value.trim();
     let newType = document.getElementById("editBatchType").value;
@@ -5802,9 +5860,35 @@ function exportWorkstationRecords() {
       message.className = "message danger-text";
       return;
     }
+        if (!newWorkDate) {
+      message.innerText = "請先選擇目標作業日期";
+      message.className = "message danger-text";
+      return;
+    }
 
     if (!newCode) {
       message.innerText = "批次編號不可空白";
+      message.className = "message danger-text";
+      return;
+    }
+    let newWorkDateCode = newWorkDate.replace(/-/g, "").slice(2);
+    let newCodeDatePart = newCode.slice(0, 6);
+
+    if (newCodeDatePart !== newWorkDateCode) {
+      message.innerText = "批次編號日期與目標作業日期不一致";
+      message.className = "message danger-text";
+      return;
+    }
+    let hasW = newCode.includes("-W");
+
+    if (newType === "一般配" && hasW) {
+      message.innerText = "類型是一般配，批次編號不可包含 W";
+      message.className = "message danger-text";
+      return;
+    }
+
+    if (newType === "無包裝" && !hasW) {
+      message.innerText = "類型是無包裝，批次編號必須包含 W";
       message.className = "message danger-text";
       return;
     }
@@ -5825,6 +5909,7 @@ function exportWorkstationRecords() {
 
     target.batchCode = newCode;
     target.name = newName;
+    target.workDate = newWorkDate;
     target.qty = newQty;
     target.type = newType;
     await saveBatchMasterToFirestore(target);
@@ -5860,11 +5945,16 @@ renderBatchMaster();
 renderBatchRecords();
 updateBatchDashboard();
 
-    document.getElementById("editOriginalBatchCode").value = newCode;
+        document.getElementById("editOriginalBatchCode").value = newCode;
+        document.getElementById("editBatchCode").value = newCode;
+        document.getElementById("editBatchWorkDate").value = newWorkDate;
+        document.getElementById("editBatchName").value = newName;
+        document.getElementById("editBatchQty").value = newQty;
+        document.getElementById("editBatchType").value = newType;
 
-    message.innerText = "批次修改成功";
-    message.className = "message";
-  }
+        message.innerText = "批次修改成功";
+        message.className = "message";
+      }
 
   document.addEventListener("DOMContentLoaded", async function () {
   accounts = await loadAccountsFromFirestore();
@@ -5896,6 +5986,16 @@ operationLogs = await loadFirestoreRecords(
     renderBatchRecords();
     renderSortBatchRecords();
     renderBatchGrid();
+
+    let batchWorkDateInput = document.getElementById("batchWorkDate");
+    if (batchWorkDateInput && !batchWorkDateInput.value) {
+      let today = new Date();
+      let yyyy = today.getFullYear();
+      let mm = String(today.getMonth() + 1).padStart(2, "0");
+      let dd = String(today.getDate()).padStart(2, "0");
+      batchWorkDateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
     renderBatchMaster();
     updateBatchDashboard();
 
