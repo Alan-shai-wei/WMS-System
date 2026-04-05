@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- deploy refresh 2026-04-05 -->
-  <title>倉庫掃描系統</title>
+  <title>MUYAO</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -2402,12 +2402,25 @@ function showSystemPage() {
   let currentUser = getCurrentLoginUser();
   let nameEl = document.getElementById("loginUserName");
 
-  if (currentUser && nameEl) {
-    nameEl.innerText = currentUser.name || currentUser.username;
+      if (currentUser && nameEl) {
+    let departmentMap = {
+      logistics: "物流管理部",
+      marketing: "行銷部",
+      customerService: "客服部",
+      purchasing: "採購部",
+      sales: "業務部",
+      productDevelopment: "商品開發部"
+    };
+
+    let departmentText = departmentMap[currentUser.systemDepartment] || "未指定部門";
+    let displayName = currentUser.name || currentUser.username || "使用者";
+    let accessLevelText = currentUser.accessLevel || "未設定權限";
+
+    nameEl.innerText = `MUYAO｜${departmentText}｜${displayName}（${accessLevelText}）`;
 
     let avatar = nameEl.previousElementSibling;
     if (avatar) {
-      avatar.innerText = (currentUser.name || currentUser.username || "U")[0];
+      avatar.innerText = (displayName || "U")[0];
     }
   }
 
