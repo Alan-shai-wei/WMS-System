@@ -425,6 +425,7 @@
       <button class="menu-btn" data-page="accountPage" onclick="showPage('accountPage', this)">帳號管理</button>
       <button class="menu-btn" data-page="attendancePage" onclick="showPage('attendancePage', this)">上下班打卡</button>
       <button class="menu-btn" data-page="batchPage" onclick="showPage('batchPage', this)">撿貨批次作業</button>
+      <button class="menu-btn" data-page="sortBatchPage" onclick="showPage('sortBatchPage', this)">配貨批次作業</button>
       <button class="menu-btn" data-page="createBatchPage" onclick="showPage('createBatchPage', this)">建立批次作業</button>
       <button class="menu-btn" data-page="employeeEfficiencyPage" onclick="showPage('employeeEfficiencyPage', this)">作業控制塔 Control Tower</button>
     </div>
@@ -702,14 +703,63 @@
             <th>類型</th>
             <th>員工編號</th>
             <th>員工姓名</th>
-            <th>第一次刷時間</th>
-            <th>第二次刷時間</th>
+            <th>開始時間</th>
+            <th>結束時間</th>
             <th>狀態</th>
           </tr>
         </table>
       </div>
     </div>
+             <!-- 配貨批次作業 -->
+<div id="sortBatchPage" class="page">
+  <div class="card">
+    <h2>配貨批次作業</h2>
 
+    <div class="info-box">
+      這裡之後會建立配貨批次作業功能。<br>
+      下一步會加入：員工確認、批次刷讀、配貨紀錄、批次查詢、XLSX 匯出。
+    </div>
+
+    <!-- 員工區 -->
+    <label for="sortBatchEmployeeCode">掃描員工編號</label>
+    <input type="text" id="sortBatchEmployeeCode" placeholder="請先掃員工條碼">
+
+    <div class="button-row">
+      <button type="button" onclick="setSortBatchEmployee()">確認員工</button>
+      <button type="button" class="gray" onclick="clearSortBatchEmployee()">清空員工</button>
+    </div>
+
+    <div id="sortBatchEmployeeResult" class="result-box"></div>
+
+    <!-- 批次區 -->
+    <label for="sortBatchCode">掃描批次編號</label>
+    <input type="text" id="sortBatchCode" placeholder="請掃一般配批次條碼">
+
+    <div class="button-row">
+      <button type="button" onclick="processSortBatchScan()">送出配貨掃描</button>
+      <button type="button" class="gray" onclick="clearSortBatchInput()">清空批次欄位</button>
+      <button type="button" class="teal">匯出配貨 XLSX（下一步啟用）</button>
+    </div>
+
+    <!-- 訊息 -->
+    <div id="sortBatchMessage" class="message"></div>
+
+    <!-- 表格 -->
+    <table id="sortBatchTable">
+      <tr>
+        <th>批次編號</th>
+        <th>批次名稱</th>
+        <th>數量</th>
+        <th>類型</th>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>開始時間</th>
+        <th>結束時間</th>
+        <th>狀態</th>
+      </tr>
+    </table>
+      </div>
+    </div>
     <div id="createBatchPage" class="page">
       <div class="card">
         <h2>建立批次作業</h2>
@@ -835,16 +885,16 @@
     <div id="flowControlPanel" style="display:none;">
   <div class="card" style="margin-top:16px;">
     <h3>貨態分流（Flow Control）</h3>
-
-    <div class="info-box">
-      這裡將用來顯示倉庫貨物流向與作業分流狀態。
+    <div class="button-row">
+      <button onclick="setFlowControlType('一般配')">一般配</button>
+      <button onclick="setFlowControlType('無包裝')">無包裝</button>
     </div>
 
-    <div class="button-row">
-      <button class="gray">待撿貨</button>
-      <button class="gray">撿貨中</button>
-      <button class="gray">待包貨</button>
-      <button class="gray">已完成</button>
+    <div class="info-box">
+      <strong>新版貨態流程：</strong><br>
+      一般配：待撿貨 → 撿貨中 → 待配貨 → 配貨中 → 待包貨 → 已完成<br>
+      無包裝：待撿貨 → 撿貨中 → 待包貨 → 包貨中 → 已完成<br><br>
+      請先選擇上方類型（一般配 / 無包裝），再選擇下方流程狀態查看批次
     </div>
   </div>
 
@@ -1152,6 +1202,7 @@ let employees = [];
 let SYSTEM_COMPANY_NAME = "MUYAO";
 let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
 let accounts = [];
+let currentUser = null;
 
 
 const DEPARTMENT_OPTIONS = ["", "Inbound", "Outbound"];
@@ -2117,12 +2168,17 @@ function applyMenuPermissions() {
       employeeEfficiencyPage: "需要 Manager / Admin 權限",
       createBatchPage: "需要 Print Operator 或 Admin 權限",
       batchPage: "需要 Picker 或 Admin 權限",
+      sortBatchPage: "需要 Sorter 或 Admin 權限",
       attendancePage: "需要有效 AccessLevel",
       workstationPage: "需要有效 AccessLevel"
     };
 
-        let shouldHideButton =
-      pageId === "attendancePage" && !hasPermission;
+            let hiddenPermissionPages = [
+      "attendancePage"
+    ];
+
+    let shouldHideButton =
+      hiddenPermissionPages.includes(pageId) && !hasPermission;
 
     button.style.display = shouldHideButton ? "none" : "block";
 
@@ -2240,6 +2296,10 @@ function hasPagePermission(user, pageId) {
     return workRoles.includes("Picker");
   }
 
+  if (pageId === "sortBatchPage") {
+    return workRoles.includes("Sorter");
+  }
+
   // ✅ 共通作業頁：只要有 AccessLevel 即可
   if (pageId === "attendancePage") {
     return level === "Admin" ||
@@ -2254,31 +2314,30 @@ function hasPagePermission(user, pageId) {
   }
 
   const migratedPages = [
-  "accountPage",
-  "employeePage",
-  "employeeEfficiencyPage",
-  "createBatchPage",
-  "batchPage",
-  "attendancePage",
-  "workstationPage"
-];
+    "accountPage",
+    "employeePage",
+    "employeeEfficiencyPage",
+    "createBatchPage",
+    "batchPage",
+    "sortBatchPage",
+    "attendancePage",
+    "workstationPage"
+  ];
 
-// ✅ 已切到新權限的頁面，不再允許舊 role 接手放行
-if (migratedPages.includes(pageId)) {
+  // ✅ 已切到新權限的頁面，不再允許舊 role 接手放行
+  if (migratedPages.includes(pageId)) {
+    if (hasCustomPagePermission(user, pageId)) {
+      return true;
+    }
+
+    return false;
+  }
+
   if (hasCustomPagePermission(user, pageId)) {
     return true;
   }
 
   return false;
-}
-
-
-
-if (hasCustomPagePermission(user, pageId)) {
-  return true;
-}
-
-return false;
 }
 function showSystemPage() {
   let layout = document.querySelector(".layout");
@@ -2345,6 +2404,7 @@ function handleLogin() {
 
   if (matchedAccount) {
     saveCurrentLoginUser(matchedAccount);
+    currentUser = matchedAccount;
     showSystemPage();
 
     if (loginMessage) {
@@ -2385,26 +2445,31 @@ function bindLoginEnterEvent() {
 }
 
 function checkLoginStatus() {
-  let currentUser = getCurrentLoginUser();
+  let savedUser = getCurrentLoginUser();
 
-  if (currentUser) {
+  if (savedUser) {
+    currentUser = savedUser;
     showSystemPage();
   } else {
+    currentUser = null;
     showLoginPage();
   }
 }
 
 function handleLogout() {
   clearCurrentLoginUser();
+  currentUser = null;
   currentDepartment = "logistics";
   switchDepartment("logistics");
   showLoginPage();
 }
 let batchRecords = [];
+let sortBatchRecords = [];
 let batchMaster = [];
 let attendanceRecords = [];
 let operationLogs = [];
 let currentBatchEmployee = null;
+let currentSortBatchEmployee = null;
 let attendanceMode = "";
 let workstationRecords = [];
 let workstationMode = "";
@@ -2671,6 +2736,57 @@ function handleWorkstationScan() {
   input.value = "";
   input.focus();
 }
+function canStartSortBatch(employee) {
+
+  // 1️⃣ 權限（改用 currentUser）
+  let level = (currentUser.accessLevel || "").trim().toLowerCase();
+
+  // Admin 直接通過
+  if (level !== "admin") {
+    if (!currentUser.workRoles || !currentUser.workRoles.includes("Sorter")) {
+      return { success: false, message: "此帳號沒有配貨權限（Sorter）" };
+    }
+  }
+
+  // 2️⃣ 檢查是否已上班
+  let today = formatDate(new Date());
+  let attendance = attendanceRecords.find(r =>
+    r.employeeCode === employee.code &&
+    r.date === today &&
+    r.checkInTime
+  );
+
+  if (!attendance) {
+    return { success: false, message: "尚未上班打卡，無法進行配貨" };
+  }
+
+  // 3️⃣ 檢查是否有工位
+  let activeWorkstation = workstationRecords.find(r =>
+    r.employeeCode === employee.code &&
+    !r.endTime
+  );
+
+  if (!activeWorkstation) {
+    return { success: false, message: "尚未進入工位，無法進行配貨" };
+  }
+
+  let allowedStations = ["配貨", "包貨｜一般配", "包貨｜無包裝"];
+  if (!allowedStations.includes(activeWorkstation.workstation)) {
+    return { success: false, message: "目前工位不允許配貨作業" };
+  }
+
+  // 4️⃣ 檢查是否已有未完成配貨
+  let workingBatch = sortBatchRecords.find(r =>
+  r.employeeCode === employee.code &&
+  !r.endTime
+);
+
+  if (workingBatch) {
+  return { success: false, message: "尚有未完成配貨批次" };
+}
+
+  return { success: true };
+}
   async function saveEmployeeToFirestore(employee) {
   if (!window.db) {
     console.warn("employee：Firestore 尚未初始化，無法儲存單筆員工");
@@ -2740,8 +2856,8 @@ function handleWorkstationScan() {
         batchCode: batchCode,
         employeeCode: employeeCode,
         employeeName: String(record.employeeName || "").trim(),
-        firstScanTime: String(record.firstScanTime || "").trim(),
-        secondScanTime: String(record.secondScanTime || "").trim(),
+        startTime: String(record.startTime || "").trim(),
+        endTime: String(record.endTime || "").trim(),
         status: String(record.status || "").trim(),
         updatedAt: getNowString()
       });
@@ -2749,6 +2865,41 @@ function handleWorkstationScan() {
     console.log("batchRecords 已單筆同步到 Firestore：", docId);
   } catch (error) {
     console.error("batchRecords 單筆同步 Firestore 失敗：", error);
+  }
+}
+async function saveSortBatchRecordToFirestore(record) {
+  if (!window.db) {
+    console.warn("sortBatchRecords：Firestore 尚未初始化，無法儲存單筆配貨紀錄");
+    return;
+  }
+
+  let batchCode = String(record.batchCode || "").trim();
+  let employeeCode = String(record.employeeCode || "").trim();
+
+  if (!batchCode || !employeeCode) {
+    console.warn("sortBatchRecords：缺少 batchCode 或 employeeCode，無法儲存單筆配貨紀錄");
+    return;
+  }
+
+  let docId = `${batchCode}__${employeeCode}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
+      .doc(docId)
+      .set({
+        batchCode: batchCode,
+        employeeCode: employeeCode,
+        employeeName: String(record.employeeName || "").trim(),
+        startTime: String(record.startTime || "").trim(),
+        endTime: String(record.endTime || "").trim(),
+        status: String(record.status || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("sortBatchRecords 已單筆同步到 Firestore：", docId);
+  } catch (error) {
+    console.error("sortBatchRecords 單筆同步 Firestore 失敗：", error);
   }
 }
   async function saveBatchMasterToFirestore(batch) {
@@ -2781,6 +2932,33 @@ function handleWorkstationScan() {
     console.log("batchMaster 已單筆同步到 Firestore：", batchCode);
   } catch (error) {
     console.error("batchMaster 單筆同步 Firestore 失敗：", error);
+  }
+}
+async function deleteSortBatchRecordFromFirestore(batchCode, employeeCode) {
+  if (!window.db) {
+    console.warn("sortBatchRecords：Firestore 尚未初始化，無法刪除單筆配貨紀錄");
+    return;
+  }
+
+  let safeBatchCode = String(batchCode || "").trim();
+  let safeEmployeeCode = String(employeeCode || "").trim();
+
+  if (!safeBatchCode || !safeEmployeeCode) {
+    console.warn("sortBatchRecords：缺少 batchCode 或 employeeCode，無法刪除單筆配貨紀錄");
+    return;
+  }
+
+  let docId = `${safeBatchCode}__${safeEmployeeCode}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
+      .doc(docId)
+      .delete();
+
+    console.log("sortBatchRecords 已從 Firestore 刪除：", docId);
+  } catch (error) {
+    console.error("sortBatchRecords 刪除 Firestore 失敗：", error);
   }
 }
 async function deleteBatchMasterFromFirestore(batchCode) {
@@ -3099,15 +3277,15 @@ async function loadBatchRecordsFromFirestore() {
         batchCode: batchCode,
         employeeCode: employeeCode,
         employeeName: String(data.employeeName || "").trim(),
-        firstScanTime: String(data.firstScanTime || "").trim(),
-        secondScanTime: String(data.secondScanTime || "").trim(),
+        startTime: String(data.startTime || "").trim(),
+        endTime: String(data.endTime || "").trim(),
         status: String(data.status || "").trim()
       });
     });
 
     loadedBatchRecords.sort((a, b) => {
-      let aTime = String(a.firstScanTime || "");
-      let bTime = String(b.firstScanTime || "");
+      let aTime = String(a.startTime || "");
+      let bTime = String(b.startTime || "");
       return aTime.localeCompare(bTime);
     });
 
@@ -3115,6 +3293,60 @@ async function loadBatchRecordsFromFirestore() {
     return loadedBatchRecords;
   } catch (error) {
     console.error("batchRecords：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
+async function loadSortBatchRecordsFromFirestore() {
+  if (!window.db) {
+    console.warn("sortBatchRecords：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("sortBatchRecords：Firestore 裡沒有單筆配貨紀錄資料");
+      return [];
+    }
+
+    let loadedSortBatchRecords = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let batchCode = String(data.batchCode || "").trim();
+      let employeeCode = String(data.employeeCode || "").trim();
+
+      if (!batchCode || !employeeCode) {
+        return;
+      }
+
+      loadedSortBatchRecords.push({
+        batchCode: batchCode,
+        employeeCode: employeeCode,
+        employeeName: String(data.employeeName || "").trim(),
+        startTime: String(data.startTime || "").trim(),
+        endTime: String(data.endTime || "").trim(),
+        status: String(data.status || "").trim()
+      });
+    });
+
+    loadedSortBatchRecords.sort((a, b) => {
+      let aTime = String(a.startTime || "");
+      let bTime = String(b.startTime || "");
+      return aTime.localeCompare(bTime);
+    });
+
+    console.log("sortBatchRecords 已從 Firestore 單筆文件載入");
+    return loadedSortBatchRecords;
+  } catch (error) {
+    console.error("sortBatchRecords：讀取單筆 Firestore 文件失敗", error);
     return [];
   }
 }
@@ -3512,26 +3744,11 @@ function renderFlowControlTable(filterStatus, filterType) {
   let currentTypeFilter = window.flowControlTypeFilter || "";
   let currentStatusFilter = window.flowControlStatusFilter || "";
 
-  let topButtons = document.querySelectorAll("#flowControlPanel .button-row button");
+  let typeButtons = document.querySelectorAll("#flowControlPanel .card:first-child .button-row button");
 
-  topButtons.forEach((button, index) => {
-    if (index === 0) {
-      button.style.display = "inline-block";
-      button.innerText = "一般配";
-      button.onclick = function() {
-        renderFlowControlTable("", "一般配");
-      };
-      button.className = currentTypeFilter === "一般配" ? "green" : "gray";
-    } else if (index === 1) {
-      button.style.display = "inline-block";
-      button.innerText = "無包裝";
-      button.onclick = function() {
-        renderFlowControlTable("", "無包裝");
-      };
-      button.className = currentTypeFilter === "無包裝" ? "green" : "gray";
-    } else {
-      button.style.display = "none";
-    }
+  typeButtons.forEach(button => {
+    let buttonType = button.innerText.trim();
+    button.className = currentTypeFilter === buttonType ? "green" : "gray";
   });
 
   if (!currentTypeFilter) {
@@ -3540,34 +3757,44 @@ function renderFlowControlTable(filterStatus, filterType) {
   }
 
   let statusButtonList = [];
-  let statusLabelMap = {};
-  let statusValueMap = {};
+let statusLabelMap = {};
+let statusValueMap = {};
 
-  if (currentTypeFilter === "一般配") {
-    statusButtonList = ["待撿貨", "撿貨完成", "待配貨"];
-    statusLabelMap = {
-      "待撿貨": "待撿貨",
-      "撿貨完成": "撿貨完成",
-      "待配貨": "待配貨"
-    };
-    statusValueMap = {
-      "待撿貨": "未撿貨",
-      "撿貨完成": "開始撿貨",
-      "待配貨": "待包貨"
-    };
-  } else if (currentTypeFilter === "無包裝") {
-    statusButtonList = ["待撿貨", "撿貨完成", "待包貨"];
-    statusLabelMap = {
-      "待撿貨": "待撿貨",
-      "撿貨完成": "撿貨完成",
-      "待包貨": "待包貨"
-    };
-    statusValueMap = {
-      "待撿貨": "未撿貨",
-      "撿貨完成": "開始撿貨",
-      "待包貨": "待包貨"
-    };
-  }
+if (currentTypeFilter === "一般配") {
+  statusButtonList = ["待撿貨", "撿貨中", "待配貨", "配貨中", "待包貨", "已完成"];
+  statusLabelMap = {
+    "待撿貨": "待撿貨",
+    "撿貨中": "撿貨中",
+    "待配貨": "待配貨",
+    "配貨中": "配貨中",
+    "待包貨": "待包貨",
+    "已完成": "已完成"
+  };
+  statusValueMap = {
+    "待撿貨": "未撿貨",
+    "撿貨中": "開始撿貨",
+    "待配貨": "待配貨",
+    "配貨中": "配貨中",
+    "待包貨": "待包貨",
+    "已完成": "已完成"
+  };
+} else if (currentTypeFilter === "無包裝") {
+  statusButtonList = ["待撿貨", "撿貨中", "待包貨", "包貨中", "已完成"];
+  statusLabelMap = {
+    "待撿貨": "待撿貨",
+    "撿貨中": "撿貨中",
+    "待包貨": "待包貨",
+    "包貨中": "包貨中",
+    "已完成": "已完成"
+  };
+  statusValueMap = {
+    "待撿貨": "未撿貨",
+    "撿貨中": "開始撿貨",
+    "待包貨": "待包貨",
+    "包貨中": "包貨中",
+    "已完成": "已完成"
+  };
+}
 
   if (!statusButtonList.includes(currentStatusFilter)) {
     currentStatusFilter = "";
@@ -3625,11 +3852,14 @@ function renderFlowControlTable(filterStatus, filterType) {
   }
 
   let statusSortOrder = {
-    "未撿貨": 1,
-    "開始撿貨": 2,
-    "待包貨": 3,
-    "已完成": 4
-  };
+  "未撿貨": 1,
+  "開始撿貨": 2,
+  "待配貨": 3,
+  "配貨中": 4,
+  "待包貨": 5,
+  "包貨中": 6,
+  "已完成": 7
+};
 
   filteredBatchMaster.sort((a, b) => {
     let aStatus = statusSortOrder[a.status || "未撿貨"] || 999;
@@ -3650,12 +3880,14 @@ function renderFlowControlTable(filterStatus, filterType) {
   }
 
   if (filteredBatchMaster.length === 0) {
-    let row = table.insertRow();
-    let cell = row.insertCell(0);
-    cell.colSpan = 5;
-    cell.innerText = "目前沒有符合條件的資料";
-    return;
-  }
+  let row = table.insertRow();
+  let cell = row.insertCell(0);
+  let emptyStatusText = currentStatusFilter ? currentStatusFilter : "全部流程";
+
+  cell.colSpan = 5;
+  cell.innerText = `目前沒有符合條件的資料（類型：${currentTypeFilter}｜流程：${emptyStatusText}）`;
+  return;
+}
 
   filteredBatchMaster.forEach(batch => {
     let row = table.insertRow();
@@ -3776,7 +4008,11 @@ function renderWorkstationCountBoard() {
     }
   }
 }
-
+function setFlowControlType(type) {
+  window.flowControlTypeFilter = type || "一般配";
+  window.flowControlStatusFilter = "";
+  renderFlowControlTable("", window.flowControlTypeFilter);
+}
 function toggleFlowControlPanel() {
   let flowPanel = document.getElementById("flowControlPanel");
   let employeePanel = document.getElementById("employeePerformancePanel");
@@ -3809,11 +4045,19 @@ function toggleFlowControlPanel() {
 
     flowPanel.style.display = "block";
 
-    if (flowBtn) {
-      flowBtn.innerText = "隱藏貨態追蹤";
-    }
+     if (flowBtn) {
+        flowBtn.innerText = "隱藏貨態追蹤";
+     }
 
-    renderFlowControlTable();
+     if (!window.flowControlTypeFilter) {
+       window.flowControlTypeFilter = "一般配";
+     }
+
+     if (!window.flowControlStatusFilter) {
+       window.flowControlStatusFilter = "";
+     }
+
+renderFlowControlTable("", window.flowControlTypeFilter);
   } else {
     flowPanel.style.display = "none";
 
@@ -3897,9 +4141,9 @@ function toggleWorkstationPanel() {
 
   let today = formatDate(new Date());
   let todayRecords = batchRecords.filter(record => {
-    if (!record.firstScanTime) return false;
-    return record.firstScanTime.startsWith(today);
-  });
+  if (!record.startTime) return false;
+  return record.startTime.startsWith(today);
+});
 
   if (todayRecords.length === 0) {
     summary.innerHTML = `今天（${today}）沒有任何批次掃描紀錄`;
@@ -4172,17 +4416,36 @@ if (abnormalEmployees.length === 0) {
   }
 
   function getBatchStatusTag(status) {
-    if (status === "未撿貨") {
-      return `<span class="status-tag status-not-started">${status}</span>`;
-    }
-    if (status === "開始撿貨") {
-      return `<span class="status-tag status-picking">${status}</span>`;
-    }
-    if (status === "待包貨") {
-      return `<span class="status-tag status-pack-wait">${status}</span>`;
-    }
-    return status;
+  if (status === "未撿貨") {
+    return `<span class="status-tag status-not-started">未撿貨</span>`;
   }
+
+  if (status === "開始撿貨") {
+    return `<span class="status-tag status-picking">撿貨中</span>`;
+  }
+
+  if (status === "待配貨") {
+    return `<span class="status-tag status-pack-wait">待配貨</span>`;
+  }
+
+  if (status === "配貨中") {
+    return `<span class="status-tag status-picking">配貨中</span>`;
+  }
+
+  if (status === "待包貨") {
+    return `<span class="status-tag status-pack-wait">待包貨</span>`;
+  }
+
+  if (status === "包貨中") {
+    return `<span class="status-tag status-picking">包貨中</span>`;
+  }
+
+  if (status === "已完成") {
+    return `<span class="status-tag status-not-started">已完成</span>`;
+  }
+
+  return `<span class="status-tag status-not-started">${status || ""}</span>`;
+}
 
   function safeQty(value) {
     let num = Number(value);
@@ -4489,6 +4752,240 @@ function getTodayPickingHoursByEmployee(employeeCode) {
     document.getElementById("batchEmployeeCode").value = "";
     document.getElementById("batchCode").focus();
   }
+  function setSortBatchEmployee() {
+  let code = document.getElementById("sortBatchEmployeeCode").value.trim();
+  let result = document.getElementById("sortBatchEmployeeResult");
+  let message = document.getElementById("sortBatchMessage");
+
+  if (!code) {
+    currentSortBatchEmployee = null;
+    if (result) {
+      result.innerHTML = `<span class="danger-text">請先掃描或輸入員工編號</span>`;
+    }
+    if (message) {
+      message.innerText = "";
+    }
+    return;
+  }
+
+  let employee = employees.find(emp => emp.code === code);
+
+  if (!employee) {
+    currentSortBatchEmployee = null;
+    if (result) {
+      result.innerHTML = `<span class="danger-text">查無此員工</span>`;
+    }
+    if (message) {
+      message.innerText = "";
+    }
+    return;
+  }
+
+  let checkResult = canStartSortBatch(employee);
+
+  if (!checkResult.success) {
+    currentSortBatchEmployee = null;
+    if (result) {
+      result.innerHTML = `
+        <strong>員工資料</strong><br>
+        員工編號：${employee.code}<br>
+        員工姓名：${employee.name}
+      `;
+    }
+    if (message) {
+      message.innerText = checkResult.message || "此員工目前不可進行配貨作業";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  currentSortBatchEmployee = employee;
+
+  if (result) {
+    result.innerHTML = `
+      <strong>目前配貨員工</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}
+    `;
+  }
+
+  if (message) {
+    message.innerText = "員工確認成功，可以開始配貨";
+    message.className = "message";
+  }
+
+  document.getElementById("sortBatchEmployeeCode").value = "";
+  document.getElementById("sortBatchCode").focus();
+}
+function clearSortBatchEmployee() {
+  currentSortBatchEmployee = null;
+
+  let input = document.getElementById("sortBatchEmployeeCode");
+  let result = document.getElementById("sortBatchEmployeeResult");
+  let message = document.getElementById("sortBatchMessage");
+
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+
+  if (result) {
+    result.innerHTML = "";
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+}
+async function processSortBatchScan() {
+  let batchCodeInput = document.getElementById("sortBatchCode");
+  let batchCode = batchCodeInput ? batchCodeInput.value.trim() : "";
+  let message = document.getElementById("sortBatchMessage");
+
+  if (!currentSortBatchEmployee) {
+    if (message) {
+      message.innerText = "請先確認配貨員工";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (!batchCode) {
+    if (message) {
+      message.innerText = "請先掃描或輸入批次編號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let master = batchMaster.find(item => item.batchCode === batchCode);
+
+  if (!master) {
+    if (message) {
+      message.innerText = "查無此批次編號";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if ((master.type || "").trim() !== "一般配") {
+    if (message) {
+      message.innerText = "此批次不是一般配，配貨作業刷讀失敗";
+      message.className = "message danger-text";
+    }
+    return;
+  }
+        let existedSortRecord = sortBatchRecords.find(record =>
+    record.batchCode === batchCode &&
+    !record.endTime
+  );
+
+  let employeeOpenSortRecord = sortBatchRecords.find(record =>
+    record.employeeCode === currentSortBatchEmployee.code &&
+    !record.endTime &&
+    record.batchCode !== batchCode
+  );
+
+  if (employeeOpenSortRecord) {
+    if (message) {
+      message.innerText = `員工 ${currentSortBatchEmployee.name} 尚有未完成配貨批次：${employeeOpenSortRecord.batchCode}`;
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  if (existedSortRecord) {
+    if (existedSortRecord.employeeCode !== currentSortBatchEmployee.code) {
+      if (message) {
+        message.innerText = `此批次目前由 ${existedSortRecord.employeeName || existedSortRecord.employeeCode} 配貨中，不可由其他員工完成`;
+        message.className = "message danger-text";
+      }
+      return;
+    }
+
+    if ((existedSortRecord.status || "").trim() !== "配貨中") {
+      if (message) {
+        message.innerText = `此配貨紀錄狀態異常：${existedSortRecord.status || "未知"}`;
+        message.className = "message danger-text";
+      }
+      return;
+    }
+
+    existedSortRecord.endTime = getNowString();
+    existedSortRecord.status = "待包貨";
+    await saveSortBatchRecordToFirestore(existedSortRecord);
+
+    master.status = "待包貨";
+    await saveBatchMasterToFirestore(master);
+
+    if (message) {
+      message.innerText = `批次 ${batchCode} 已完成配貨，狀態更新為待包貨`;
+      message.className = "message";
+    }
+
+    if (batchCodeInput) {
+      batchCodeInput.value = "";
+      batchCodeInput.focus();
+    }
+
+    renderSortBatchRecords();
+    renderBatchMaster();
+    return;
+  }
+
+  if ((master.status || "").trim() !== "待配貨") {
+    if (message) {
+      message.innerText = `此批次目前狀態為「${master.status || "未知"}」，不可開始配貨`;
+      message.className = "message danger-text";
+    }
+    return;
+  }
+
+  let newRecord = {
+    batchCode: batchCode,
+    employeeCode: currentSortBatchEmployee.code,
+    employeeName: currentSortBatchEmployee.name,
+    startTime: getNowString(),
+    endTime: "",
+    status: "配貨中"
+  };
+
+  sortBatchRecords.push(newRecord);
+  await saveSortBatchRecordToFirestore(newRecord);
+
+  master.status = "配貨中";
+  await saveBatchMasterToFirestore(master);
+
+  if (message) {
+    message.innerText = `批次 ${batchCode} 已開始配貨`;
+    message.className = "message";
+  }
+
+  if (batchCodeInput) {
+    batchCodeInput.value = "";
+    batchCodeInput.focus();
+  }
+
+  renderSortBatchRecords();
+  renderBatchMaster();
+}
+
+  
+function clearSortBatchInput() {
+  let input = document.getElementById("sortBatchCode");
+  let message = document.getElementById("sortBatchMessage");
+
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+}
 function setAttendanceMode(mode) {
   let modeResult = document.getElementById("attendanceModeResult");
   let message = document.getElementById("attendanceMessage");
@@ -4699,7 +5196,7 @@ function handleAttendanceScan() {
 
   let employeeOpenBatch = batchRecords.find(item =>
     item.employeeCode === currentBatchEmployee.code &&
-    item.status === "開始撿貨" &&
+    !item.endTime &&
     item.batchCode !== batchCode
   );
 
@@ -4716,8 +5213,8 @@ function handleAttendanceScan() {
       batchCode: batchCode,
       employeeCode: currentBatchEmployee.code,
       employeeName: currentBatchEmployee.name,
-      firstScanTime: getNowString(),
-      secondScanTime: "",
+      startTime: getNowString(),
+      endTime: "",
       status: "開始撿貨"
     };
 
@@ -4767,40 +5264,43 @@ function handleAttendanceScan() {
       return;
     }
 
-    if (record.status === "開始撿貨") {
-      record.secondScanTime = getNowString();
-      record.status = "待包貨";
-      // ✅ 新增：單筆更新 Firestore（關鍵）
-      await saveBatchRecordToFirestore(record);
-      if (master) {
-        master.status = "待包貨";
-        await saveBatchMasterToFirestore(master);
-      }
-
-      renderBatchRecords();
-      renderBatchMaster();
-      updateBatchDashboard();
-
-      if (employeeResult) {
-        employeeResult.innerHTML = `
-          <strong>目前作業員工</strong><br>
-          員工編號：${currentBatchEmployee.code}<br>
-          員工姓名：${currentBatchEmployee.name}<br>
-          剛完成批次：${batchCode}<br>
-          狀態：待包貨
-        `;
-      }
-
-      showBatchSuccess(
-        `批次 ${batchCode} 第二次刷卡成功`,
-        "目前狀態：待包貨"
-      );
-    } else {
+    if (record.endTime) {
       showBatchError(
         `批次 ${batchCode} 已不可再次刷卡`,
         `目前狀態：${record.status}`
       );
+      return;
     }
+
+    record.endTime = getNowString();
+    record.status = master && master.type === "一般配" ? "待配貨" : "待包貨";
+    await saveBatchRecordToFirestore(record);
+
+    if (master) {
+      master.status = master.type === "一般配" ? "待配貨" : "待包貨";
+      await saveBatchMasterToFirestore(master);
+    }
+
+    renderBatchRecords();
+    renderBatchMaster();
+    updateBatchDashboard();
+
+    let nextStatusText = master && master.type === "一般配" ? "待配貨" : "待包貨";
+
+    if (employeeResult) {
+      employeeResult.innerHTML = `
+        <strong>目前作業員工</strong><br>
+        員工編號：${currentBatchEmployee.code}<br>
+        員工姓名：${currentBatchEmployee.name}<br>
+        剛完成批次：${batchCode}<br>
+        狀態：${nextStatusText}
+      `;
+    }
+
+    showBatchSuccess(
+      `批次 ${batchCode} 第二次刷卡成功`,
+      `目前狀態：${nextStatusText}`
+    );
   }
 
   batchCodeInput.value = "";
@@ -4825,8 +5325,8 @@ function handleAttendanceScan() {
         <th>類型</th>
         <th>員工編號</th>
         <th>員工姓名</th>
-        <th>第一次刷時間</th>
-        <th>第二次刷時間</th>
+        <th>開始時間</th>
+        <th>結束時間</th>
         <th>狀態</th>
       </tr>
     `;
@@ -4846,6 +5346,39 @@ function handleAttendanceScan() {
       row.insertCell(8).innerHTML = getBatchStatusTag(record.status);
     });
   }
+  function renderSortBatchRecords() {
+  let table = document.getElementById("sortBatchTable");
+  if (!table) return;
+
+  table.innerHTML = `
+    <tr>
+      <th>批次編號</th>
+      <th>批次名稱</th>
+      <th>數量</th>
+      <th>類型</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>開始時間</th>
+      <th>結束時間</th>
+      <th>狀態</th>
+    </tr>
+  `;
+
+  sortBatchRecords.forEach(record => {
+    let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+
+    let row = table.insertRow();
+    row.insertCell(0).innerText = record.batchCode || "";
+    row.insertCell(1).innerText = master.name || "";
+    row.insertCell(2).innerText = master.qty || "";
+    row.insertCell(3).innerText = master.type || "";
+    row.insertCell(4).innerText = record.employeeCode || "";
+    row.insertCell(5).innerText = record.employeeName || "";
+    row.insertCell(6).innerText = record.startTime || "";
+    row.insertCell(7).innerText = record.endTime || "";
+    row.insertCell(8).innerText = record.status || "";
+  });
+}
 
   function exportBatchRecords() {
   if (batchRecords.length === 0) {
@@ -4856,37 +5389,37 @@ function handleAttendanceScan() {
   let exportData = batchRecords.map(record => {
     let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
 
-    let firstDate = "";
-    let firstTime = "";
-    let secondDate = "";
-    let secondTime = "";
+    let startDate = "";
+    let startTime = "";
+    let endDate = "";
+    let endTime = "";
 
-    if (record.firstScanTime) {
-      let firstParts = record.firstScanTime.split(" ");
-      firstDate = firstParts[0] || "";
-      firstTime = firstParts[1] || "";
+    if (record.startTime) {
+      let startParts = record.startTime.split(" ");
+      startDate = startParts[0] || "";
+      startTime = startParts[1] || "";
     }
 
-    if (record.secondScanTime) {
-      let secondParts = record.secondScanTime.split(" ");
-      secondDate = secondParts[0] || "";
-      secondTime = secondParts[1] || "";
+    if (record.endTime) {
+      let endParts = record.endTime.split(" ");
+      endDate = endParts[0] || "";
+      endTime = endParts[1] || "";
     }
 
     return {
-      "批次編號": record.batchCode,
+      "批次編號": record.batchCode || "",
       "批次名稱": master.name || "",
       "數量": master.qty || "",
       "類型": master.type || "",
-      "員工編號": record.employeeCode,
-      "員工姓名": record.employeeName,
-      "第一次日期": firstDate,
-      "第一次時間(24H)": firstTime,
-      "第一次完整時間": record.firstScanTime || "",
-      "第二次日期": secondDate,
-      "第二次時間(24H)": secondTime,
-      "第二次完整時間": record.secondScanTime || "",
-      "狀態": record.status
+      "員工編號": record.employeeCode || "",
+      "員工姓名": record.employeeName || "",
+      "開始日期": startDate,
+      "開始時間(24H)": startTime,
+      "開始完整時間": record.startTime || "",
+      "結束日期": endDate,
+      "結束時間(24H)": endTime,
+      "結束完整時間": record.endTime || "",
+      "狀態": record.status || ""
     };
   });
 
@@ -5304,13 +5837,15 @@ operationLogs = await loadFirestoreRecords(
   FIRESTORE_COLLECTIONS.workstation,
   "workstationRecords"
 );
-  batchRecords = await loadBatchRecordsFromFirestore();
-  batchMaster = await loadBatchMasterFromFirestore();
-  renderEmployees();
-  renderBatchRecords();
-  renderBatchGrid();
-  renderBatchMaster();
-  updateBatchDashboard();
+    batchRecords = await loadBatchRecordsFromFirestore();
+    sortBatchRecords = await loadSortBatchRecordsFromFirestore();
+    batchMaster = await loadBatchMasterFromFirestore();
+    renderEmployees();
+    renderBatchRecords();
+    renderSortBatchRecords();
+    renderBatchGrid();
+    renderBatchMaster();
+    updateBatchDashboard();
 
   let batchEmployeeInput = document.getElementById("batchEmployeeCode");
   if (batchEmployeeInput) {
@@ -5365,6 +5900,24 @@ operationLogs = await loadFirestoreRecords(
       }
     });
   }
+  let sortBatchEmployeeInput = document.getElementById("sortBatchEmployeeCode");
+if (sortBatchEmployeeInput) {
+  sortBatchEmployeeInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setSortBatchEmployee();
+    }
+  });
+  }
+  let sortBatchCodeInput = document.getElementById("sortBatchCode");
+if (sortBatchCodeInput) {
+  sortBatchCodeInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      processSortBatchScan();
+    }
+  });
+  }
 });
 
 </script>
@@ -5394,6 +5947,7 @@ operationLogs = await loadFirestoreRecords(
   attendance: "attendanceRecords",
   workstation: "workstationRecords",
   batchRecords: "batchRecords",
+  sortBatchRecords: "sortBatchRecords",
   batchMaster: "batchMaster",
   employees: "employees",
   accounts: "accounts",
