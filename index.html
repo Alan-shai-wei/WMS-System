@@ -1204,6 +1204,51 @@ let SYSTEM_COMPANY_NAME = "MUYAO";
 let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
 let accounts = [];
 let currentUser = null;
+let IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 分鐘
+let idleTimeoutHandle = null;
+let idleTrackingEnabled = false;
+let idleActivityEventsBound = false;
+
+function resetIdleTimer() {
+  if (!idleTrackingEnabled) return;
+
+  if (idleTimeoutHandle) {
+    clearTimeout(idleTimeoutHandle);
+  }
+
+  idleTimeoutHandle = setTimeout(function () {
+    performLogout();
+  }, IDLE_TIMEOUT_MS);
+}
+
+function bindIdleActivityEvents() {
+  if (idleActivityEventsBound) return;
+
+  let idleEvents = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+
+  idleEvents.forEach(function(eventName) {
+    window.addEventListener(eventName, function() {
+      resetIdleTimer();
+    });
+  });
+
+  idleActivityEventsBound = true;
+}
+
+function startIdleTracking() {
+  idleTrackingEnabled = true;
+  bindIdleActivityEvents();
+  resetIdleTimer();
+}
+
+function stopIdleTracking() {
+  idleTrackingEnabled = false;
+
+  if (idleTimeoutHandle) {
+    clearTimeout(idleTimeoutHandle);
+    idleTimeoutHandle = null;
+  }
+}
 
 
 const DEPARTMENT_OPTIONS = ["", "Inbound", "Outbound"];
@@ -2374,6 +2419,9 @@ function showSystemPage() {
   if (loginPage) {
     loginPage.style.display = "none";
   }
+
+  startIdleTracking();
+
   // ✅ 控制「貨態追蹤」按鈕權限
 let flowControlBtn = document.getElementById("toggleFlowControlBtn");
 
@@ -2457,12 +2505,15 @@ function checkLoginStatus() {
   }
 }
 
-function handleLogout() {
+function performLogout() {
+  stopIdleTracking();
   clearCurrentLoginUser();
   currentUser = null;
-  currentDepartment = "logistics";
-  switchDepartment("logistics");
-  showLoginPage();
+  window.location.reload();
+}
+
+function handleLogout() {
+  performLogout();
 }
 let batchRecords = [];
 let sortBatchRecords = [];
@@ -5918,6 +5969,16 @@ if (sortBatchCodeInput) {
       processSortBatchScan();
     }
   });
+  }
+});
+window.addEventListener("pageshow", function (event) {
+  if (event.persisted) {
+    checkLoginStatus();
+  }
+});
+window.addEventListener("storage", function (event) {
+  if (event.key === LOGIN_STORAGE_KEY && !event.newValue) {
+    performLogout();
   }
 });
 
