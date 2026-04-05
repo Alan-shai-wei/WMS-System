@@ -1953,7 +1953,6 @@ async function deleteSelectedAccounts() {
     );
   });
 
-  renderAccounts();
 
   if (message) {
     message.innerText = `已刪除 ${usernamesToDelete.length} 筆帳號`;
@@ -1994,7 +1993,6 @@ addOperationLog(
   `帳號已${newStatusText}`
 );
 
-renderAccounts();
 
   if (message) {
     message.innerText = `${target.username} 已${target.isActive ? "啟用" : "停用"}`;
@@ -2644,19 +2642,269 @@ function switchDepartment(department) {
     });
   }
 }
-async function saveWorkstationRecords() {
-  await saveFirestoreRecords(
-    FIRESTORE_COLLECTIONS.workstation,
-    workstationRecords,
-    "workstationRecords"
-  );
+async function saveWorkstationRecordToFirestore(record) {
+  if (!window.db) {
+    console.warn("workstationRecords：Firestore 尚未初始化，無法儲存單筆工位紀錄");
+    return;
+  }
+
+  let employeeCode = String(record.employeeCode || "").trim();
+  let startTime = String(record.startTime || "").trim();
+
+  if (!employeeCode || !startTime) {
+    console.warn("workstationRecords：缺少 employeeCode 或 startTime");
+    return;
+  }
+
+  let safeStartTime = startTime
+    .replace(/\//g, "-")
+    .replace(/ /g, "_")
+    .replace(/:/g, "-");
+
+  let docId = `${employeeCode}__${safeStartTime}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.workstation)
+      .doc(docId)
+      .set({
+        employeeCode: employeeCode,
+        employeeName: String(record.employeeName || "").trim(),
+        group: String(record.group || "").trim(),
+        workstation: String(record.workstation || "").trim(),
+        startTime: startTime,
+        endTime: String(record.endTime || "").trim(),
+        status: String(record.status || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("workstationRecords 單筆寫入成功：", docId);
+  } catch (error) {
+    console.error("workstationRecords 單筆寫入失敗：", error);
+  }
 }
-async function saveOperationLogs() {
-  await saveFirestoreRecords(
-    FIRESTORE_COLLECTIONS.operationLogs,
-    operationLogs,
-    "operationLogs"
-  );
+async function loadWorkstationRecordsFromFirestore() {
+  if (!window.db) {
+    console.warn("workstationRecords：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.workstation)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("workstationRecords：Firestore 裡沒有單筆工位資料");
+      return [];
+    }
+
+    let loadedWorkstationRecords = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let employeeCode = String(data.employeeCode || "").trim();
+      let startTime = String(data.startTime || "").trim();
+
+      if (!employeeCode || !startTime) {
+        return;
+      }
+
+      loadedWorkstationRecords.push({
+        employeeCode: employeeCode,
+        employeeName: String(data.employeeName || "").trim(),
+        group: String(data.group || "").trim(),
+        workstation: String(data.workstation || "").trim(),
+        startTime: startTime,
+        endTime: String(data.endTime || "").trim(),
+        status: String(data.status || "").trim()
+      });
+    });
+
+    loadedWorkstationRecords.sort((a, b) => {
+      let aKey = `${a.startTime || ""} ${a.employeeCode || ""}`;
+      let bKey = `${b.startTime || ""} ${b.employeeCode || ""}`;
+      return aKey.localeCompare(bKey);
+    });
+
+    console.log("workstationRecords 已從 Firestore 單筆文件載入");
+    return loadedWorkstationRecords;
+  } catch (error) {
+    console.error("workstationRecords：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
+}
+let workstationRecordsUnsubscribe = null;
+
+function refreshWorkstationRecordsViews() {
+  renderWorkstationCountBoard();
+  renderActiveWorkstationBoard();
+  renderTodayWorkstationBoard();
+
+  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
+  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+    renderEmployeeEfficiencyBoard();
+  }
+}
+
+function subscribeWorkstationRecordsRealtime() {
+  if (!window.db) {
+    console.warn("workstationRecords：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (workstationRecordsUnsubscribe) {
+    workstationRecordsUnsubscribe();
+    workstationRecordsUnsubscribe = null;
+  }
+
+  workstationRecordsUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.workstation)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedWorkstationRecords = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let employeeCode = String(data.employeeCode || "").trim();
+          let startTime = String(data.startTime || "").trim();
+
+          if (!employeeCode || !startTime) {
+            return;
+          }
+
+          loadedWorkstationRecords.push({
+            employeeCode: employeeCode,
+            employeeName: String(data.employeeName || "").trim(),
+            group: String(data.group || "").trim(),
+            workstation: String(data.workstation || "").trim(),
+            startTime: startTime,
+            endTime: String(data.endTime || "").trim(),
+            status: String(data.status || "").trim()
+          });
+        });
+
+        loadedWorkstationRecords.sort(function(a, b) {
+          let aKey = `${a.startTime || ""} ${a.employeeCode || ""}`;
+          let bKey = `${b.startTime || ""} ${b.employeeCode || ""}`;
+          return aKey.localeCompare(bKey);
+        });
+
+        workstationRecords = loadedWorkstationRecords;
+        console.log("workstationRecords 已啟動即時同步，最新筆數：", workstationRecords.length);
+
+        refreshWorkstationRecordsViews();
+      },
+      function(error) {
+        console.error("workstationRecords：即時同步失敗", error);
+      }
+    );
+}
+async function saveOperationLogToFirestore(log) {
+  if (!window.db) {
+    console.warn("operationLogs：Firestore 尚未初始化，無法儲存單筆操作紀錄");
+    return;
+  }
+
+  let time = String(log.time || "").trim();
+  let actionType = String(log.actionType || "").trim();
+  let target = String(log.target || "").trim();
+
+  if (!time || !actionType) {
+    console.warn("operationLogs：缺少 time 或 actionType");
+    return;
+  }
+
+  let safeTime = time
+    .replace(/\//g, "-")
+    .replace(/ /g, "_")
+    .replace(/:/g, "-");
+
+  let safeTarget = target ? target.replace(/\s+/g, "_") : "no-target";
+  let docId = `${safeTime}__${actionType}__${safeTarget}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.operationLogs)
+      .doc(docId)
+      .set({
+        time: time,
+        operatorUsername: String(log.operatorUsername || "").trim(),
+        operatorName: String(log.operatorName || "").trim(),
+        operatorRole: String(log.operatorRole || "").trim(),
+        actionType: actionType,
+        target: target,
+        detail: String(log.detail || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("operationLogs 單筆寫入成功：", docId);
+  } catch (error) {
+    console.error("operationLogs 單筆寫入失敗：", error);
+  }
+}
+async function loadOperationLogsFromFirestore() {
+  if (!window.db) {
+    console.warn("operationLogs：Firestore 尚未初始化");
+    return [];
+  }
+
+  try {
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.operationLogs)
+      .get();
+
+    if (snapshot.empty) {
+      console.warn("operationLogs：Firestore 裡沒有單筆操作紀錄資料");
+      return [];
+    }
+
+    let loadedOperationLogs = [];
+
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
+
+      let data = doc.data() || {};
+      let time = String(data.time || "").trim();
+      let actionType = String(data.actionType || "").trim();
+
+      if (!time || !actionType) {
+        return;
+      }
+
+      loadedOperationLogs.push({
+        time: time,
+        operatorUsername: String(data.operatorUsername || "").trim(),
+        operatorName: String(data.operatorName || "").trim(),
+        operatorRole: String(data.operatorRole || "").trim(),
+        actionType: actionType,
+        target: String(data.target || "").trim(),
+        detail: String(data.detail || "").trim()
+      });
+    });
+
+    loadedOperationLogs.sort((a, b) => {
+      let aKey = `${a.time || ""} ${a.actionType || ""} ${a.target || ""}`;
+      let bKey = `${b.time || ""} ${b.actionType || ""} ${b.target || ""}`;
+      return bKey.localeCompare(aKey);
+    });
+
+    console.log("operationLogs 已從 Firestore 單筆文件載入");
+    return loadedOperationLogs;
+  } catch (error) {
+    console.error("operationLogs：讀取單筆 Firestore 文件失敗", error);
+    return [];
+  }
 }
 function addOperationLog(actionType, target, detail) {
   let currentUser = getCurrentLoginUser();
@@ -2672,7 +2920,7 @@ function addOperationLog(actionType, target, detail) {
   };
 
   operationLogs.unshift(log);
-  saveOperationLogs();
+  saveOperationLogToFirestore(log);
 }
 function handleWorkstationScan() {
   let code = document.getElementById("workstationEmployeeCode").value.trim();
@@ -2742,7 +2990,7 @@ function handleWorkstationScan() {
     };
 
     workstationRecords.push(newRecord);
-    saveWorkstationRecords();
+    saveWorkstationRecordToFirestore(newRecord);
     renderWorkstationCountBoard();
     renderActiveWorkstationBoard();
     renderTodayWorkstationBoard();
@@ -2786,7 +3034,7 @@ function handleWorkstationScan() {
 
     workingRecord.endTime = getNowString();
     workingRecord.status = "已結束";
-    saveWorkstationRecords();
+    saveWorkstationRecordToFirestore(workingRecord);
     renderWorkstationCountBoard();
     renderActiveWorkstationBoard();
     renderTodayWorkstationBoard();
@@ -3091,7 +3339,7 @@ function runAttendanceCheckIn(employee) {
   };
 
   attendanceRecords.push(newRecord);
-  saveAttendanceRecords();
+  saveAttendanceRecordToFirestore(newRecord);
 
   scanResult.innerHTML = `
     <strong>刷卡成功</strong><br>
@@ -3154,11 +3402,11 @@ function runAttendanceCheckOut(employee) {
   if (workingRecord) {
     workingRecord.endTime = getNowString();
     workingRecord.status = "已結束";
-    saveWorkstationRecords();
+    saveWorkstationRecordToFirestore(workingRecord);
   }
 
   todayRecord.status = "已下班";
-  saveAttendanceRecords();
+  saveAttendanceRecordToFirestore(todayRecord);
   renderWorkstationCountBoard();
   renderActiveWorkstationBoard();
   renderTodayWorkstationBoard();
@@ -3176,43 +3424,159 @@ function runAttendanceCheckOut(employee) {
   input.value = "";
   input.focus();
 }
-  async function saveAttendanceRecords() {
-  await saveFirestoreRecords(
-    FIRESTORE_COLLECTIONS.attendance,
-    attendanceRecords,
-    "attendanceRecords"
-  );
-}
-  async function loadFirestoreRecords(collectionName, logName) {
+  async function saveAttendanceRecordToFirestore(record) {
   if (!window.db) {
-    console.warn(logName + "：Firestore 尚未初始化");
+    console.warn("attendanceRecords：Firestore 尚未初始化，無法儲存單筆打卡紀錄");
+    return;
+  }
+
+  let employeeCode = String(record.employeeCode || "").trim();
+  let date = String(record.date || "").trim();
+
+  if (!employeeCode || !date) {
+    console.warn("attendanceRecords：缺少 employeeCode 或 date");
+    return;
+  }
+
+  let docId = `${employeeCode}__${date.replace(/\//g, "-")}`;
+
+  try {
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.attendance)
+      .doc(docId)
+      .set({
+        employeeCode: employeeCode,
+        employeeName: String(record.employeeName || "").trim(),
+        date: date,
+        checkInTime: String(record.checkInTime || "").trim(),
+        checkOutTime: String(record.checkOutTime || "").trim(),
+        status: String(record.status || "").trim(),
+        updatedAt: getNowString()
+      });
+
+    console.log("attendanceRecords 單筆寫入成功：", docId);
+  } catch (error) {
+    console.error("attendanceRecords 單筆寫入失敗：", error);
+  }
+}
+async function loadAttendanceRecordsFromFirestore() {
+  if (!window.db) {
+    console.warn("attendanceRecords：Firestore 尚未初始化");
     return [];
   }
 
   try {
-    let doc = await window.db
-      .collection(collectionName)
-      .doc("main")
+    let snapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.attendance)
       .get();
 
-    if (!doc.exists) {
-      console.warn(logName + "：Firestore 裡沒有資料");
+    if (snapshot.empty) {
+      console.warn("attendanceRecords：Firestore 裡沒有單筆打卡資料");
       return [];
     }
 
-    let data = doc.data();
+    let loadedAttendanceRecords = [];
 
-    if (data && Array.isArray(data.records)) {
-      console.log(logName + " 已從 Firestore 載入");
-      return data.records;
-    }
+    snapshot.forEach(doc => {
+      if (doc.id === "main") {
+        return;
+      }
 
-    console.warn(logName + "：Firestore 資料格式不正確");
-    return [];
+      let data = doc.data() || {};
+      let employeeCode = String(data.employeeCode || "").trim();
+      let date = String(data.date || "").trim();
+
+      if (!employeeCode || !date) {
+        return;
+      }
+
+      loadedAttendanceRecords.push({
+        employeeCode: employeeCode,
+        employeeName: String(data.employeeName || "").trim(),
+        date: date,
+        checkInTime: String(data.checkInTime || "").trim(),
+        checkOutTime: String(data.checkOutTime || "").trim(),
+        status: String(data.status || "").trim()
+      });
+    });
+
+    loadedAttendanceRecords.sort((a, b) => {
+      let aKey = `${a.date || ""} ${a.checkInTime || ""} ${a.employeeCode || ""}`;
+      let bKey = `${b.date || ""} ${b.checkInTime || ""} ${b.employeeCode || ""}`;
+      return aKey.localeCompare(bKey);
+    });
+
+    console.log("attendanceRecords 已從 Firestore 單筆文件載入");
+    return loadedAttendanceRecords;
   } catch (error) {
-    console.error(logName + "：讀取 Firestore 失敗", error);
+    console.error("attendanceRecords：讀取單筆 Firestore 文件失敗", error);
     return [];
   }
+}
+let attendanceRecordsUnsubscribe = null;
+
+function refreshAttendanceRecordsViews() {
+  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
+  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+    renderEmployeeEfficiencyBoard();
+  }
+}
+
+function subscribeAttendanceRecordsRealtime() {
+  if (!window.db) {
+    console.warn("attendanceRecords：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (attendanceRecordsUnsubscribe) {
+    attendanceRecordsUnsubscribe();
+    attendanceRecordsUnsubscribe = null;
+  }
+
+  attendanceRecordsUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.attendance)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedAttendanceRecords = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let employeeCode = String(data.employeeCode || "").trim();
+          let date = String(data.date || "").trim();
+
+          if (!employeeCode || !date) {
+            return;
+          }
+
+          loadedAttendanceRecords.push({
+            employeeCode: employeeCode,
+            employeeName: String(data.employeeName || "").trim(),
+            date: date,
+            checkInTime: String(data.checkInTime || "").trim(),
+            checkOutTime: String(data.checkOutTime || "").trim(),
+            status: String(data.status || "").trim()
+          });
+        });
+
+        loadedAttendanceRecords.sort(function(a, b) {
+          let aKey = `${a.date || ""} ${a.checkInTime || ""} ${a.employeeCode || ""}`;
+          let bKey = `${b.date || ""} ${b.checkInTime || ""} ${b.employeeCode || ""}`;
+          return aKey.localeCompare(bKey);
+        });
+
+        attendanceRecords = loadedAttendanceRecords;
+        console.log("attendanceRecords 已啟動即時同步，最新筆數：", attendanceRecords.length);
+
+        refreshAttendanceRecordsViews();
+      },
+      function(error) {
+        console.error("attendanceRecords：即時同步失敗", error);
+      }
+    );
 }
 async function loadAccountsFromFirestore() {
   if (!window.db) {
@@ -3266,6 +3630,118 @@ async function loadAccountsFromFirestore() {
     return [];
   }
 }
+let accountsUnsubscribe = null;
+
+function refreshAccountsViews() {
+  renderAccounts();
+
+  let savedUser = getCurrentLoginUser();
+
+  if (!savedUser) {
+    return;
+  }
+
+  let latestAccount = accounts.find(account => account.username === savedUser.username);
+
+  if (!latestAccount) {
+    performLogout();
+    return;
+  }
+
+  if (latestAccount.isActive === false) {
+    performLogout();
+    return;
+  }
+
+  let syncedUser = {
+    ...savedUser,
+    ...latestAccount
+  };
+
+  saveCurrentLoginUser(syncedUser);
+  currentUser = syncedUser;
+
+  let nameEl = document.getElementById("loginUserName");
+
+  if (nameEl) {
+    let departmentMap = {
+      logistics: "物流管理部",
+      marketing: "行銷部",
+      customerService: "客服部",
+      purchasing: "採購部",
+      sales: "業務部",
+      productDevelopment: "商品開發部"
+    };
+
+    let departmentText = departmentMap[syncedUser.systemDepartment] || "未指定部門";
+    let displayName = syncedUser.name || syncedUser.username || "使用者";
+    let accessLevelText = syncedUser.accessLevel || "未設定權限";
+
+    nameEl.innerText = `MUYAO｜${departmentText}｜${displayName}（${accessLevelText}）`;
+
+    let avatar = nameEl.previousElementSibling;
+    if (avatar) {
+      avatar.innerText = (displayName || "U")[0];
+    }
+  }
+
+  applyMenuPermissions();
+}
+
+function subscribeAccountsRealtime() {
+  if (!window.db) {
+    console.warn("accounts：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (accountsUnsubscribe) {
+    accountsUnsubscribe();
+    accountsUnsubscribe = null;
+  }
+
+  accountsUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.accounts)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedAccounts = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let username = String(data.username || doc.id || "").trim();
+
+          if (!username) {
+            return;
+          }
+
+          loadedAccounts.push(
+            normalizeAccount(
+              {
+                ...data,
+                username: username
+              },
+              loadedAccounts.length
+            )
+          );
+        });
+
+        loadedAccounts.sort(function(a, b) {
+          return String(a.username || "").localeCompare(String(b.username || ""));
+        });
+
+        accounts = loadedAccounts;
+        console.log("accounts 已啟動即時同步，最新筆數：", accounts.length);
+
+        refreshAccountsViews();
+      },
+      function(error) {
+        console.error("accounts：即時同步失敗", error);
+      }
+    );
+}
 async function loadEmployeesFromFirestore() {
   if (!window.db) {
     console.warn("employees：Firestore 尚未初始化");
@@ -3313,6 +3789,62 @@ async function loadEmployeesFromFirestore() {
     console.error("employees：讀取單筆 Firestore 文件失敗", error);
     return [];
   }
+}
+let employeesUnsubscribe = null;
+
+function refreshEmployeesViews() {
+  renderEmployees();
+}
+
+function subscribeEmployeesRealtime() {
+  if (!window.db) {
+    console.warn("employees：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (employeesUnsubscribe) {
+    employeesUnsubscribe();
+    employeesUnsubscribe = null;
+  }
+
+  employeesUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.employees)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedEmployees = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let code = String(data.code || doc.id || "").trim();
+          let name = String(data.name || "").trim();
+
+          if (!code || !name) {
+            return;
+          }
+
+          loadedEmployees.push({
+            code: code,
+            name: name
+          });
+        });
+
+        loadedEmployees.sort(function(a, b) {
+          return String(a.code || "").localeCompare(String(b.code || ""));
+        });
+
+        employees = loadedEmployees;
+        console.log("employees 已啟動即時同步，最新筆數：", employees.length);
+
+        refreshEmployeesViews();
+      },
+      function(error) {
+        console.error("employees：即時同步失敗", error);
+      }
+    );
 }
 async function loadBatchRecordsFromFirestore() {
   if (!window.db) {
@@ -3368,6 +3900,73 @@ async function loadBatchRecordsFromFirestore() {
     return [];
   }
 }
+let batchRecordsUnsubscribe = null;
+
+function refreshBatchRecordsViews() {
+  renderBatchRecords();
+
+  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
+  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+    renderEmployeeEfficiencyBoard();
+  }
+}
+
+function subscribeBatchRecordsRealtime() {
+  if (!window.db) {
+    console.warn("batchRecords：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (batchRecordsUnsubscribe) {
+    batchRecordsUnsubscribe();
+    batchRecordsUnsubscribe = null;
+  }
+
+  batchRecordsUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.batchRecords)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedBatchRecords = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let batchCode = String(data.batchCode || "").trim();
+          let employeeCode = String(data.employeeCode || "").trim();
+
+          if (!batchCode || !employeeCode) {
+            return;
+          }
+
+          loadedBatchRecords.push({
+            batchCode: batchCode,
+            employeeCode: employeeCode,
+            employeeName: String(data.employeeName || "").trim(),
+            startTime: String(data.startTime || "").trim(),
+            endTime: String(data.endTime || "").trim(),
+            status: String(data.status || "").trim()
+          });
+        });
+
+        loadedBatchRecords.sort(function(a, b) {
+          let aTime = String(a.startTime || "");
+          let bTime = String(b.startTime || "");
+          return aTime.localeCompare(bTime);
+        });
+
+        batchRecords = loadedBatchRecords;
+        console.log("batchRecords 已啟動即時同步，最新筆數：", batchRecords.length);
+
+        refreshBatchRecordsViews();
+      },
+      function(error) {
+        console.error("batchRecords：即時同步失敗", error);
+      }
+    );
+}
 async function loadSortBatchRecordsFromFirestore() {
   if (!window.db) {
     console.warn("sortBatchRecords：Firestore 尚未初始化");
@@ -3422,6 +4021,74 @@ async function loadSortBatchRecordsFromFirestore() {
     return [];
   }
 }
+let sortBatchRecordsUnsubscribe = null;
+
+function refreshSortBatchRecordsViews() {
+  renderSortBatchRecords();
+  renderBatchMaster();
+
+  let flowControlPanel = document.getElementById("flowControlPanel");
+  if (flowControlPanel && flowControlPanel.style.display === "block") {
+    renderFlowControlTable();
+  }
+}
+
+function subscribeSortBatchRecordsRealtime() {
+  if (!window.db) {
+    console.warn("sortBatchRecords：Firestore 尚未初始化，無法啟動即時同步");
+    return;
+  }
+
+  if (sortBatchRecordsUnsubscribe) {
+    sortBatchRecordsUnsubscribe();
+    sortBatchRecordsUnsubscribe = null;
+  }
+
+  sortBatchRecordsUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedSortBatchRecords = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let batchCode = String(data.batchCode || "").trim();
+          let employeeCode = String(data.employeeCode || "").trim();
+
+          if (!batchCode || !employeeCode) {
+            return;
+          }
+
+          loadedSortBatchRecords.push({
+            batchCode: batchCode,
+            employeeCode: employeeCode,
+            employeeName: String(data.employeeName || "").trim(),
+            startTime: String(data.startTime || "").trim(),
+            endTime: String(data.endTime || "").trim(),
+            status: String(data.status || "").trim()
+          });
+        });
+
+        loadedSortBatchRecords.sort(function(a, b) {
+          let aTime = String(a.startTime || "");
+          let bTime = String(b.startTime || "");
+          return aTime.localeCompare(bTime);
+        });
+
+        sortBatchRecords = loadedSortBatchRecords;
+        console.log("sortBatchRecords 已啟動即時同步，最新筆數：", sortBatchRecords.length);
+
+        refreshSortBatchRecordsViews();
+      },
+      function(error) {
+        console.error("sortBatchRecords：即時同步失敗", error);
+      }
+    );
+}
 async function loadBatchMasterFromFirestore() {
   if (!window.db) {
     console.warn("batchMaster：Firestore 尚未初始化");
@@ -3474,25 +4141,78 @@ async function loadBatchMasterFromFirestore() {
     return [];
   }
 }
-async function saveFirestoreRecords(collectionName, records, logName) {
+let batchMasterUnsubscribe = null;
+
+function refreshBatchMasterViews() {
+  renderBatchMaster();
+  renderBatchRecords();
+  renderSortBatchRecords();
+  updateBatchDashboard();
+
+  let flowControlPanel = document.getElementById("flowControlPanel");
+  if (flowControlPanel && flowControlPanel.style.display === "block") {
+    renderFlowControlTable();
+  }
+
+  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
+  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+    renderEmployeeEfficiencyBoard();
+  }
+}
+
+function subscribeBatchMasterRealtime() {
   if (!window.db) {
-    console.warn(logName + "：Firestore 尚未初始化，無法儲存");
+    console.warn("batchMaster：Firestore 尚未初始化，無法啟動即時同步");
     return;
   }
 
-  try {
-    await window.db
-      .collection(collectionName)
-      .doc("main")
-      .set({
-        records: records,
-        updatedAt: getNowString()
-      });
-
-    console.log(logName + " 已同步到 Firestore");
-  } catch (error) {
-    console.error(logName + " 同步 Firestore 失敗：", error);
+  if (batchMasterUnsubscribe) {
+    batchMasterUnsubscribe();
+    batchMasterUnsubscribe = null;
   }
+
+  batchMasterUnsubscribe = window.db
+    .collection(FIRESTORE_COLLECTIONS.batchMaster)
+    .onSnapshot(
+      function(snapshot) {
+        let loadedBatchMaster = [];
+
+        snapshot.forEach(function(doc) {
+          if (doc.id === "main") {
+            return;
+          }
+
+          let data = doc.data() || {};
+          let batchCode = String(data.batchCode || doc.id || "").trim();
+
+          if (!batchCode) {
+            return;
+          }
+
+          loadedBatchMaster.push({
+            batchCode: batchCode,
+            workDate: String(data.workDate || "").trim(),
+            name: String(data.name || "").trim(),
+            qty: String(data.qty || "").trim(),
+            type: String(data.type || "").trim(),
+            status: String(data.status || "未撿貨").trim(),
+            createdAt: String(data.createdAt || "").trim()
+          });
+        });
+
+        loadedBatchMaster.sort(function(a, b) {
+          return String(a.batchCode || "").localeCompare(String(b.batchCode || ""));
+        });
+
+        batchMaster = loadedBatchMaster;
+        console.log("batchMaster 已啟動即時同步，最新筆數：", batchMaster.length);
+
+        refreshBatchMasterViews();
+      },
+      function(error) {
+        console.error("batchMaster：即時同步失敗", error);
+      }
+    );
 }
 function showPage(pageId, btn) {
   let currentUser = getCurrentLoginUser();
@@ -4687,7 +5407,6 @@ function getTodayPickingHoursByEmployee(employeeCode) {
 
   employees.push(newEmployee);
   await saveEmployeeToFirestore(newEmployee);
-  renderEmployees();
 
   document.getElementById("employeeCode").value = "";
   document.getElementById("employeeName").value = "";
@@ -4735,7 +5454,6 @@ function getTodayPickingHoursByEmployee(employeeCode) {
     await deleteEmployeeFromFirestore(checkedCodes[i]);
   }
 
-  renderEmployees();
 
   message.innerText = "已刪除被勾選的員工（單筆上雲）";
   message.className = "message";
@@ -4789,7 +5507,6 @@ function getTodayPickingHoursByEmployee(employeeCode) {
     for (let i = 0; i < newEmployees.length; i++) {
       await saveEmployeeToFirestore(newEmployees[i]);
     }
-    renderEmployees();
 
     message.innerText = `匯入成功：${newEmployees.length} 筆`;
     message.className = "message";
@@ -5268,6 +5985,15 @@ function handleAttendanceScan() {
   let record = batchRecords.find(item => item.batchCode === batchCode);
   let master = batchMaster.find(item => item.batchCode === batchCode);
 
+  if (!master) {
+    showBatchError(
+      `查無批次主檔：${batchCode}`,
+      "此批次尚未在「建立批次作業」建立，禁止自動補建資料"
+    );
+    return;
+  }
+
+
   let employeeOpenBatch = batchRecords.find(item =>
     item.employeeCode === currentBatchEmployee.code &&
     !item.endTime &&
@@ -5282,7 +6008,15 @@ function handleAttendanceScan() {
     return;
   }
 
-  if (!record) {
+    if (!record) {
+    if ((master.status || "").trim() !== "未撿貨") {
+      showBatchError(
+        `批次 ${batchCode} 目前狀態為「${master.status || "未知"}」`,
+        "只有「未撿貨」批次才能開始撿貨"
+      );
+      return;
+    }
+
     let newRecord = {
       batchCode: batchCode,
       employeeCode: currentBatchEmployee.code,
@@ -5295,21 +6029,8 @@ function handleAttendanceScan() {
     batchRecords.push(newRecord);
     await saveBatchRecordToFirestore(newRecord);
 
-    if (master) {
-      master.status = "開始撿貨";
-      await saveBatchMasterToFirestore(master);
-    } else {
-      let newMaster = {
-        batchCode: batchCode,
-        name: "",
-        qty: "",
-        type: "",
-        status: "開始撿貨",
-        createdAt: getNowString()
-      };
-      batchMaster.push(newMaster);
-      await saveBatchMasterToFirestore(newMaster);
-    }
+    master.status = "開始撿貨";
+    await saveBatchMasterToFirestore(master);
 
     renderBatchRecords();
     renderBatchMaster();
@@ -5338,22 +6059,38 @@ function handleAttendanceScan() {
       return;
     }
 
-    if (record.endTime) {
+        if (record.endTime) {
       showBatchError(
         `批次 ${batchCode} 已不可再次刷卡`,
-        `目前狀態：${record.status}`
+        `目前狀態：${record.status || "未知"}`
       );
       return;
     }
 
+    if ((record.status || "").trim() !== "開始撿貨") {
+      showBatchError(
+        `批次紀錄狀態異常：${record.status || "未知"}`,
+        "只有「開始撿貨」中的批次紀錄，才能完成第二次刷讀"
+      );
+      return;
+    }
+
+    if ((master.status || "").trim() !== "開始撿貨") {
+      showBatchError(
+        `批次主狀態異常：${master.status || "未知"}`,
+        "只有主狀態為「開始撿貨」的批次，才能完成撿貨"
+      );
+      return;
+    }
+
+    let nextStatus = (master.type || "").trim() === "一般配" ? "待配貨" : "待包貨";
+
     record.endTime = getNowString();
-    record.status = master && master.type === "一般配" ? "待配貨" : "待包貨";
+    record.status = nextStatus;
     await saveBatchRecordToFirestore(record);
 
-    if (master) {
-      master.status = master.type === "一般配" ? "待配貨" : "待包貨";
-      await saveBatchMasterToFirestore(master);
-    }
+    master.status = nextStatus;
+    await saveBatchMasterToFirestore(master);
 
     renderBatchRecords();
     renderBatchMaster();
@@ -5415,8 +6152,8 @@ function handleAttendanceScan() {
       row.insertCell(3).innerText = master.type || "";
       row.insertCell(4).innerText = record.employeeCode;
       row.insertCell(5).innerText = record.employeeName;
-      row.insertCell(6).innerText = record.firstScanTime || "";
-      row.insertCell(7).innerText = record.secondScanTime || "";
+      row.insertCell(6).innerText = record.startTime || "";
+      row.insertCell(7).innerText = record.endTime || "";
       row.insertCell(8).innerHTML = getBatchStatusTag(record.status);
     });
   }
@@ -5970,34 +6707,25 @@ updateBatchDashboard();
       }
 
   document.addEventListener("DOMContentLoaded", async function () {
-  accounts = await loadAccountsFromFirestore();
-
-  await initializeDefaultAccounts();
-  checkLoginStatus();
+    accounts = await loadAccountsFromFirestore();
+    await initializeDefaultAccounts();
+    subscribeAccountsRealtime();
+    checkLoginStatus();
 
   // ===== employees：Firestore 單筆文件模式 =====
-employees = await loadEmployeesFromFirestore();
-  // ===== operationLogs：Firestore 載入 =====
-operationLogs = await loadFirestoreRecords(
-  FIRESTORE_COLLECTIONS.operationLogs,
-  "operationLogs"
-);
-  // ===== attendanceRecords：Firestore 優先，localStorage 備援 =====
-  attendanceRecords = await loadFirestoreRecords(
-  FIRESTORE_COLLECTIONS.attendance,
-  "attendanceRecords"
-);
-    // ===== workstationRecords：Firestore 優先，localStorage 備援 =====
-  workstationRecords = await loadFirestoreRecords(
-  FIRESTORE_COLLECTIONS.workstation,
-  "workstationRecords"
-);
-    batchRecords = await loadBatchRecordsFromFirestore();
-    sortBatchRecords = await loadSortBatchRecordsFromFirestore();
-    batchMaster = await loadBatchMasterFromFirestore();
+  employees = await loadEmployeesFromFirestore();
+  subscribeEmployeesRealtime();
+    // ===== operationLogs：Firestore 單筆文件模式 =====
+operationLogs = await loadOperationLogsFromFirestore();
+    // ===== attendanceRecords：Firestore 單筆文件模式 =====
+subscribeAttendanceRecordsRealtime();
+      // ===== workstationRecords：Firestore 單筆文件模式 =====
+subscribeWorkstationRecordsRealtime();
+    subscribeBatchRecordsRealtime();
+    subscribeSortBatchRecordsRealtime();
+    subscribeBatchMasterRealtime();
+
     renderEmployees();
-    renderBatchRecords();
-    renderSortBatchRecords();
     renderBatchGrid();
 
     let batchWorkDateInput = document.getElementById("batchWorkDate");
@@ -6008,9 +6736,6 @@ operationLogs = await loadFirestoreRecords(
       let dd = String(today.getDate()).padStart(2, "0");
       batchWorkDateInput.value = `${yyyy}-${mm}-${dd}`;
     }
-
-    renderBatchMaster();
-    updateBatchDashboard();
 
   let batchEmployeeInput = document.getElementById("batchEmployeeCode");
   if (batchEmployeeInput) {
