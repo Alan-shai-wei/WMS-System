@@ -1248,13 +1248,16 @@
 
   <!-- 包貨｜無包裝 -->
   <div id="employeePerformancePackNoPackPanel" style="display:none;">
-    <div class="card" style="margin-top:16px;">
-      <h3>包貨｜無包裝績效</h3>
-      <div class="info-box">此模組後續建立</div>
-    </div>
+  <div class="card" style="margin-top:16px;">
+    <h3>包貨｜無包裝績效</h3>
+    <div class="info-box">此模組後續建立</div>
   </div>
+</div>
 
 </div>
+</div>
+</div>
+
 <div id="attendancePage" class="page">
   <div class="card">
     <h2>上下班打卡 / 工位打卡</h2>
@@ -1295,7 +1298,7 @@
       請點上方按鈕，切換要操作的畫面。
     </div>
 
-    <div id="attendanceMainPanel" style="display:none; margin-top:16px;">
+    <div id="attendanceMainPanel" style="display:block; margin-top:16px;">
       <div class="card" style="margin-top:0;">
         <h3>上下班打卡</h3>
 
@@ -4529,7 +4532,30 @@ function showPage(pageId, btn) {
       exportBatchRecordsBtn.style.display = canManageBatchPage ? "inline-block" : "none";
     }
   }
+    if (pageId === "attendancePage") {
+      console.log("進入 attendancePage");
+  let attendanceMainPanel = document.getElementById("attendanceMainPanel");
+  let workstationMainPanel = document.getElementById("workstationMainPanel");
 
+  let toggleAttendancePanelBtn = document.getElementById("toggleAttendancePanelBtn");
+  let toggleWorkstationPanelBtn = document.getElementById("toggleWorkstationPanelBtn");
+
+  if (attendanceMainPanel) {
+    attendanceMainPanel.style.display = "block";
+  }
+
+  if (workstationMainPanel) {
+    workstationMainPanel.style.display = "none";
+  }
+
+  if (toggleAttendancePanelBtn) {
+    toggleAttendancePanelBtn.innerText = "隱藏上下班打卡";
+  }
+
+  if (toggleWorkstationPanelBtn) {
+    toggleWorkstationPanelBtn.innerText = "顯示工位打卡";
+  }
+}
   let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
   let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
   let canExportExcel = currentUser && (currentUser.accessLevel === "Admin" || currentUser.accessLevel === "Manager");
