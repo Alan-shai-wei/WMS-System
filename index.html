@@ -1154,7 +1154,26 @@
   <!-- 第三層：撿貨績效（原本內容全部放這） -->
   <div id="employeePerformancePickingPanel">
 
-    <div id="employeeEfficiencySummary" class="message"></div>
+  <div class="card" style="margin-top:16px;">
+    <h3>撿貨績效日期篩選</h3>
+
+    <div class="flow-workboard-filter-row">
+      <div>
+        <label for="employeePerformanceWorkDate">選擇日期</label>
+        <input
+          type="date"
+          id="employeePerformanceWorkDate"
+          onchange="handleEmployeePerformanceWorkDateChange()"
+        >
+      </div>
+    </div>
+
+    <div class="info-box">
+      預設帶入今天。切換日期後，會重新刷新撿貨績效摘要卡、異常員工清單與排名表。
+    </div>
+  </div>
+
+  <div id="employeeEfficiencySummary" class="message"></div>
 
     <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
       <div class="dashboard-card">
@@ -5267,6 +5286,28 @@ function ensureFlowControlWorkDateFilter() {
 function setFlowControlWorkDateFilter(dateValue) {
   flowControlWorkDateFilter = String(dateValue || "").trim() || getTodayInputDateString();
 }
+let employeePerformanceWorkDateFilter = "";
+
+function ensureEmployeePerformanceWorkDateFilter() {
+  if (!employeePerformanceWorkDateFilter) {
+    employeePerformanceWorkDateFilter = getTodayInputDateString();
+  }
+  return employeePerformanceWorkDateFilter;
+}
+
+function setEmployeePerformanceWorkDateFilter(dateValue) {
+  employeePerformanceWorkDateFilter =
+    String(dateValue || "").trim() || getTodayInputDateString();
+}
+
+function handleEmployeePerformanceWorkDateChange() {
+  let workDateInput = document.getElementById("employeePerformanceWorkDate");
+
+  if (!workDateInput) return;
+
+  setEmployeePerformanceWorkDateFilter(workDateInput.value);
+  renderEmployeeEfficiencyBoard();
+}
 
 function getFlowControlStatusMapByType(type) {
   if (type === "一般配") {
@@ -5475,7 +5516,18 @@ function toggleWorkstationPanel() {
   let summary = document.getElementById("employeeEfficiencySummary");
 
   if (!table || !summary) return;
+  let normalCountValue = document.getElementById("normalCountValue");
+  let normalTopValue = document.getElementById("normalTopValue");
+  let normalAvgValue = document.getElementById("normalAvgValue");
+  let normalMinValue = document.getElementById("normalMinValue");
 
+  let noPackCountValue = document.getElementById("noPackCountValue");
+  let noPackTopValue = document.getElementById("noPackTopValue");
+  let noPackAvgValue = document.getElementById("noPackAvgValue");
+  let noPackMinValue = document.getElementById("noPackMinValue");
+
+  let alertSummary = document.getElementById("employeeEfficiencyAlertSummary");
+  let alertTable = document.getElementById("employeeEfficiencyAlertTable");
   table.innerHTML = `
     <tr>
       <th>排名</th>
@@ -5496,20 +5548,53 @@ function toggleWorkstationPanel() {
     return;
   }
 
-  let today = formatDate(new Date());
-  let todayRecords = batchRecords.filter(record => {
-  if (!record.startTime) return false;
-  return record.startTime.startsWith(today);
-});
+    let selectedWorkDate = ensureEmployeePerformanceWorkDateFilter();
+    let selectedDateText = selectedWorkDate.replace(/-/g, "/");
+    let workDateInput = document.getElementById("employeePerformanceWorkDate");
 
-  if (todayRecords.length === 0) {
-    summary.innerHTML = `今天（${today}）沒有任何批次掃描紀錄`;
-    return;
-  }
+    if (workDateInput) {
+      workDateInput.value = selectedWorkDate;
+    }
+
+    let selectedRecords = batchRecords.filter(record => {
+      if (!record.startTime) return false;
+      return record.startTime.startsWith(selectedDateText);
+    });
+
+    if (selectedRecords.length === 0) {
+      if (normalCountValue) normalCountValue.innerText = "0";
+      if (normalTopValue) normalTopValue.innerText = "0.00";
+      if (normalAvgValue) normalAvgValue.innerText = "0.00";
+      if (normalMinValue) normalMinValue.innerText = "0.00";
+
+      if (noPackCountValue) noPackCountValue.innerText = "0";
+      if (noPackTopValue) noPackTopValue.innerText = "0.00";
+      if (noPackAvgValue) noPackAvgValue.innerText = "0.00";
+      if (noPackMinValue) noPackMinValue.innerText = "0.00";
+
+      if (alertSummary) {
+        alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有異常員工資料`;
+      }
+
+      if (alertTable) {
+        alertTable.innerHTML = `
+          <tr>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>今日判定類型</th>
+            <th>撿貨工時</th>
+            <th>效率值</th>
+          </tr>
+         `;
+      }
+
+      summary.innerHTML = `目前選擇日期（${selectedDateText}）沒有任何批次掃描紀錄`;
+      return;
+    }
 
   let employeeMap = {};
 
-  todayRecords.forEach(record => {
+  selectedRecords.forEach(record => {
     let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
     let type = master.type || "";
     let qty = safeQty(master.qty);
@@ -5524,7 +5609,7 @@ function toggleWorkstationPanel() {
         noPackQty: 0,
         normalBatchCount: 0,
         noPackBatchCount: 0,
-        pickingHours: getTodayPickingHoursByEmployee(record.employeeCode),
+        pickingHours: getPickingHoursByEmployeeAndDate(record.employeeCode, selectedDateText),
         judgeType: "",
         judgeValue: 0
       };
@@ -5586,20 +5671,12 @@ function toggleWorkstationPanel() {
   }
 
   summary.innerHTML = `
-    今天（${today}）共統計 <strong>${rankingData.length}</strong> 位員工。<br>
+    目前選擇日期（${selectedDateText}）共統計 <strong>${rankingData.length}</strong> 位員工。<br>
     一般配排名：<strong>${normalRanking.length}</strong> 人｜
     無包裝排名：<strong>${noPackRanking.length}</strong> 人
   `;
 
-  let normalCountValue = document.getElementById("normalCountValue");
-let normalTopValue = document.getElementById("normalTopValue");
-let normalAvgValue = document.getElementById("normalAvgValue");
-let normalMinValue = document.getElementById("normalMinValue");
 
-let noPackCountValue = document.getElementById("noPackCountValue");
-let noPackTopValue = document.getElementById("noPackTopValue");
-let noPackAvgValue = document.getElementById("noPackAvgValue");
-let noPackMinValue = document.getElementById("noPackMinValue");
 
 let normalCount = normalRanking.length;
 let noPackCount = noPackRanking.length;
@@ -5699,9 +5776,6 @@ displayRanking.forEach(emp => {
   }
 });
 
-let alertSummary = document.getElementById("employeeEfficiencyAlertSummary");
-let alertTable = document.getElementById("employeeEfficiencyAlertTable");
-
 if (alertTable) {
   alertTable.innerHTML = `
     <tr>
@@ -5726,10 +5800,10 @@ if (!alertSummary || !alertTable) {
 }
 
 if (abnormalEmployees.length === 0) {
-  alertSummary.innerHTML = `今天（${today}）沒有低於各自類型平均值 80% 的異常員工`;
+  alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有低於各自類型平均值 80% 的異常員工`;
 } else {
   alertSummary.innerHTML = `
-    今天（${today}）共有 <strong>${abnormalEmployees.length}</strong> 位異常員工
+    目前選擇日期（${selectedDateText}）共有 <strong>${abnormalEmployees.length}</strong> 位異常員工
     （依各自作業類型的平均效率 80% 以下判定）
   `;
 
@@ -5861,7 +5935,28 @@ function getTodayPickingHoursByEmployee(employeeCode) {
 
   return Number(totalHours.toFixed(2));
 }
+function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
+  let safeDateText = String(targetDateText || "").trim();
 
+  if (!safeDateText) {
+    return 0;
+  }
+
+  let pickingRecords = workstationRecords.filter(record => {
+    return record.employeeCode === employeeCode &&
+      record.workstation === "撿貨" &&
+      (record.startTime || "").startsWith(safeDateText);
+  });
+
+  let totalHours = 0;
+
+  pickingRecords.forEach(record => {
+    let endTime = record.endTime || getNowString();
+    totalHours += getDurationHours(record.startTime, endTime);
+  });
+
+  return Number(totalHours.toFixed(2));
+}
   function sumQtyBy(filterFn) {
     return batchMaster
       .filter(filterFn)
