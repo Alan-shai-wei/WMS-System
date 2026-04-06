@@ -942,14 +942,6 @@
      <button id="toggleWorkstationBtn" class="gray" onclick="toggleWorkstationPanel()">顯示 / 隱藏工位看板</button>
   </div>
 
-    <div class="info-box">
-      <strong>效率排名邏輯：</strong><br>
-      1. 一般配效率 = 一般配總量 ÷ 撿貨工時。<br>
-      2. 無包裝效率 = 無包裝總PCS ÷ 撿貨工時。<br>
-      3. 若同一員工今天兩種作業都有，依主要作業類型判定效率值。<br>
-      4. 若撿貨工時為 0，效率值以 0 計算。<br>
-      5. 目前只顯示今日前 5 名。
-    </div>
     <div id="flowControlPanel" style="display:none;">
   <div class="card" style="margin-top:16px;">
     <h3>即時工作看板</h3>
@@ -1141,81 +1133,127 @@
   </div>
 </div>
     <div id="employeePerformancePanel" style="display:none;">
-      <div id="employeeEfficiencySummary" class="message"></div>
 
-      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
-        <div class="dashboard-card dashboard-total">
-          <div class="dashboard-title">一般配有排名人數</div>
-          <div class="dashboard-value" id="normalCountValue">0</div>
-        </div>
+  <!-- 第一層：按鈕 -->
+  <div class="card" style="margin-top:16px;">
+    <h3>員工績效入口</h3>
 
-        <div class="dashboard-card dashboard-picking">
-          <div class="dashboard-title">一般配最高效率</div>
-          <div class="dashboard-value" id="normalTopValue">0</div>
-        </div>
+    <div class="button-row">
+      <button id="employeePerformancePickingBtn" class="green" onclick="setEmployeePerformanceType('picking')">撿貨績效</button>
+      <button id="employeePerformanceSortingBtn" class="gray" onclick="setEmployeePerformanceType('sorting')">配貨績效</button>
+      <button id="employeePerformancePackNormalBtn" class="gray" onclick="setEmployeePerformanceType('packNormal')">包貨｜一般配績效</button>
+      <button id="employeePerformancePackNoPackBtn" class="gray" onclick="setEmployeePerformanceType('packNoPack')">包貨｜無包裝績效</button>
+    </div>
 
-        <div class="dashboard-card dashboard-pack-wait">
-          <div class="dashboard-title">一般配平均效率</div>
-          <div class="dashboard-value" id="normalAvgValue">0</div>
-        </div>
+    <!-- 第二層：說明 -->
+    <div id="employeePerformanceIntroBox" class="info-box" style="margin-top:12px;">
+      目前為撿貨績效說明（後續會依類型切換）
+    </div>
+  </div>
 
-        <div class="dashboard-card dashboard-not-started">
-          <div class="dashboard-title">一般配最低效率</div>
-          <div class="dashboard-value" id="normalMinValue">0</div>
-        </div>
+  <!-- 第三層：撿貨績效（原本內容全部放這） -->
+  <div id="employeePerformancePickingPanel">
 
-        <div class="dashboard-card dashboard-total">
-          <div class="dashboard-title">無包裝有排名人數</div>
-          <div class="dashboard-value" id="noPackCountValue">0</div>
-        </div>
+    <div id="employeeEfficiencySummary" class="message"></div>
 
-        <div class="dashboard-card dashboard-picking">
-          <div class="dashboard-title">無包裝最高效率</div>
-          <div class="dashboard-value" id="noPackTopValue">0</div>
-        </div>
-
-        <div class="dashboard-card dashboard-pack-wait">
-          <div class="dashboard-title">無包裝平均效率</div>
-          <div class="dashboard-value" id="noPackAvgValue">0</div>
-        </div>
-
-        <div class="dashboard-card dashboard-not-started">
-          <div class="dashboard-title">無包裝最低效率</div>
-          <div class="dashboard-value" id="noPackMinValue">0</div>
-        </div>
+    <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+      <div class="dashboard-card">
+        <div class="dashboard-title">一般配有排名人數</div>
+        <div class="dashboard-value" id="normalCountValue">0</div>
       </div>
 
-      <div class="card" style="margin-top:16px;">
-        <h3>今日異常員工清單</h3>
-        <div id="employeeEfficiencyAlertSummary" class="result-box">目前尚無異常員工資料</div>
-
-        <table id="employeeEfficiencyAlertTable">
-          <tr>
-            <th>員工編號</th>
-            <th>員工姓名</th>
-            <th>今日判定類型</th>
-            <th>撿貨工時</th>
-            <th>效率值</th>
-          </tr>
-        </table>
+      <div class="dashboard-card">
+        <div class="dashboard-title">一般配最高效率</div>
+        <div class="dashboard-value" id="normalTopValue">0</div>
       </div>
 
-      <table id="employeeEfficiencyTable">
+      <div class="dashboard-card">
+        <div class="dashboard-title">一般配平均效率</div>
+        <div class="dashboard-value" id="normalAvgValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">一般配最低效率</div>
+        <div class="dashboard-value" id="normalMinValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">無包裝有排名人數</div>
+        <div class="dashboard-value" id="noPackCountValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">無包裝最高效率</div>
+        <div class="dashboard-value" id="noPackTopValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">無包裝平均效率</div>
+        <div class="dashboard-value" id="noPackAvgValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">無包裝最低效率</div>
+        <div class="dashboard-value" id="noPackMinValue">0</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>今日異常員工清單</h3>
+      <div id="employeeEfficiencyAlertSummary" class="result-box">目前尚無異常員工資料</div>
+
+      <table id="employeeEfficiencyAlertTable">
         <tr>
-          <th>排名</th>
           <th>員工編號</th>
           <th>員工姓名</th>
-          <th>一般配批次</th>
-          <th>無包裝批次</th>
-          <th>一般配總量</th>
-          <th>無包裝總PCS</th>
           <th>今日判定類型</th>
           <th>撿貨工時</th>
           <th>效率值</th>
         </tr>
       </table>
     </div>
+
+    <table id="employeeEfficiencyTable">
+      <tr>
+        <th>排名</th>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>一般配批次</th>
+        <th>無包裝批次</th>
+        <th>一般配總量</th>
+        <th>無包裝總PCS</th>
+        <th>今日判定類型</th>
+        <th>撿貨工時</th>
+        <th>效率值</th>
+      </tr>
+    </table>
+
   </div>
+
+  <!-- 配貨績效 -->
+  <div id="employeePerformanceSortingPanel" style="display:none;">
+    <div class="card" style="margin-top:16px;">
+      <h3>配貨績效</h3>
+      <div class="info-box">此模組後續建立</div>
+    </div>
+  </div>
+
+  <!-- 包貨｜一般配 -->
+  <div id="employeePerformancePackNormalPanel" style="display:none;">
+    <div class="card" style="margin-top:16px;">
+      <h3>包貨｜一般配績效</h3>
+      <div class="info-box">此模組後續建立</div>
+    </div>
+  </div>
+
+  <!-- 包貨｜無包裝 -->
+  <div id="employeePerformancePackNoPackPanel" style="display:none;">
+    <div class="card" style="margin-top:16px;">
+      <h3>包貨｜無包裝績效</h3>
+      <div class="info-box">此模組後續建立</div>
+    </div>
+  </div>
+
 </div>
 <div id="attendancePage" class="page">
   <div class="card">
@@ -4446,9 +4484,7 @@ function showPage(pageId, btn) {
 
     resetFlowControlPanelState();
 
-  if (employeePanel) {
-    employeePanel.style.display = "none";
-  }
+    resetEmployeePerformancePanelState();
 
   if (workstationPanel) {
     workstationPanel.style.display = "none";
@@ -4919,7 +4955,137 @@ function renderWorkstationCountBoard() {
     }
   });
 }
-  function toggleEmployeePerformancePanel() {
+  function setEmployeePerformanceType(type) {
+  let introBox = document.getElementById("employeePerformanceIntroBox");
+
+  let pickingPanel = document.getElementById("employeePerformancePickingPanel");
+  let sortingPanel = document.getElementById("employeePerformanceSortingPanel");
+  let packNormalPanel = document.getElementById("employeePerformancePackNormalPanel");
+  let packNoPackPanel = document.getElementById("employeePerformancePackNoPackPanel");
+
+  let pickingBtn = document.getElementById("employeePerformancePickingBtn");
+  let sortingBtn = document.getElementById("employeePerformanceSortingBtn");
+  let packNormalBtn = document.getElementById("employeePerformancePackNormalBtn");
+  let packNoPackBtn = document.getElementById("employeePerformancePackNoPackBtn");
+
+  window.employeePerformanceType = type || "picking";
+
+  if (pickingPanel) pickingPanel.style.display = "none";
+  if (sortingPanel) sortingPanel.style.display = "none";
+  if (packNormalPanel) packNormalPanel.style.display = "none";
+  if (packNoPackPanel) packNoPackPanel.style.display = "none";
+
+  if (pickingBtn) pickingBtn.className = "gray";
+  if (sortingBtn) sortingBtn.className = "gray";
+  if (packNormalBtn) packNormalBtn.className = "gray";
+  if (packNoPackBtn) packNoPackBtn.className = "gray";
+
+  if (window.employeePerformanceType === "picking") {
+    if (pickingPanel) pickingPanel.style.display = "block";
+    if (pickingBtn) pickingBtn.className = "green";
+
+    if (introBox) {
+      introBox.innerHTML = `
+        <strong>撿貨績效說明：</strong><br>
+        1. 一般配效率 = 一般配總量 ÷ 撿貨工時。<br>
+        2. 無包裝效率 = 無包裝總PCS ÷ 撿貨工時。<br>
+        3. 若同一員工今天兩種作業都有，依主要作業類型判定效率值。<br>
+        4. 若撿貨工時為 0，效率值以 0 計算。<br>
+        5. 目前只顯示今日前 5 名。
+      `;
+    }
+
+    renderEmployeeEfficiencyBoard();
+    return;
+  }
+
+  if (window.employeePerformanceType === "sorting") {
+    if (sortingPanel) sortingPanel.style.display = "block";
+    if (sortingBtn) sortingBtn.className = "green";
+
+    if (introBox) {
+      introBox.innerHTML = `
+        <strong>配貨績效說明：</strong><br>
+        目前先建立績效入口、切換區塊與說明文字。<br>
+        後續會補上配貨績效的摘要卡、排名表、異常名單與明細內容。
+      `;
+    }
+
+    return;
+  }
+
+  if (window.employeePerformanceType === "packNormal") {
+    if (packNormalPanel) packNormalPanel.style.display = "block";
+    if (packNormalBtn) packNormalBtn.className = "green";
+
+    if (introBox) {
+      introBox.innerHTML = `
+        <strong>包貨｜一般配績效說明：</strong><br>
+        目前先建立績效入口、切換區塊與說明文字。<br>
+        後續會補上包貨｜一般配績效的摘要卡、排名表、異常名單與明細內容。
+      `;
+    }
+
+    return;
+  }
+
+  if (window.employeePerformanceType === "packNoPack") {
+    if (packNoPackPanel) packNoPackPanel.style.display = "block";
+    if (packNoPackBtn) packNoPackBtn.className = "green";
+
+    if (introBox) {
+      introBox.innerHTML = `
+        <strong>包貨｜無包裝績效說明：</strong><br>
+        目前先建立績效入口、切換區塊與說明文字。<br>
+        後續會補上包貨｜無包裝績效的摘要卡、排名表、異常名單與明細內容。
+      `;
+    }
+
+    return;
+  }
+}
+function resetEmployeePerformancePanelState() {
+  let employeePanel = document.getElementById("employeePerformancePanel");
+  let introBox = document.getElementById("employeePerformanceIntroBox");
+
+  let pickingPanel = document.getElementById("employeePerformancePickingPanel");
+  let sortingPanel = document.getElementById("employeePerformanceSortingPanel");
+  let packNormalPanel = document.getElementById("employeePerformancePackNormalPanel");
+  let packNoPackPanel = document.getElementById("employeePerformancePackNoPackPanel");
+
+  let pickingBtn = document.getElementById("employeePerformancePickingBtn");
+  let sortingBtn = document.getElementById("employeePerformanceSortingBtn");
+  let packNormalBtn = document.getElementById("employeePerformancePackNormalBtn");
+  let packNoPackBtn = document.getElementById("employeePerformancePackNoPackBtn");
+
+  window.employeePerformanceType = "picking";
+
+  if (employeePanel) {
+    employeePanel.style.display = "none";
+  }
+
+  if (pickingPanel) pickingPanel.style.display = "block";
+  if (sortingPanel) sortingPanel.style.display = "none";
+  if (packNormalPanel) packNormalPanel.style.display = "none";
+  if (packNoPackPanel) packNoPackPanel.style.display = "none";
+
+  if (pickingBtn) pickingBtn.className = "green";
+  if (sortingBtn) sortingBtn.className = "gray";
+  if (packNormalBtn) packNormalBtn.className = "gray";
+  if (packNoPackBtn) packNoPackBtn.className = "gray";
+
+  if (introBox) {
+    introBox.innerHTML = `
+      <strong>撿貨績效說明：</strong><br>
+      1. 一般配效率 = 一般配總量 ÷ 撿貨工時。<br>
+      2. 無包裝效率 = 無包裝總PCS ÷ 撿貨工時。<br>
+      3. 若同一員工今天兩種作業都有，依主要作業類型判定效率值。<br>
+      4. 若撿貨工時為 0，效率值以 0 計算。<br>
+      5. 目前只顯示今日前 5 名。
+    `;
+  }
+}
+function toggleEmployeePerformancePanel() {
   let employeePanel = document.getElementById("employeePerformancePanel");
   let flowPanel = document.getElementById("flowControlPanel");
   let wsPanel = document.getElementById("workstationPanel");
@@ -4955,7 +5121,7 @@ function renderWorkstationCountBoard() {
       employeeBtn.innerText = "隱藏員工績效";
     }
 
-    renderEmployeeEfficiencyBoard();
+    setEmployeePerformanceType("picking");
   } else {
     employeePanel.style.display = "none";
 
@@ -5275,6 +5441,10 @@ function toggleWorkstationPanel() {
   }
 }
   function renderEmployeeEfficiencyBoard() {
+
+    if (window.employeePerformanceType && window.employeePerformanceType !== "picking") {
+  return;
+    }
   let table = document.getElementById("employeeEfficiencyTable");
   let summary = document.getElementById("employeeEfficiencySummary");
 
