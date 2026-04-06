@@ -1249,12 +1249,80 @@
 
   </div>
 
-  <!-- 配貨績效 -->
+    <!-- 配貨績效 -->
   <div id="employeePerformanceSortingPanel" style="display:none;">
+
     <div class="card" style="margin-top:16px;">
-      <h3>配貨績效</h3>
-      <div class="info-box">此模組後續建立</div>
+      <h3>配貨績效日期篩選</h3>
+
+      <div class="flow-workboard-filter-row">
+        <div>
+          <label for="employeePerformanceSortingWorkDate">選擇日期</label>
+          <input
+            type="date"
+            id="employeePerformanceSortingWorkDate"
+            onchange="handleEmployeePerformanceSortingWorkDateChange()"
+          >
+        </div>
+      </div>
+
+      <div class="info-box">
+        預設帶入今天。切換日期後，會重新刷新配貨績效摘要卡、異常員工清單與排名表。
+      </div>
     </div>
+
+    <div id="employeePerformanceSortingSummary" class="message"></div>
+
+    <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+      <div class="dashboard-card">
+        <div class="dashboard-title">有排名人數</div>
+        <div class="dashboard-value" id="sortingCountValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">最高效率</div>
+        <div class="dashboard-value" id="sortingTopValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">平均效率</div>
+        <div class="dashboard-value" id="sortingAvgValue">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">最低效率</div>
+        <div class="dashboard-value" id="sortingMinValue">0</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>今日異常員工清單</h3>
+      <div id="employeePerformanceSortingAlertSummary" class="result-box">
+        目前尚無異常員工資料
+      </div>
+
+      <table id="employeePerformanceSortingAlertTable">
+        <tr>
+          <th>員工編號</th>
+          <th>員工姓名</th>
+          <th>配貨工時</th>
+          <th>效率值</th>
+        </tr>
+      </table>
+    </div>
+
+    <table id="employeePerformanceSortingTable">
+      <tr>
+        <th>排名</th>
+        <th>員工編號</th>
+        <th>員工姓名</th>
+        <th>一般配批次數</th>
+        <th>一般配總量</th>
+        <th>配貨工時</th>
+        <th>效率值</th>
+      </tr>
+    </table>
+
   </div>
 
   <!-- 包貨｜一般配 -->
@@ -5051,11 +5119,14 @@ function renderWorkstationCountBoard() {
     if (introBox) {
       introBox.innerHTML = `
         <strong>配貨績效說明：</strong><br>
-        目前先建立績效入口、切換區塊與說明文字。<br>
-        後續會補上配貨績效的摘要卡、排名表、異常名單與明細內容。
+         1. 配貨總量 = 員工當天完成的一般配批次總量。<br>
+         2. 配貨工時 = 員工當天在「配貨」工位的工時。<br>
+         3. 配貨效率 = 配貨總量 ÷ 配貨工時。<br>
+         4. 目前只統計一般配，不判斷無包裝。<br>
+         5. 若配貨工時為 0，效率值先以 0 計算。
       `;
     }
-
+    renderEmployeePerformanceSortingBoard();
     return;
   }
 
@@ -5308,7 +5379,222 @@ function handleEmployeePerformanceWorkDateChange() {
   setEmployeePerformanceWorkDateFilter(workDateInput.value);
   renderEmployeeEfficiencyBoard();
 }
+let employeePerformanceSortingWorkDateFilter = "";
 
+function ensureEmployeePerformanceSortingWorkDateFilter() {
+  if (!employeePerformanceSortingWorkDateFilter) {
+    employeePerformanceSortingWorkDateFilter = getTodayInputDateString();
+  }
+  return employeePerformanceSortingWorkDateFilter;
+}
+
+function setEmployeePerformanceSortingWorkDateFilter(dateValue) {
+  employeePerformanceSortingWorkDateFilter =
+    String(dateValue || "").trim() || getTodayInputDateString();
+}
+
+function handleEmployeePerformanceSortingWorkDateChange() {
+  let workDateInput = document.getElementById("employeePerformanceSortingWorkDate");
+
+  if (!workDateInput) return;
+
+  setEmployeePerformanceSortingWorkDateFilter(workDateInput.value);
+  renderEmployeePerformanceSortingBoard();
+}
+
+function renderEmployeePerformanceSortingBoard() {
+  let selectedWorkDate = ensureEmployeePerformanceSortingWorkDateFilter();
+  let selectedDateText = selectedWorkDate.replace(/-/g, "/");
+
+  let workDateInput = document.getElementById("employeePerformanceSortingWorkDate");
+  let summary = document.getElementById("employeePerformanceSortingSummary");
+
+  let countValue = document.getElementById("sortingCountValue");
+  let topValue = document.getElementById("sortingTopValue");
+  let avgValue = document.getElementById("sortingAvgValue");
+  let minValue = document.getElementById("sortingMinValue");
+
+  let alertSummary = document.getElementById("employeePerformanceSortingAlertSummary");
+  let alertTable = document.getElementById("employeePerformanceSortingAlertTable");
+  let rankingTable = document.getElementById("employeePerformanceSortingTable");
+
+  if (workDateInput) {
+    workDateInput.value = selectedWorkDate;
+  }
+
+  if (!summary || !countValue || !topValue || !avgValue || !minValue || !alertSummary || !alertTable || !rankingTable) {
+    return;
+  }
+
+  rankingTable.innerHTML = `
+    <tr>
+      <th>排名</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>一般配批次數</th>
+      <th>一般配總量</th>
+      <th>配貨工時</th>
+      <th>效率值</th>
+    </tr>
+  `;
+
+  alertTable.innerHTML = `
+    <tr>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>配貨工時</th>
+      <th>效率值</th>
+    </tr>
+  `;
+
+  if (!sortBatchRecords || sortBatchRecords.length === 0) {
+    countValue.innerText = "0";
+    topValue.innerText = "0.00";
+    avgValue.innerText = "0.00";
+    minValue.innerText = "0.00";
+    summary.innerHTML = `目前沒有任何配貨掃描紀錄`;
+    alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有異常員工資料`;
+    return;
+  }
+
+  let selectedRecords = sortBatchRecords.filter(record => {
+    if (!record.startTime) return false;
+    if (!record.startTime.startsWith(selectedDateText)) return false;
+    if (!record.endTime) return false;
+    return true;
+  });
+
+  if (selectedRecords.length === 0) {
+    countValue.innerText = "0";
+    topValue.innerText = "0.00";
+    avgValue.innerText = "0.00";
+    minValue.innerText = "0.00";
+    summary.innerHTML = `目前選擇日期（${selectedDateText}）沒有任何配貨掃描紀錄`;
+    alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有異常員工資料`;
+    return;
+  }
+
+  let employeeMap = {};
+
+  selectedRecords.forEach(record => {
+    let master = batchMaster.find(item => item.batchCode === record.batchCode);
+
+    if (!master) return;
+    if ((master.type || "").trim() !== "一般配") return;
+    if (!record.employeeCode) return;
+
+    let qty = safeQty(master.qty);
+
+    if (!employeeMap[record.employeeCode]) {
+      employeeMap[record.employeeCode] = {
+        employeeCode: record.employeeCode,
+        employeeName: record.employeeName || "",
+        totalQty: 0,
+        batchCount: 0,
+        sortingHours: getSortingHoursByEmployeeAndDate(record.employeeCode, selectedDateText),
+        efficiency: 0
+      };
+    }
+
+    employeeMap[record.employeeCode].totalQty += qty;
+    employeeMap[record.employeeCode].batchCount += 1;
+  });
+
+  let rankingData = Object.values(employeeMap).map(emp => {
+    emp.efficiency = emp.sortingHours > 0
+      ? Number((emp.totalQty / emp.sortingHours).toFixed(2))
+      : 0;
+
+    return emp;
+  });
+
+  rankingData.sort((a, b) => b.efficiency - a.efficiency);
+
+  if (rankingData.length === 0) {
+    countValue.innerText = "0";
+    topValue.innerText = "0.00";
+    avgValue.innerText = "0.00";
+    minValue.innerText = "0.00";
+    summary.innerHTML = `目前選擇日期（${selectedDateText}）沒有可計算的配貨績效資料`;
+    alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有異常員工資料`;
+    return;
+  }
+
+  let count = rankingData.length;
+  let top = Math.max(...rankingData.map(emp => emp.efficiency));
+  let avg = Number(
+    (rankingData.reduce((sum, emp) => sum + emp.efficiency, 0) / rankingData.length).toFixed(2)
+  );
+  let min = Math.min(...rankingData.map(emp => emp.efficiency));
+
+  countValue.innerText = count;
+  topValue.innerText = Number(top).toFixed(2);
+  avgValue.innerText = Number(avg).toFixed(2);
+  minValue.innerText = Number(min).toFixed(2);
+
+  summary.innerHTML = `
+    目前選擇日期（${selectedDateText}）共統計 <strong>${rankingData.length}</strong> 位配貨員工
+  `;
+
+  rankingData.forEach((emp, index) => {
+    let row = rankingTable.insertRow();
+
+    row.insertCell(0).innerText = `#${index + 1}`;
+    row.insertCell(1).innerText = emp.employeeCode;
+    row.insertCell(2).innerText = emp.employeeName;
+    row.insertCell(3).innerText = emp.batchCount;
+    row.insertCell(4).innerText = emp.totalQty;
+
+    let minutes = Math.round(emp.sortingHours * 60);
+    row.insertCell(5).innerText = `${minutes} 分鐘（${emp.sortingHours}H）`;
+
+    let efficiencyCell = row.insertCell(6);
+    efficiencyCell.innerText = Number(emp.efficiency).toFixed(2);
+
+    let highThreshold = avg * 1.2;
+    let lowThreshold = avg * 0.8;
+
+    if (emp.efficiency > highThreshold) {
+      efficiencyCell.style.color = "#f59e0b";
+    } else if (emp.efficiency < lowThreshold) {
+      efficiencyCell.style.color = "#ef4444";
+    } else {
+      efficiencyCell.style.color = "#22c55e";
+    }
+  });
+
+  let abnormalEmployees = rankingData.filter(emp => {
+    let lowThreshold = avg * 0.8;
+    return emp.efficiency < lowThreshold;
+  });
+
+  if (abnormalEmployees.length === 0) {
+    alertSummary.innerHTML = `目前選擇日期（${selectedDateText}）沒有低於平均值 80% 的異常員工`;
+    return;
+  }
+
+  alertSummary.innerHTML = `
+    目前選擇日期（${selectedDateText}）共有 <strong>${abnormalEmployees.length}</strong> 位異常員工
+    （依平均效率 80% 以下判定）
+  `;
+
+  abnormalEmployees
+    .sort((a, b) => a.efficiency - b.efficiency)
+    .forEach(emp => {
+      let row = alertTable.insertRow();
+
+      row.insertCell(0).innerText = emp.employeeCode;
+      row.insertCell(1).innerText = emp.employeeName;
+
+      let minutes = Math.round(emp.sortingHours * 60);
+      row.insertCell(2).innerText = `${minutes} 分鐘（${emp.sortingHours}H）`;
+
+      let efficiencyCell = row.insertCell(3);
+      efficiencyCell.innerText = Number(emp.efficiency).toFixed(2);
+      efficiencyCell.style.color = "#ef4444";
+      efficiencyCell.style.fontWeight = "bold";
+    });
+}
 function getFlowControlStatusMapByType(type) {
   if (type === "一般配") {
     return {
@@ -5951,6 +6237,28 @@ function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
   let totalHours = 0;
 
   pickingRecords.forEach(record => {
+    let endTime = record.endTime || getNowString();
+    totalHours += getDurationHours(record.startTime, endTime);
+  });
+
+  return Number(totalHours.toFixed(2));
+}
+function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
+  let safeDateText = String(targetDateText || "").trim();
+
+  if (!safeDateText) {
+    return 0;
+  }
+
+  let sortingRecords = workstationRecords.filter(record => {
+    return record.employeeCode === employeeCode &&
+      record.workstation === "配貨" &&
+      (record.startTime || "").startsWith(safeDateText);
+  });
+
+  let totalHours = 0;
+
+  sortingRecords.forEach(record => {
     let endTime = record.endTime || getNowString();
     totalHours += getDurationHours(record.startTime, endTime);
   });
