@@ -486,6 +486,7 @@
       <button class="menu-btn active" data-page="employeePage" onclick="showPage('employeePage', this)">員工管理</button>
       <button class="menu-btn" data-page="accountPage" onclick="showPage('accountPage', this)">帳號管理</button>
       <button class="menu-btn" data-page="attendancePage" onclick="showPage('attendancePage', this)">上下班打卡</button>
+      <button class="menu-btn" data-page="importOrderClassificationPage" onclick="showPage('importOrderClassificationPage', this)">匯入訂單分類</button>
       <button class="menu-btn" data-page="batchPage" onclick="showPage('batchPage', this)">撿貨批次作業</button>
       <button class="menu-btn" data-page="sortBatchPage" onclick="showPage('sortBatchPage', this)">配貨批次作業</button>
       <button class="menu-btn" data-page="createBatchPage" onclick="showPage('createBatchPage', this)">建立批次作業</button>
@@ -661,6 +662,16 @@
 </div>
   </div>
 </div>
+<div id="importOrderClassificationPage" class="page">
+  <div class="card">
+    <h2>匯入訂單分類</h2>
+
+    <div class="info-box">
+      這裡之後會建立「匯入訂單分類」功能。<br>
+      下一步會加入：匯入 Excel / CSV、訂單分類邏輯、結果預覽與匯入紀錄。
+    </div>
+  </div>
+</div>   
     <div id="batchPage" class="page">
       <div class="card">
         <h2>撿貨批次作業</h2>
@@ -2489,14 +2500,16 @@ function applyMenuPermissions() {
       employeePage: "需要 Manager / Admin 權限",
       employeeEfficiencyPage: "需要 Manager / Admin 權限",
       createBatchPage: "需要 Print Operator 或 Admin 權限",
+      importOrderClassificationPage: "需要物流管理部＋Print Operator＋Worker 以上權限",
       batchPage: "需要 Picker 或 Admin 權限",
       sortBatchPage: "需要 Sorter 或 Admin 權限",
       attendancePage: "需要有效 AccessLevel",
       workstationPage: "需要有效 AccessLevel"
     };
 
-            let hiddenPermissionPages = [
-      "attendancePage"
+    let hiddenPermissionPages = [
+      "attendancePage",
+      "importOrderClassificationPage"
     ];
 
     let shouldHideButton =
@@ -2613,6 +2626,13 @@ function hasPagePermission(user, pageId) {
   if (pageId === "createBatchPage") {
     return workRoles.includes("Print Operator");
   }
+  if (pageId === "importOrderClassificationPage") {
+    let allowedLevels = ["Worker", "Power Worker", "Leader", "Manager"];
+
+    return user.systemDepartment === "logistics" &&
+           allowedLevels.includes(level) &&
+           workRoles.includes("Print Operator");
+}
 
   if (pageId === "batchPage") {
     return workRoles.includes("Picker");
@@ -2640,6 +2660,7 @@ function hasPagePermission(user, pageId) {
     "employeePage",
     "employeeEfficiencyPage",
     "createBatchPage",
+    "importOrderClassificationPage",
     "batchPage",
     "sortBatchPage",
     "attendancePage",
