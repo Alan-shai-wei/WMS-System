@@ -667,11 +667,198 @@
     <h2>匯入訂單分類</h2>
 
     <div class="info-box">
-      這裡之後會建立「匯入訂單分類」功能。<br>
-      下一步會加入：匯入 Excel / CSV、訂單分類邏輯、結果預覽與匯入紀錄。
+      本頁第一階段先建立：
+        1.Excel / CSV匯入入口
+        2.訂單分類統計看板
+        3.目標工作日期 / 看板篩選日期
+        <br><br>
+        本階段先建立頁面結構，不分類 funtion、不做明細、不做列印
     </div>
   </div>
-</div>   
+  
+  <div class="card">
+    <h3>匯入入口</h3>
+
+    <label for="importOrderTargetWorkDate">目標工作日</label>
+    <input type="date" id="importOrderTargetWorkDate">
+    
+    <label for="importOrderFileName">已選擇檔案</label>
+    <input
+      type="text"
+      id="importOrderFileName"
+      placeholder="尚未選擇檔案"
+      readonly
+    >
+    
+    <div class="button-row">
+      <button type="button" id="selectOrderImportFileBtn">選擇 ERP 檔案</button>
+      <button type="button" class="green" id="startOrderImportBtn">開始匯入</button>
+      <button type="button" class="gray" id="clearOrderImportBtn">清空</button>
+    </div>
+
+    <input
+      type="file"
+      id="orderImportFile"
+      accept=".xlsx,.xls,.csv"
+      style="display:none"
+    >
+
+    <div id="importOrderClassificationMessage" class="message"></div>
+  </div>
+
+  <div class="card">
+  <h3>統計看板切換</h3>
+
+  <div id="orderClassificationBoardSwitchArea">
+    <label>第一層：平台切換</label>
+    <div class="button-row" id="orderClassificationPlatformButtonGroup">
+      <button type="button" class="green" id="orderBoardPlatformAllBtn">全部</button>
+      <button type="button" class="gray" id="orderBoardPlatformShopeeBtn">蝦皮</button>
+      <button type="button" class="gray" id="orderBoardPlatformMoBtn">MO</button>
+      <button type="button" class="gray" id="orderBoardPlatformSpecialBtn">特殊</button>
+    </div>
+
+    <label>第二層：類型切換</label>
+    <div class="button-row" id="orderClassificationSubTypeButtonGroup">
+      <button type="button" class="green" id="orderBoardSubTypeAllBtn">全部</button>
+    </div>
+
+    <div class="info-box">
+      第一層先選平台群組。<br>
+      第二層再依平台顯示對應類型按鈕。<br>
+      本步驟先建立新版按鈕骨架，下一步才接上切換邏輯。
+    </div>
+  </div>
+
+  <label for="orderClassificationFilterDate">看板篩選日期</label>
+  <input type="date" id="orderClassificationFilterDate">
+
+  <div class="info-box">
+    目標工作日＝匯入時選擇，會跟資料一起保存。<br>
+    看板篩選日期＝只影響畫面顯示，可自由切換。
+  </div>
+</div>
+
+  <div class="card">
+    <h3>訂單分類統計看板</h3>
+
+    <div id="orderClassificationBoardSummary" class="result-box">
+      尚未匯入資料
+    </div>
+
+    <div class="dashboard-grid" style="margin-top:16px;">
+      <div class="dashboard-card">
+        <div class="dashboard-title">全部｜總單數</div>
+        <div class="dashboard-value" id="orderBoardTotalCount">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-title">全部｜總件數</div>
+        <div class="dashboard-value" id="orderBoardTotalQty">0</div>
+      </div>
+      <div class="dashboard-card">
+        <div class="dashboard-title">蝦皮｜隔日｜單數</div>
+        <div class="dashboard-value" id="orderBoardShopeeNextDayCount">0</div>
+      </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜隔日｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeNextDayQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜店到店｜單數</div>
+      <div class="dashboard-value" id="orderBoardShopeeStoreCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜店到店｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeStoreQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜無包裝｜列數</div>
+      <div class="dashboard-value" id="orderBoardShopeeNoPackCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜無包裝｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeNoPackQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜店到家｜單數</div>
+      <div class="dashboard-value" id="orderBoardShopeeHomeCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜店到家｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeHomeQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜宅配｜單數</div>
+      <div class="dashboard-value" id="orderBoardShopeeDeliveryCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜宅配｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeDeliveryQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜超商｜單數</div>
+      <div class="dashboard-value" id="orderBoardShopeeCvsCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">蝦皮｜超商｜件數</div>
+      <div class="dashboard-value" id="orderBoardShopeeCvsQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">MO｜超商｜單數</div>
+      <div class="dashboard-value" id="orderBoardMoCvsCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">MO｜超商｜件數</div>
+      <div class="dashboard-value" id="orderBoardMoCvsQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">MO｜新竹｜單數</div>
+      <div class="dashboard-value" id="orderBoardMoHctCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">MO｜新竹｜件數</div>
+      <div class="dashboard-value" id="orderBoardMoHctQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">特殊｜超商｜單數</div>
+      <div class="dashboard-value" id="orderBoardSpecialCvsCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">特殊｜超商｜件數</div>
+      <div class="dashboard-value" id="orderBoardSpecialCvsQty">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">特殊｜宅配｜單數</div>
+      <div class="dashboard-value" id="orderBoardSpecialDeliveryCount">0</div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-title">特殊｜宅配｜件數</div>
+      <div class="dashboard-value" id="orderBoardSpecialDeliveryQty">0</div>
+    </div>
+  </div>
+   </div>
+ </div>
+
     <div id="batchPage" class="page">
       <div class="card">
         <h2>撿貨批次作業</h2>
@@ -2839,6 +3026,1053 @@ let workstationGroup = "";
 let workstationName = "";
 let workstationRecordFilter = "today";
 let currentDepartment = "logistics";
+let selectedOrderImportFile = null;
+let orderClassificationRuleRows = [];
+let orderClassificationRuleMap = {};
+let orderClassificationRulesLoaded = false;
+
+const ORDER_CLASSIFICATION_RULE_SOURCE = [
+  { platform: "蝦皮購物", shippingType: "蝦皮無包裝", judgeType: "無包裝" },
+  { platform: "蝦皮購物", shippingType: "蝦皮店到店", judgeType: "一般配" },
+  { platform: "蝦皮購物", shippingType: "蝦皮店到店「代收」", judgeType: "一般配" },
+  { platform: "蝦皮購物", shippingType: "蝦皮隔日到", judgeType: "隔日到" },
+  { platform: "蝦皮購物", shippingType: "蝦皮隔日到「代收」", judgeType: "隔日到" },
+  { platform: "蝦皮購物", shippingType: "7-11", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "7-11[代收]", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "全家[代收]", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "全家", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "萊爾富", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "萊爾富[代收]", judgeType: "超商" },
+  { platform: "蝦皮購物", shippingType: "新竹物流", judgeType: "蝦皮新竹" },
+  { platform: "蝦皮購物", shippingType: "嘉里物流", judgeType: "蝦皮嘉里" },
+
+  { platform: "MOMO購物", shippingType: "7-11", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "7-11[代收]", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "全家[代收]", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "全家", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "萊爾富", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "萊爾富[代收]", judgeType: "MO超商" },
+  { platform: "MOMO購物", shippingType: "新竹物流", judgeType: "MO宅" },
+
+  { platform: "MO店＋", shippingType: "7-11", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "7-11[代收]", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "全家[代收]", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "全家", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "萊爾富", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "萊爾富[代收]", judgeType: "MO超商" },
+  { platform: "MO店＋", shippingType: "新竹物流", judgeType: "MO宅" },
+
+  { platform: "", shippingType: "7-11", judgeType: "特殊超商" },
+  { platform: "", shippingType: "7-11[代收]", judgeType: "特殊超商" },
+  { platform: "", shippingType: "全家[代收]", judgeType: "特殊超商" },
+  { platform: "", shippingType: "全家", judgeType: "特殊超商" },
+  { platform: "", shippingType: "萊爾富", judgeType: "特殊超商" },
+  { platform: "", shippingType: "萊爾富[代收]", judgeType: "特殊超商" },
+  { platform: "", shippingType: "新竹物流", judgeType: "特殊宅配" },
+  { platform: "", shippingType: "嘉里物流", judgeType: "特殊宅配" }
+];
+
+function getTodayInputDateString() {
+  let now = new Date();
+  let year = now.getFullYear();
+  let month = String(now.getMonth() + 1).padStart(2, "0");
+  let day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeOrderRuleValue(value) {
+  return String(value || "").trim();
+}
+
+function buildOrderClassificationRuleMap(ruleRows) {
+  let map = {};
+
+  (ruleRows || []).forEach(rule => {
+    let platformKey = normalizeOrderRuleValue(rule.platform);
+    let shippingTypeKey = normalizeOrderRuleValue(rule.shippingType);
+
+    if (!shippingTypeKey) {
+      return;
+    }
+
+    let mapKey = `${platformKey}__${shippingTypeKey}`;
+    map[mapKey] = {
+      platform: platformKey,
+      shippingType: shippingTypeKey,
+      judgeType: normalizeOrderRuleValue(rule.judgeType)
+    };
+  });
+
+  return map;
+}
+
+function loadOrderClassificationRules() {
+  orderClassificationRuleRows = ORDER_CLASSIFICATION_RULE_SOURCE.map((rule, index) => {
+    return {
+      rowNo: index + 2,
+      platform: normalizeOrderRuleValue(rule.platform),
+      shippingType: normalizeOrderRuleValue(rule.shippingType),
+      judgeType: normalizeOrderRuleValue(rule.judgeType)
+    };
+  });
+
+  orderClassificationRuleMap = buildOrderClassificationRuleMap(orderClassificationRuleRows);
+  orderClassificationRulesLoaded = true;
+
+  console.log("訂單分類規則已載入：", orderClassificationRuleRows);
+  console.log("訂單分類規則總數：", orderClassificationRuleRows.length);
+}
+
+function ensureOrderClassificationRulesLoaded() {
+  if (!orderClassificationRulesLoaded) {
+    loadOrderClassificationRules();
+  }
+}
+
+function getOrderClassificationRule(platform, shippingType) {
+  ensureOrderClassificationRulesLoaded();
+
+  let platformKey = normalizeOrderRuleValue(platform);
+  let shippingTypeKey = normalizeOrderRuleValue(shippingType);
+
+  if (!shippingTypeKey) {
+    return null;
+  }
+
+  let exactKey = `${platformKey}__${shippingTypeKey}`;
+  if (orderClassificationRuleMap[exactKey]) {
+    return orderClassificationRuleMap[exactKey];
+  }
+
+  let fallbackKey = `__${shippingTypeKey}`;
+  if (orderClassificationRuleMap[fallbackKey]) {
+    return orderClassificationRuleMap[fallbackKey];
+  }
+
+  return null;
+}
+
+function setOrderImportMessage(text, isError) {
+  let message = document.getElementById("importOrderClassificationMessage");
+  if (!message) return;
+
+  message.innerText = text || "";
+  message.className = isError ? "message danger-text" : "message";
+}
+
+function setOrderImportFileName(fileName) {
+  let fileNameInput = document.getElementById("importOrderFileName");
+  if (!fileNameInput) return;
+
+  fileNameInput.value = fileName || "";
+}
+
+function getOrderImportTargetWorkDate() {
+  let targetWorkDateInput = document.getElementById("importOrderTargetWorkDate");
+  if (!targetWorkDateInput) return "";
+
+  return String(targetWorkDateInput.value || "").trim();
+}
+
+function setOrderImportTargetWorkDate(dateValue) {
+  let targetWorkDateInput = document.getElementById("importOrderTargetWorkDate");
+  if (!targetWorkDateInput) return;
+
+  targetWorkDateInput.value = String(dateValue || "").trim() || getTodayInputDateString();
+}
+
+function initializeOrderImportTargetWorkDate() {
+  let targetWorkDateInput = document.getElementById("importOrderTargetWorkDate");
+  if (!targetWorkDateInput) return;
+
+  if (!String(targetWorkDateInput.value || "").trim()) {
+    targetWorkDateInput.value = getTodayInputDateString();
+  }
+}
+
+function handleOrderImportFileSelect(event) {
+  let input = event ? event.target : null;
+  let file = input && input.files && input.files[0]
+    ? input.files[0]
+    : null;
+
+  if (!file) {
+    selectedOrderImportFile = null;
+    setOrderImportFileName("");
+    setOrderImportMessage("尚未選擇檔案", true);
+    return;
+  }
+
+  selectedOrderImportFile = file;
+  setOrderImportFileName(file.name || "");
+  setOrderImportMessage(`已選擇檔案：${file.name}`, false);
+}
+
+function triggerOrderImportFilePicker() {
+  let fileInput = document.getElementById("orderImportFile");
+  if (!fileInput) return;
+
+  fileInput.click();
+}
+
+function clearOrderImportEntry() {
+  let fileInput = document.getElementById("orderImportFile");
+
+  selectedOrderImportFile = null;
+
+  if (fileInput) {
+    fileInput.value = "";
+  }
+
+  setOrderImportFileName("");
+  setOrderImportTargetWorkDate(getTodayInputDateString());
+  setOrderImportMessage("已清空匯入檔案，目標工作日已重設為今天", false);
+}
+let orderClassificationImportHistory = [];
+let orderClassificationLatestImport = null;
+let orderClassificationBoardPlatformFilter = "全部";
+let orderClassificationBoardSubTypeFilter = "全部";
+
+function getOrderClassificationSubTypeOptions(platformFilter) {
+  let safePlatformFilter = String(platformFilter || "").trim();
+
+  if (safePlatformFilter === "蝦皮") {
+    return ["全部", "隔日", "店到店", "無包裝", "店到家", "宅配", "超商"];
+  }
+
+  if (safePlatformFilter === "MO") {
+    return ["全部", "超商", "新竹"];
+  }
+
+  if (safePlatformFilter === "特殊") {
+    return ["全部", "超商", "宅配"];
+  }
+
+  return ["全部"];
+}
+
+function getOrderClassificationPlatformButtonConfig() {
+  return [
+    {
+      id: "orderBoardPlatformAllBtn",
+      value: "全部"
+    },
+    {
+      id: "orderBoardPlatformShopeeBtn",
+      value: "蝦皮"
+    },
+    {
+      id: "orderBoardPlatformMoBtn",
+      value: "MO"
+    },
+    {
+      id: "orderBoardPlatformSpecialBtn",
+      value: "特殊"
+    }
+  ];
+}
+
+function updateOrderClassificationPlatformButtons() {
+  let buttonConfigList = getOrderClassificationPlatformButtonConfig();
+
+  buttonConfigList.forEach(item => {
+    let button = document.getElementById(item.id);
+    if (!button) return;
+
+    button.className = orderClassificationBoardPlatformFilter === item.value
+      ? "green"
+      : "gray";
+  });
+}
+
+function renderOrderClassificationSubTypeButtons() {
+  let buttonGroup = document.getElementById("orderClassificationSubTypeButtonGroup");
+  if (!buttonGroup) return;
+
+  let subTypeOptions = getOrderClassificationSubTypeOptions(orderClassificationBoardPlatformFilter);
+
+  if (!subTypeOptions.includes(orderClassificationBoardSubTypeFilter)) {
+    orderClassificationBoardSubTypeFilter = "全部";
+  }
+
+  buttonGroup.innerHTML = "";
+
+  subTypeOptions.forEach(option => {
+    let button = document.createElement("button");
+    button.type = "button";
+    button.innerText = option;
+    button.className = orderClassificationBoardSubTypeFilter === option
+      ? "green"
+      : "gray";
+
+    button.onclick = function() {
+      orderClassificationBoardSubTypeFilter = option;
+      refreshOrderClassificationBoardBySwitch();
+    };
+
+    buttonGroup.appendChild(button);
+  });
+}
+
+function bindOrderClassificationPlatformButtons() {
+  let buttonConfigList = getOrderClassificationPlatformButtonConfig();
+
+  buttonConfigList.forEach(item => {
+    let button = document.getElementById(item.id);
+    if (!button) return;
+
+    button.onclick = function() {
+      orderClassificationBoardPlatformFilter = item.value;
+      orderClassificationBoardSubTypeFilter = "全部";
+
+      refreshOrderClassificationBoardBySwitch();
+    };
+  });
+}
+
+function initializeOrderClassificationBoardSwitch() {
+  orderClassificationBoardPlatformFilter = "全部";
+  orderClassificationBoardSubTypeFilter = "全部";
+
+  bindOrderClassificationPlatformButtons();
+  refreshOrderClassificationBoardBySwitch();
+}
+function getOrderClassificationVisibleCategories() {
+  if (orderClassificationBoardPlatformFilter === "全部") {
+    return [
+      "蝦皮｜隔日",
+      "蝦皮｜店到店",
+      "蝦皮｜無包裝",
+      "蝦皮｜店到家",
+      "蝦皮｜宅配",
+      "蝦皮｜超商",
+      "MO｜超商",
+      "MO｜新竹",
+      "特殊｜超商",
+      "特殊｜宅配"
+    ];
+  }
+
+  if (orderClassificationBoardPlatformFilter === "蝦皮") {
+    if (orderClassificationBoardSubTypeFilter === "全部") {
+      return [
+        "蝦皮｜隔日",
+        "蝦皮｜店到店",
+        "蝦皮｜無包裝",
+        "蝦皮｜店到家",
+        "蝦皮｜宅配",
+        "蝦皮｜超商"
+      ];
+    }
+
+    return [`蝦皮｜${orderClassificationBoardSubTypeFilter}`];
+  }
+
+  if (orderClassificationBoardPlatformFilter === "MO") {
+    if (orderClassificationBoardSubTypeFilter === "全部") {
+      return [
+        "MO｜超商",
+        "MO｜新竹"
+      ];
+    }
+
+    return [`MO｜${orderClassificationBoardSubTypeFilter}`];
+  }
+
+  if (orderClassificationBoardPlatformFilter === "特殊") {
+    if (orderClassificationBoardSubTypeFilter === "全部") {
+      return [
+        "特殊｜超商",
+        "特殊｜宅配"
+      ];
+    }
+
+    return [`特殊｜${orderClassificationBoardSubTypeFilter}`];
+  }
+
+  return [];
+}
+
+function updateOrderClassificationBoardCardVisibility() {
+  let summaryBox = document.getElementById("orderClassificationBoardSummary");
+  if (!summaryBox) return;
+
+  let boardCard = summaryBox.closest(".card");
+  if (!boardCard) return;
+
+  let visibleCategories = getOrderClassificationVisibleCategories();
+  let cardList = boardCard.querySelectorAll(".dashboard-card");
+
+  cardList.forEach(card => {
+    let titleElement = card.querySelector(".dashboard-title");
+
+    if (!titleElement) {
+      card.style.display = "";
+      return;
+    }
+
+    let titleText = String(titleElement.innerText || "").trim();
+
+    let matchedCategory = visibleCategories.find(category => {
+      return titleText.startsWith(category + "｜");
+    });
+
+    if (matchedCategory) {
+      card.style.display = "";
+    } else {
+      card.style.display = "none";
+    }
+  });
+}
+
+function updateOrderClassificationBoardSummaryFilterText() {
+  let summaryBox = document.getElementById("orderClassificationBoardSummary");
+  if (!summaryBox) return;
+
+  if (!summaryBox.innerHTML || summaryBox.innerText.trim() === "尚未匯入資料") {
+    return;
+  }
+
+  let platformText = orderClassificationBoardPlatformFilter || "全部";
+  let subTypeText = orderClassificationBoardSubTypeFilter || "全部";
+
+  let originalHtml = summaryBox.innerHTML;
+
+  originalHtml = originalHtml.replace(
+    /<br>目前篩選：<strong>.*?<\/strong>｜<strong>.*?<\/strong>/,
+    ""
+  );
+
+  summaryBox.innerHTML =
+    originalHtml +
+    `<br>目前篩選：<strong>${platformText}</strong>｜<strong>${subTypeText}</strong>`;
+}
+
+function refreshOrderClassificationBoardBySwitch() {
+  updateOrderClassificationPlatformButtons();
+  renderOrderClassificationSubTypeButtons();
+  updateOrderClassificationBoardCardVisibility();
+  updateOrderClassificationBoardSummaryFilterText();
+}
+function normalizeOrderImportText(value) {
+  return String(value || "").trim();
+}
+function normalizeOrderImportPlatform(platformText) {
+  let safePlatformText = normalizeOrderImportText(platformText);
+
+  if (!safePlatformText) {
+    return "特殊";
+  }
+
+  if (safePlatformText.indexOf("蝦皮購物") !== -1) {
+    return "蝦皮";
+  }
+
+  if (safePlatformText.indexOf("MO") !== -1) {
+    return "MO";
+  }
+
+  return "特殊";
+}
+
+function safeImportQty(value) {
+  let text = normalizeOrderImportText(value).replace(/,/g, "");
+  let numberValue = Number(text);
+  return isNaN(numberValue) ? 0 : numberValue;
+}
+
+function createEmptyOrderClassificationStats() {
+  return {
+    "蝦皮｜隔日": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "蝦皮｜店到店": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "蝦皮｜無包裝": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "蝦皮｜店到家": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "蝦皮｜宅配": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "蝦皮｜超商": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "MO｜超商": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "MO｜新竹": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "特殊｜超商": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    },
+    "特殊｜宅配": {
+      count: 0,
+      qty: 0,
+      transactionMap: {}
+    }
+  };
+}
+
+function getOrderCardCategory(platformType, shippingType) {
+  let safePlatformType = normalizeOrderImportText(platformType);
+  let safeShippingType = normalizeOrderImportText(shippingType);
+
+  if (safePlatformType === "蝦皮") {
+    if (
+      safeShippingType === "蝦皮隔日到貨" ||
+      safeShippingType === "蝦皮隔日到貨[代收]"
+    ) {
+      return "蝦皮｜隔日";
+    }
+
+    if (
+      safeShippingType === "蝦皮店到店" ||
+      safeShippingType === "蝦皮店到店[代收]"
+    ) {
+      return "蝦皮｜店到店";
+    }
+
+    if (
+      safeShippingType === "蝦皮無包裝" ||
+      safeShippingType === "蝦皮無包裝[代收]"
+    ) {
+      return "蝦皮｜無包裝";
+    }
+
+    if (safeShippingType === "蝦皮店到家") {
+      return "蝦皮｜店到家";
+    }
+
+    if (
+      safeShippingType === "嘉里物流[代收]" ||
+      safeShippingType === "嘉里物流" ||
+      safeShippingType === "新竹物流" ||
+      safeShippingType === "新竹物流[代收]"
+    ) {
+      return "蝦皮｜宅配";
+    }
+
+    if (
+      safeShippingType === "全家" ||
+      safeShippingType === "全家[代收]" ||
+      safeShippingType === "7-11" ||
+      safeShippingType === "7-11[代收]" ||
+      safeShippingType === "萊爾富" ||
+      safeShippingType === "萊爾富[代收]"
+    ) {
+      return "蝦皮｜超商";
+    }
+  }
+
+  if (safePlatformType === "MO") {
+    if (
+      safeShippingType === "全家" ||
+      safeShippingType === "全家[代收]" ||
+      safeShippingType === "7-11" ||
+      safeShippingType === "7-11[代收]" ||
+      safeShippingType === "萊爾富" ||
+      safeShippingType === "萊爾富[代收]"
+    ) {
+      return "MO｜超商";
+    }
+
+    if (safeShippingType === "新竹物流") {
+      return "MO｜新竹";
+    }
+  }
+
+  if (
+    safeShippingType === "全家" ||
+    safeShippingType === "全家[代收]" ||
+    safeShippingType === "7-11" ||
+    safeShippingType === "7-11[代收]" ||
+    safeShippingType === "萊爾富" ||
+    safeShippingType === "萊爾富[代收]"
+  ) {
+    return "特殊｜超商";
+  }
+
+  if (
+    safeShippingType === "嘉里物流[代收]" ||
+    safeShippingType === "嘉里物流" ||
+    safeShippingType === "新竹物流" ||
+    safeShippingType === "新竹物流[代收]"
+  ) {
+    return "特殊｜宅配";
+  }
+
+  return "特殊｜宅配";
+}
+
+function getColumnIndexByAliases(headerRow, aliases, fallbackIndex) {
+  let normalizedHeaderRow = (headerRow || []).map(cell => normalizeOrderImportText(cell));
+
+  for (let i = 0; i < aliases.length; i++) {
+    let alias = aliases[i];
+    let index = normalizedHeaderRow.findIndex(text => text === alias);
+
+    if (index !== -1) {
+      return index;
+    }
+  }
+
+  return typeof fallbackIndex === "number" ? fallbackIndex : -1;
+}
+
+function getRowCellValue(row, columnIndex) {
+  if (!Array.isArray(row)) return "";
+  if (columnIndex < 0) return "";
+  return normalizeOrderImportText(row[columnIndex]);
+}
+
+function isOrderImportDataRow(row) {
+  if (!Array.isArray(row)) return false;
+
+  return row.some(cell => normalizeOrderImportText(cell) !== "");
+}
+
+function readOrderImportFile(file) {
+  return new Promise(function(resolve, reject) {
+    let reader = new FileReader();
+
+    reader.onload = function(event) {
+      try {
+        let data = event.target.result;
+        let workbook = XLSX.read(data, { type: "array" });
+        resolve(workbook);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      reject(error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function getOrderImportSheetRows(workbook) {
+  if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+    return [];
+  }
+
+  let firstSheetName = workbook.SheetNames[0];
+  let worksheet = workbook.Sheets[firstSheetName];
+
+  if (!worksheet) {
+    return [];
+  }
+
+  return XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
+    defval: "",
+    blankrows: false
+  });
+}
+
+function buildOrderImportParsedRows(sheetRows) {
+  if (!Array.isArray(sheetRows) || sheetRows.length === 0) {
+    return {
+      parsedRows: [],
+      skippedRows: [],
+      headerInfo: null
+    };
+  }
+
+  let headerRow = sheetRows[0] || [];
+
+  let platformIndex = getColumnIndexByAliases(
+    headerRow,
+    ["平台", "通路", "來源平台"],
+    0
+  );
+
+  let shippingTypeIndex = getColumnIndexByAliases(
+    headerRow,
+    ["出貨類型", "配送方式", "物流方式", "寄送方式"],
+    5
+  );
+
+  let transactionIndex = getColumnIndexByAliases(
+    headerRow,
+    ["交易序號", "訂單編號", "訂單號碼", "交易編號", "訂單序號"],
+    -1
+  );
+
+  let qtyIndex = getColumnIndexByAliases(
+    headerRow,
+    ["數量", "件數", "商品數量", "出貨數量","小計數量"],
+    -1
+  );
+
+  if (transactionIndex === -1) {
+    throw new Error("找不到交易序號欄位，請確認 ERP 檔案欄位名稱");
+  }
+
+  if (qtyIndex === -1) {
+    console.log("ERP 標題列（headerRow）=", headerRow);
+    console.log("ERP 標題列（標準化後）=", (headerRow || []).map(cell => normalizeOrderImportText(cell)));
+
+    throw new Error(
+      `找不到數量欄位，請確認 ERP 檔案欄位名稱。目前第一列欄位：${(headerRow || []).map(cell => normalizeOrderImportText(cell)).join(" | ")}`
+    );
+  }
+
+  let parsedRows = [];
+  let skippedRows = [];
+
+  for (let i = 1; i < sheetRows.length; i++) {
+    let row = sheetRows[i];
+
+    if (!isOrderImportDataRow(row)) {
+      continue;
+    }
+
+    let platformRaw = getRowCellValue(row, platformIndex);
+    let platformType = normalizeOrderImportPlatform(platformRaw);
+    let shippingType = getRowCellValue(row, shippingTypeIndex);
+    let transactionNo = getRowCellValue(row, transactionIndex);
+    let qtyText = getRowCellValue(row, qtyIndex);
+    let qty = safeImportQty(qtyText);
+
+    if (!transactionNo) {
+      skippedRows.push({
+        excelRowNo: i + 1,
+        reason: "缺少交易序號",
+        platformRaw: platformRaw,
+        platformType: platformType,
+        shippingType: shippingType
+      });
+      continue;
+    }
+
+    if (!qtyText || qty <= 0) {
+      skippedRows.push({
+        excelRowNo: i + 1,
+        reason: "數量無效",
+        platformRaw: platformRaw,
+        platformType: platformType,
+        shippingType: shippingType,
+        transactionNo: transactionNo
+      });
+      continue;
+    }
+
+    let cardCategory = getOrderCardCategory(platformType, shippingType);
+    
+    parsedRows.push({
+      excelRowNo: i + 1,
+      platformRaw: platformRaw,
+      platformType: platformType,
+      shippingType: shippingType,
+      transactionNo: transactionNo,
+      qty: qty,
+      cardCategory: cardCategory
+    });
+  }
+
+  return {
+    parsedRows: parsedRows,
+    skippedRows: skippedRows,
+    headerInfo: {
+      platformIndex: platformIndex,
+      shippingTypeIndex: shippingTypeIndex,
+      transactionIndex: transactionIndex,
+      qtyIndex: qtyIndex
+    }
+  };
+}
+function setOrderClassificationBoardCardValue(elementId, value) {
+  let element = document.getElementById(elementId);
+  if (!element) return;
+
+  element.innerText = value;
+}
+
+function renderOrderClassificationBoard(importResult) {
+  let summaryBox = document.getElementById("orderClassificationBoardSummary");
+
+  let result = importResult || orderClassificationLatestImport;
+
+  if (!summaryBox) return;
+
+  if (!result || !result.stats) {
+    summaryBox.innerText = "尚未匯入資料";
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeNextDayCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeNextDayQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeStoreCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeStoreQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeNoPackCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeNoPackQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeHomeCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeHomeQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeDeliveryCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeDeliveryQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardShopeeCvsCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardShopeeCvsQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardMoCvsCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardMoCvsQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardMoHctCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardMoHctQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardSpecialCvsCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardSpecialCvsQty", 0);
+
+    setOrderClassificationBoardCardValue("orderBoardSpecialDeliveryCount", 0);
+    setOrderClassificationBoardCardValue("orderBoardSpecialDeliveryQty", 0);
+    return;
+  }
+
+  let stats = result.stats || {};
+
+  let shopeeNextDay = stats["蝦皮｜隔日"] || { count: 0, qty: 0 };
+  let shopeeStore = stats["蝦皮｜店到店"] || { count: 0, qty: 0 };
+  let shopeeNoPack = stats["蝦皮｜無包裝"] || { count: 0, qty: 0 };
+  let shopeeHome = stats["蝦皮｜店到家"] || { count: 0, qty: 0 };
+  let shopeeDelivery = stats["蝦皮｜宅配"] || { count: 0, qty: 0 };
+  let shopeeCvs = stats["蝦皮｜超商"] || { count: 0, qty: 0 };
+
+  let moCvs = stats["MO｜超商"] || { count: 0, qty: 0 };
+  let moHct = stats["MO｜新竹"] || { count: 0, qty: 0 };
+
+  let specialCvs = stats["特殊｜超商"] || { count: 0, qty: 0 };
+  let specialDelivery = stats["特殊｜宅配"] || { count: 0, qty: 0 };
+
+  let totalCount =
+    (shopeeNextDay.count || 0) +
+    (shopeeStore.count || 0) +
+    (shopeeNoPack.count || 0) +
+    (shopeeHome.count || 0) +
+    (shopeeDelivery.count || 0) +
+    (shopeeCvs.count || 0) +
+    (moCvs.count || 0) +
+    (moHct.count || 0) +
+    (specialCvs.count || 0) +
+    (specialDelivery.count || 0);
+
+  let totalQty =
+    (shopeeNextDay.qty || 0) +
+    (shopeeStore.qty || 0) +
+    (shopeeNoPack.qty || 0) +
+    (shopeeHome.qty || 0) +
+    (shopeeDelivery.qty || 0) +
+    (shopeeCvs.qty || 0) +
+    (moCvs.qty || 0) +
+    (moHct.qty || 0) +
+    (specialCvs.qty || 0) +
+    (specialDelivery.qty || 0);
+
+  summaryBox.innerHTML = `
+    目標工作日：<strong>${result.targetWorkDate || "-"}</strong><br>
+    匯入檔案：<strong>${result.fileName || "-"}</strong><br>
+    匯入時間：<strong>${result.importedAt || "-"}</strong><br>
+    成功資料列：<strong>${(result.parsedRows || []).length}</strong>｜
+    略過列：<strong>${(result.skippedRows || []).length}</strong>
+  `;
+
+  setOrderClassificationBoardCardValue("orderBoardTotalCount", totalCount);
+  setOrderClassificationBoardCardValue("orderBoardTotalQty", totalQty);
+  
+  setOrderClassificationBoardCardValue("orderBoardShopeeNextDayCount", shopeeNextDay.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeNextDayQty", shopeeNextDay.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardShopeeStoreCount", shopeeStore.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeStoreQty", shopeeStore.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardShopeeNoPackCount", shopeeNoPack.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeNoPackQty", shopeeNoPack.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardShopeeHomeCount", shopeeHome.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeHomeQty", shopeeHome.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardShopeeDeliveryCount", shopeeDelivery.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeDeliveryQty", shopeeDelivery.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardShopeeCvsCount", shopeeCvs.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardShopeeCvsQty", shopeeCvs.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardMoCvsCount", moCvs.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardMoCvsQty", moCvs.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardMoHctCount", moHct.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardMoHctQty", moHct.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardSpecialCvsCount", specialCvs.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardSpecialCvsQty", specialCvs.qty || 0);
+
+  setOrderClassificationBoardCardValue("orderBoardSpecialDeliveryCount", specialDelivery.count || 0);
+  setOrderClassificationBoardCardValue("orderBoardSpecialDeliveryQty", specialDelivery.qty || 0);
+}
+function applyOrderClassificationStats(stats, parsedRow) {
+  if (!stats || !parsedRow) return;
+
+  let cardCategory = normalizeOrderImportText(parsedRow.cardCategory);
+  let transactionNo = normalizeOrderImportText(parsedRow.transactionNo);
+  let qty = parsedRow.qty || 0;
+
+  if (!cardCategory || !stats[cardCategory]) {
+    return;
+  }
+
+  stats[cardCategory].qty += qty;
+
+  if (cardCategory === "蝦皮｜無包裝") {
+    stats[cardCategory].count += 1;
+    return;
+  }
+
+  if (!transactionNo) {
+    return;
+  }
+
+  if (!stats[cardCategory].transactionMap[transactionNo]) {
+    stats[cardCategory].transactionMap[transactionNo] = true;
+    stats[cardCategory].count += 1;
+  }
+}
+
+function buildOrderClassificationImportResult(fileName, targetWorkDate, parsedRows, skippedRows, headerInfo) {
+  let stats = createEmptyOrderClassificationStats();
+
+  (parsedRows || []).forEach(row => {
+    applyOrderClassificationStats(stats, row);
+  });
+
+  return {
+    targetWorkDate: targetWorkDate,
+    fileName: fileName || "",
+    importedAt: getNowString(),
+    parsedRows: parsedRows || [],
+    skippedRows: skippedRows || [],
+    headerInfo: headerInfo || null,
+    stats: stats
+  };
+}
+
+async function startOrderImport() {
+  let targetWorkDate = getOrderImportTargetWorkDate();
+
+  if (!targetWorkDate) {
+    setOrderImportMessage("請先選擇目標工作日", true);
+    return;
+  }
+
+  if (!selectedOrderImportFile) {
+    setOrderImportMessage("請先選擇 ERP 檔案", true);
+    return;
+  }
+
+  ensureOrderClassificationRulesLoaded();
+
+  try {
+    setOrderImportMessage("ERP 檔案讀取中，請稍候...", false);
+
+    let workbook = await readOrderImportFile(selectedOrderImportFile);
+    let sheetRows = getOrderImportSheetRows(workbook);
+
+    if (!sheetRows || sheetRows.length === 0) {
+      setOrderImportMessage("檔案內容為空，無法匯入", true);
+      return;
+    }
+
+    let parsedResult = buildOrderImportParsedRows(sheetRows);
+
+    let importResult = buildOrderClassificationImportResult(
+      selectedOrderImportFile.name || "",
+      targetWorkDate,
+      parsedResult.parsedRows,
+      parsedResult.skippedRows,
+      parsedResult.headerInfo
+    );
+
+    orderClassificationLatestImport = importResult;
+
+    orderClassificationImportHistory = orderClassificationImportHistory.filter(item => {
+      return item.targetWorkDate !== targetWorkDate;
+    });
+
+    orderClassificationImportHistory.push(importResult);
+
+    console.log("最新訂單分類匯入結果：", orderClassificationLatestImport);
+    console.log("訂單分類匯入歷史：", orderClassificationImportHistory);
+    
+    renderOrderClassificationBoard(importResult);
+        let latestStats = importResult.stats || {};
+
+        let noPackCount = latestStats["蝦皮｜無包裝"]?.count || 0;
+        let noPackQty = latestStats["蝦皮｜無包裝"]?.qty || 0;
+
+        let normalCount =
+          (latestStats["蝦皮｜隔日"]?.count || 0) +
+          (latestStats["蝦皮｜店到店"]?.count || 0) +
+          (latestStats["蝦皮｜店到家"]?.count || 0) +
+          (latestStats["蝦皮｜宅配"]?.count || 0) +
+          (latestStats["蝦皮｜超商"]?.count || 0) +
+          (latestStats["MO｜超商"]?.count || 0) +
+          (latestStats["MO｜新竹"]?.count || 0);
+
+        let normalQty =
+          (latestStats["蝦皮｜隔日"]?.qty || 0) +
+          (latestStats["蝦皮｜店到店"]?.qty || 0) +
+          (latestStats["蝦皮｜店到家"]?.qty || 0) +
+          (latestStats["蝦皮｜宅配"]?.qty || 0) +
+          (latestStats["蝦皮｜超商"]?.qty || 0) +
+          (latestStats["MO｜超商"]?.qty || 0) +
+          (latestStats["MO｜新竹"]?.qty || 0);
+
+        let hctCount = latestStats["MO｜新竹"]?.count || 0;
+        let hctQty = latestStats["MO｜新竹"]?.qty || 0;
+
+        let specialCount =
+          (latestStats["特殊｜超商"]?.count || 0) +
+          (latestStats["特殊｜宅配"]?.count || 0);
+
+        let specialQty =
+          (latestStats["特殊｜超商"]?.qty || 0) +
+          (latestStats["特殊｜宅配"]?.qty || 0);
+
+        setOrderImportMessage(
+          `匯入完成｜目標工作日：${targetWorkDate}｜無包裝 ${noPackCount}筆 / ${noPackQty}件｜一般配 ${normalCount}單 / ${normalQty}件｜新竹代收 ${hctCount}單 / ${hctQty}件｜特殊 ${specialCount}單 / ${specialQty}件｜略過 ${importResult.skippedRows.length}列`,
+          false
+        );
+  } catch (error) {
+    console.error("訂單分類匯入失敗：", error);
+    setOrderImportMessage(`匯入失敗：${error.message || error}`, true);
+  }
+}
 
 function switchDepartment(department) {
   let currentUser = getCurrentLoginUser();
@@ -4615,6 +5849,12 @@ function showPage(pageId, btn) {
 
   renderEmployeeEfficiencyBoard();
 }
+    if (pageId === "importOrderClassificationPage") {
+      initializeOrderImportTargetWorkDate();
+      ensureOrderClassificationRulesLoaded();
+      initializeOrderClassificationBoardSwitch();
+      renderOrderClassificationBoard();
+    }
     if (pageId === "flowControlPage") {
     renderFlowControlTable();
   }
@@ -7794,6 +9034,33 @@ if (sortBatchCodeInput) {
       processSortBatchScan();
     }
   });
+  }
+    let selectOrderImportFileBtn = document.getElementById("selectOrderImportFileBtn");
+  if (selectOrderImportFileBtn) {
+    selectOrderImportFileBtn.addEventListener("click", function() {
+      triggerOrderImportFilePicker();
+    });
+  }
+
+  let orderImportFileInput = document.getElementById("orderImportFile");
+  if (orderImportFileInput) {
+    orderImportFileInput.addEventListener("change", function(event) {
+      handleOrderImportFileSelect(event);
+    });
+  }
+
+  let clearOrderImportBtn = document.getElementById("clearOrderImportBtn");
+  if (clearOrderImportBtn) {
+    clearOrderImportBtn.addEventListener("click", function() {
+      clearOrderImportEntry();
+    });
+  }
+
+  let startOrderImportBtn = document.getElementById("startOrderImportBtn");
+  if (startOrderImportBtn) {
+    startOrderImportBtn.addEventListener("click", function() {
+      startOrderImport();
+    });
   }
 });
 window.addEventListener("pageshow", function (event) {
