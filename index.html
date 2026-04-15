@@ -748,12 +748,12 @@
 
     <div class="dashboard-grid" style="margin-top:16px;">
       <div class="dashboard-card">
-        <div class="dashboard-title">全部｜總單數</div>
+        <div class="dashboard-title" id="orderBoardTotalCountTitle">全部｜總單數</div>
         <div class="dashboard-value" id="orderBoardTotalCount">0</div>
       </div>
 
       <div class="dashboard-card">
-        <div class="dashboard-title">全部｜總件數</div>
+        <div class="dashboard-title" id="orderBoardTotalQtyTitle">全部｜總PCS</div>
         <div class="dashboard-value" id="orderBoardTotalQty">0</div>
       </div>
       <div class="dashboard-card">
@@ -762,7 +762,7 @@
       </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜隔日｜件數</div>
+      <div class="dashboard-title">蝦皮｜隔日｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeNextDayQty">0</div>
     </div>
 
@@ -772,7 +772,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜店到店｜件數</div>
+      <div class="dashboard-title">蝦皮｜店到店｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeStoreQty">0</div>
     </div>
 
@@ -782,7 +782,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜無包裝｜件數</div>
+      <div class="dashboard-title">蝦皮｜無包裝｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeNoPackQty">0</div>
     </div>
 
@@ -792,7 +792,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜店到家｜件數</div>
+      <div class="dashboard-title">蝦皮｜店到家｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeHomeQty">0</div>
     </div>
 
@@ -802,7 +802,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜宅配｜件數</div>
+      <div class="dashboard-title">蝦皮｜宅配｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeDeliveryQty">0</div>
     </div>
 
@@ -812,7 +812,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">蝦皮｜超商｜件數</div>
+      <div class="dashboard-title">蝦皮｜超商｜PCS</div>
       <div class="dashboard-value" id="orderBoardShopeeCvsQty">0</div>
     </div>
 
@@ -822,7 +822,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">MO｜超商｜件數</div>
+      <div class="dashboard-title">MO｜超商｜PCS</div>
       <div class="dashboard-value" id="orderBoardMoCvsQty">0</div>
     </div>
 
@@ -832,7 +832,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">MO｜新竹｜件數</div>
+      <div class="dashboard-title">MO｜新竹｜PCS</div>
       <div class="dashboard-value" id="orderBoardMoHctQty">0</div>
     </div>
 
@@ -842,7 +842,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">特殊｜超商｜件數</div>
+      <div class="dashboard-title">特殊｜超商｜PCS</div>
       <div class="dashboard-value" id="orderBoardSpecialCvsQty">0</div>
     </div>
 
@@ -852,7 +852,7 @@
     </div>
 
     <div class="dashboard-card">
-      <div class="dashboard-title">特殊｜宅配｜件數</div>
+      <div class="dashboard-title">特殊｜宅配｜PCS</div>
       <div class="dashboard-value" id="orderBoardSpecialDeliveryQty">0</div>
     </div>
   </div>
@@ -1138,6 +1138,7 @@
      <button id="toggleFlowControlBtn" onclick="toggleFlowControlPanel()">顯示 / 隱藏貨態追蹤</button>
      <button id="toggleEmployeePerformanceBtn" class="teal" onclick="toggleEmployeePerformancePanel()">顯示 / 隱藏員工績效</button>
      <button id="toggleWorkstationBtn" class="gray" onclick="toggleWorkstationPanel()">顯示 / 隱藏工位看板</button>
+     <button id="toggleWorkTimeBtn" class="orange" onclick="toggleWorkTimePanel()">顯示 / 隱藏工時查詢</button>
   </div>
 
     <div id="flowControlPanel" style="display:none;">
@@ -1330,9 +1331,144 @@
     </table>
   </div>
 </div>
-    <div id="employeePerformancePanel" style="display:none;">
 
-  <!-- 第一層：按鈕 -->
+<div id="workTimePanel" style="display:none;">
+  <div class="card" style="margin-top:16px;">
+    <h3>工時查詢</h3>
+
+    <div class="button-row">
+      <button id="workTimeAttendanceBtn" class="green" onclick="showWorkTimeSubPanel('attendance')">出勤查詢</button>
+      <button id="workTimeWorkstationBtn" class="gray" onclick="showWorkTimeSubPanel('workstation')">工位查詢</button>
+    </div>
+
+    <div class="info-box">
+      這裡之後會整合作業控制塔內的工時查詢功能。<br>
+      第二層分成：出勤查詢、工位查詢。
+    </div>
+  </div>
+
+  <div id="workTimeAttendancePanel" style="display:block;">
+    <div class="card" style="margin-top:16px;">
+      <h3>出勤查詢看板</h3>
+
+      <div class="flow-workboard-filter-row">
+        <div>
+          <label for="workTimeAttendanceFilterDate">選擇日期</label>
+          <input
+            type="date"
+            id="workTimeAttendanceFilterDate"
+            onchange="renderWorkTimeAttendanceDashboard()"
+          >
+        </div>
+      </div>
+
+      <div class="info-box">
+        預設帶入今天。<br>
+        切換日期後，會自動刷新：
+        實到人數、在班人數、已下班人數、總工時、出勤清單。
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+        <div class="dashboard-card">
+          <div class="dashboard-title">指定日期實到人數</div>
+          <div class="dashboard-value" id="workTimeAttendancePresentCount">0</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-title">指定日期在班人數</div>
+          <div class="dashboard-value" id="workTimeAttendanceWorkingCount">0</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-title">指定日期已下班人數</div>
+          <div class="dashboard-value" id="workTimeAttendanceCheckedOutCount">0</div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-title">指定日期總工時</div>
+          <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
+        </div>
+      </div>
+
+      <div id="workTimeAttendanceBoardSummary" class="result-box">
+        這裡之後會顯示指定日期的出勤摘要
+      </div>
+
+      <table id="workTimeAttendanceBoardTable">
+        <tr>
+          <th>員工編號</th>
+          <th>員工姓名</th>
+          <th>日期</th>
+          <th>上班時間</th>
+          <th>下班時間</th>
+          <th>休息時間</th>
+          <th>實際工時</th>
+          <th>狀態</th>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>月份加班統計</h3>
+
+      <div class="flow-workboard-filter-row">
+        <div>
+          <label for="workTimeOvertimeMonth">選擇月份</label>
+          <input
+            type="month"
+            id="workTimeOvertimeMonth"
+            onchange="renderWorkTimeOvertimeMonthBoard()"
+          >
+        </div>
+      </div>
+
+      <div class="info-box">
+        依指定月份統計加班日。<br>
+        判斷規則：只要當日有任一員工實際工時超過 8H，即算加班日。
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+        <div class="dashboard-card">
+          <div class="dashboard-title">指定月份加班天數</div>
+          <div class="dashboard-value" id="workTimeOvertimeMonthDayCount">0</div>
+        </div>
+      </div>
+
+      <div id="workTimeOvertimeMonthSummary" class="result-box">
+        這裡之後會顯示指定月份的加班日期摘要
+      </div>
+    </div>
+
+    <div id="workTimeOvertimeDayDetailPanel" class="card" style="margin-top:16px; display:none;">
+      <h3>加班員工清單</h3>
+
+      <div id="workTimeOvertimeDayDetailSummary" class="result-box">
+        這裡之後會顯示指定加班日的摘要
+      </div>
+
+      <table id="workTimeOvertimeDayDetailTable">
+        <tr>
+          <th>員工編號</th>
+          <th>員工姓名</th>
+          <th>日期</th>
+          <th>上班時間</th>
+          <th>下班時間</th>
+          <th>實際工時</th>
+          <th>狀態</th>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="workTimeWorkstationPanel" style="display:none;">
+    <div class="card" style="margin-top:16px;">
+      <h3>工位查詢</h3>
+      <div class="info-box">此模組後續建立</div>
+    </div>
+  </div>
+</div>
+
+<div id="employeePerformancePanel" style="display:none;">
   <div class="card" style="margin-top:16px;">
     <h3>員工績效入口</h3>
 
@@ -1343,35 +1479,32 @@
       <button id="employeePerformancePackNoPackBtn" class="gray" onclick="setEmployeePerformanceType('packNoPack')">包貨｜無包裝績效</button>
     </div>
 
-    <!-- 第二層：說明 -->
     <div id="employeePerformanceIntroBox" class="info-box" style="margin-top:12px;">
       目前為撿貨績效說明（後續會依類型切換）
     </div>
   </div>
 
-  <!-- 第三層：撿貨績效（原本內容全部放這） -->
   <div id="employeePerformancePickingPanel">
+    <div class="card" style="margin-top:16px;">
+      <h3>撿貨績效日期篩選</h3>
 
-  <div class="card" style="margin-top:16px;">
-    <h3>撿貨績效日期篩選</h3>
+      <div class="flow-workboard-filter-row">
+        <div>
+          <label for="employeePerformanceWorkDate">選擇日期</label>
+          <input
+            type="date"
+            id="employeePerformanceWorkDate"
+            onchange="handleEmployeePerformanceWorkDateChange()"
+          >
+        </div>
+      </div>
 
-    <div class="flow-workboard-filter-row">
-      <div>
-        <label for="employeePerformanceWorkDate">選擇日期</label>
-        <input
-          type="date"
-          id="employeePerformanceWorkDate"
-          onchange="handleEmployeePerformanceWorkDateChange()"
-        >
+      <div class="info-box">
+        預設帶入今天。切換日期後，會重新刷新撿貨績效摘要卡、異常員工清單與排名表。
       </div>
     </div>
 
-    <div class="info-box">
-      預設帶入今天。切換日期後，會重新刷新撿貨績效摘要卡、異常員工清單與排名表。
-    </div>
-  </div>
-
-  <div id="employeeEfficiencySummary" class="message"></div>
+    <div id="employeeEfficiencySummary" class="message"></div>
 
     <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
       <div class="dashboard-card">
@@ -1444,12 +1577,9 @@
         <th>效率值</th>
       </tr>
     </table>
-
   </div>
 
-    <!-- 配貨績效 -->
   <div id="employeePerformanceSortingPanel" style="display:none;">
-
     <div class="card" style="margin-top:16px;">
       <h3>配貨績效日期篩選</h3>
 
@@ -1520,10 +1650,8 @@
         <th>效率值</th>
       </tr>
     </table>
-
   </div>
 
-  <!-- 包貨｜一般配 -->
   <div id="employeePerformancePackNormalPanel" style="display:none;">
     <div class="card" style="margin-top:16px;">
       <h3>包貨｜一般配績效</h3>
@@ -1531,16 +1659,14 @@
     </div>
   </div>
 
-  <!-- 包貨｜無包裝 -->
   <div id="employeePerformancePackNoPackPanel" style="display:none;">
-  <div class="card" style="margin-top:16px;">
-    <h3>包貨｜無包裝績效</h3>
-    <div class="info-box">此模組後續建立</div>
+    <div class="card" style="margin-top:16px;">
+      <h3>包貨｜無包裝績效</h3>
+      <div class="info-box">此模組後續建立</div>
+    </div>
   </div>
 </div>
-
-</div>
-</div>
+  </div>
 </div>
 
 <div id="attendancePage" class="page">
@@ -1552,12 +1678,7 @@
         id="toggleAttendancePanelBtn"
         class="green"
         type="button"
-        onclick="
-          document.getElementById('attendanceMainPanel').style.display='block';
-          document.getElementById('workstationMainPanel').style.display='none';
-          document.getElementById('toggleAttendancePanelBtn').innerText='隱藏上下班打卡';
-          document.getElementById('toggleWorkstationPanelBtn').innerText='顯示工位打卡';
-        "
+        onclick="showAttendanceSubPanel(this, 'attendance')"
       >
         顯示上下班打卡
       </button>
@@ -1566,12 +1687,7 @@
         id="toggleWorkstationPanelBtn"
         class="teal"
         type="button"
-        onclick="
-          document.getElementById('attendanceMainPanel').style.display='none';
-          document.getElementById('workstationMainPanel').style.display='block';
-          document.getElementById('toggleAttendancePanelBtn').innerText='顯示上下班打卡';
-          document.getElementById('toggleWorkstationPanelBtn').innerText='隱藏工位打卡';
-        "
+        onclick="showAttendanceSubPanel(this, 'workstation')"
       >
         顯示工位打卡
       </button>
@@ -1579,7 +1695,7 @@
 
     <div class="info-box">
       這一頁現在改成雙切換模式。<br>
-      進入頁面時預設不顯示任何內容。<br>
+      進入頁面時預設顯示上下班打卡。<br>
       請點上方按鈕，切換要操作的畫面。
     </div>
 
@@ -1588,9 +1704,9 @@
         <h3>上下班打卡</h3>
 
         <div class="info-box">
-          請先選擇打卡模式，再連續刷員工編號。
-          <br>此區只處理上班打卡與下班打卡。
-          <br>如果是下班模式，系統之後會自動判斷是否需要先 Check Out。
+          請先選擇打卡模式，再連續刷員工編號。<br>
+          此區只處理上班打卡與下班打卡。<br>
+          如果是下班模式，系統之後會自動判斷是否需要先 Check Out。
         </div>
 
         <div class="button-row">
@@ -1614,10 +1730,10 @@
         <h3>工位打卡</h3>
 
         <div class="info-box">
-          請先選擇工位模式，再連續刷員工編號。
-          <br>工位群組分成進貨、出貨。
-          <br>Check Out 將會在這個區塊操作。
-          <br>下班打卡時，系統之後也會自動判斷是否需要執行 Check Out。
+          請先選擇工位模式，再連續刷員工編號。<br>
+          工位群組分成進貨、出貨。<br>
+          Check Out 將會在這個區塊操作。<br>
+          下班打卡時，系統之後也會自動判斷是否需要執行 Check Out。
         </div>
 
         <label>工位模式</label>
@@ -1673,7 +1789,6 @@
   </div>
 </div>
     
-
 <script>
 let employees = [];
 let SYSTEM_COMPANY_NAME = "MUYAO";
@@ -3392,6 +3507,31 @@ function getOrderClassificationVisibleCategories() {
 
   return [];
 }
+function getOrderClassificationTotalCardTitles() {
+  let platformFilter = String(orderClassificationBoardPlatformFilter || "全部").trim();
+  let subTypeFilter = String(orderClassificationBoardSubTypeFilter || "全部").trim();
+
+  if (platformFilter === "全部" && subTypeFilter === "全部") {
+    return {
+      countTitle: "全部｜總單數",
+      qtyTitle: "全部｜總PCS"
+    };
+  }
+
+  if (platformFilter !== "全部" && subTypeFilter === "全部") {
+    return {
+      countTitle: `${platformFilter}｜總單數`,
+      qtyTitle: `${platformFilter}｜總PCS`
+    };
+  }
+
+  let countLabel = subTypeFilter === "無包裝" ? "列數" : "單數";
+
+  return {
+    countTitle: `${platformFilter}｜${subTypeFilter}｜${countLabel}`,
+    qtyTitle: `${platformFilter}｜${subTypeFilter}｜PCS`
+  };
+}
 
 function updateOrderClassificationBoardCardVisibility() {
   let summaryBox = document.getElementById("orderClassificationBoardSummary");
@@ -3402,6 +3542,7 @@ function updateOrderClassificationBoardCardVisibility() {
 
   let visibleCategories = getOrderClassificationVisibleCategories();
   let cardList = boardCard.querySelectorAll(".dashboard-card");
+  let isSingleSubTypeMode = orderClassificationBoardSubTypeFilter !== "全部";
 
   cardList.forEach(card => {
     let titleElement = card.querySelector(".dashboard-title");
@@ -3412,6 +3553,19 @@ function updateOrderClassificationBoardCardVisibility() {
     }
 
     let titleText = String(titleElement.innerText || "").trim();
+    let isTotalCard =
+      titleElement.id === "orderBoardTotalCountTitle" ||
+      titleElement.id === "orderBoardTotalQtyTitle";
+
+    if (isTotalCard) {
+      card.style.display = "";
+      return;
+    }
+
+    if (isSingleSubTypeMode) {
+      card.style.display = "none";
+      return;
+    }
 
     let matchedCategory = visibleCategories.find(category => {
       return titleText.startsWith(category + "｜");
@@ -3451,9 +3605,12 @@ function updateOrderClassificationBoardSummaryFilterText() {
 function refreshOrderClassificationBoardBySwitch() {
   updateOrderClassificationPlatformButtons();
   renderOrderClassificationSubTypeButtons();
+  renderOrderClassificationBoard();
   updateOrderClassificationBoardCardVisibility();
   updateOrderClassificationBoardSummaryFilterText();
 }
+
+
 function normalizeOrderImportText(value) {
   return String(value || "").trim();
 }
@@ -3726,7 +3883,7 @@ function buildOrderImportParsedRows(sheetRows) {
 
   let qtyIndex = getColumnIndexByAliases(
     headerRow,
-    ["數量", "件數", "商品數量", "出貨數量","小計數量"],
+    ["數量", "PCS", "商品數量", "出貨數量","小計數量"],
     -1
   );
 
@@ -3871,29 +4028,17 @@ function renderOrderClassificationBoard(importResult) {
   let specialCvs = stats["特殊｜超商"] || { count: 0, qty: 0 };
   let specialDelivery = stats["特殊｜宅配"] || { count: 0, qty: 0 };
 
-  let totalCount =
-    (shopeeNextDay.count || 0) +
-    (shopeeStore.count || 0) +
-    (shopeeNoPack.count || 0) +
-    (shopeeHome.count || 0) +
-    (shopeeDelivery.count || 0) +
-    (shopeeCvs.count || 0) +
-    (moCvs.count || 0) +
-    (moHct.count || 0) +
-    (specialCvs.count || 0) +
-    (specialDelivery.count || 0);
+    let visibleCategories = getOrderClassificationVisibleCategories();
 
-  let totalQty =
-    (shopeeNextDay.qty || 0) +
-    (shopeeStore.qty || 0) +
-    (shopeeNoPack.qty || 0) +
-    (shopeeHome.qty || 0) +
-    (shopeeDelivery.qty || 0) +
-    (shopeeCvs.qty || 0) +
-    (moCvs.qty || 0) +
-    (moHct.qty || 0) +
-    (specialCvs.qty || 0) +
-    (specialDelivery.qty || 0);
+    let totalCount = visibleCategories.reduce((sum, category) => {
+      let categoryStats = stats[category] || { count: 0 };
+      return sum + (categoryStats.count || 0);
+    }, 0);
+
+    let totalQty = visibleCategories.reduce((sum, category) => {
+      let categoryStats = stats[category] || { qty: 0 };
+      return sum + (categoryStats.qty || 0);
+    }, 0);
 
   summaryBox.innerHTML = `
     目標工作日：<strong>${result.targetWorkDate || "-"}</strong><br>
@@ -3902,7 +4047,18 @@ function renderOrderClassificationBoard(importResult) {
     成功資料列：<strong>${(result.parsedRows || []).length}</strong>｜
     略過列：<strong>${(result.skippedRows || []).length}</strong>
   `;
+    let totalCardTitles = getOrderClassificationTotalCardTitles();
 
+    let totalCountTitleElement = document.getElementById("orderBoardTotalCountTitle");
+    let totalQtyTitleElement = document.getElementById("orderBoardTotalQtyTitle");
+
+    if (totalCountTitleElement) {
+      totalCountTitleElement.innerText = totalCardTitles.countTitle || "全部｜總單數";
+    }
+
+    if (totalQtyTitleElement) {
+      totalQtyTitleElement.innerText = totalCardTitles.qtyTitle || "全部｜總PCS";
+    }
   setOrderClassificationBoardCardValue("orderBoardTotalCount", totalCount);
   setOrderClassificationBoardCardValue("orderBoardTotalQty", totalQty);
   
@@ -4272,8 +4428,10 @@ function refreshWorkstationRecordsViews() {
   renderActiveWorkstationBoard();
   renderTodayWorkstationBoard();
 
-  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
-  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+  if (
+    document.getElementById("employeePerformancePanel") &&
+    document.getElementById("employeePerformancePanel").style.display === "block"
+  ) {
     renderEmployeeEfficiencyBoard();
   }
 }
@@ -4493,7 +4651,7 @@ function handleWorkstationScan() {
     return;
   }
 
-    if (workstationMode === "start") {
+  if (workstationMode === "start") {
     let currentTime = getNowString();
 
     let openRecords = workstationRecords.filter(record =>
@@ -4518,9 +4676,7 @@ function handleWorkstationScan() {
 
     workstationRecords.push(newRecord);
     saveWorkstationRecordToFirestore(newRecord);
-    renderWorkstationCountBoard();
-    renderActiveWorkstationBoard();
-    renderTodayWorkstationBoard();
+    refreshWorkstationRecordsViews();
 
     scanResult.innerHTML = `
       <strong>工位打卡成功</strong><br>
@@ -4562,9 +4718,7 @@ function handleWorkstationScan() {
     workingRecord.endTime = getNowString();
     workingRecord.status = "已結束";
     saveWorkstationRecordToFirestore(workingRecord);
-    renderWorkstationCountBoard();
-    renderActiveWorkstationBoard();
-    renderTodayWorkstationBoard();
+    refreshWorkstationRecordsViews();
 
     scanResult.innerHTML = `
       <strong>Check Out 成功</strong><br>
@@ -4868,6 +5022,9 @@ function runAttendanceCheckIn(employee) {
   attendanceRecords.push(newRecord);
   saveAttendanceRecordToFirestore(newRecord);
 
+  renderAttendanceDashboard();
+  renderWorkTimeAttendanceDashboard();
+
   scanResult.innerHTML = `
     <strong>刷卡成功</strong><br>
     員工編號：${employee.code}<br>
@@ -4919,21 +5076,25 @@ function runAttendanceCheckOut(employee) {
     return;
   }
 
-  todayRecord.checkOutTime = getNowString();
+  let checkoutTime = getNowString();
+  todayRecord.checkOutTime = checkoutTime;
+  todayRecord.status = "已下班";
 
-   let workingRecord = workstationRecords.find(record =>
+  let workingRecord = workstationRecords.find(record =>
     record.employeeCode === employee.code &&
     !record.endTime
   );
 
   if (workingRecord) {
-    workingRecord.endTime = getNowString();
+    workingRecord.endTime = checkoutTime;
     workingRecord.status = "已結束";
     saveWorkstationRecordToFirestore(workingRecord);
   }
 
-  todayRecord.status = "已下班";
   saveAttendanceRecordToFirestore(todayRecord);
+
+  renderAttendanceDashboard();
+  renderWorkTimeAttendanceDashboard();
   renderWorkstationCountBoard();
   renderActiveWorkstationBoard();
   renderTodayWorkstationBoard();
@@ -5040,11 +5201,688 @@ async function loadAttendanceRecordsFromFirestore() {
     return [];
   }
 }
+function getAttendanceFilterDate() {
+  let input = document.getElementById("attendanceFilterDate");
+
+  if (!input) {
+    return getTodayInputDateString();
+  }
+
+  let value = String(input.value || "").trim();
+
+  if (!value) {
+    return getTodayInputDateString();
+  }
+
+  return value;
+}
+
+function setAttendanceFilterDate(dateValue) {
+  let input = document.getElementById("attendanceFilterDate");
+  if (!input) return;
+
+  input.value = String(dateValue || "").trim() || getTodayInputDateString();
+}
+
+function initializeAttendanceFilterDate() {
+  let input = document.getElementById("attendanceFilterDate");
+  if (!input) return;
+
+  if (!String(input.value || "").trim()) {
+    input.value = getTodayInputDateString();
+  }
+}
+
+function isTodayAttendanceDate(dateText) {
+  let normalizedInputDate = String(dateText || "")
+    .trim()
+    .replaceAll("/", "-");
+
+  let normalizedTodayDate = String(getTodayInputDateString() || "")
+    .trim()
+    .replaceAll("/", "-");
+
+  return normalizedInputDate === normalizedTodayDate;
+}
+
+function parseAttendanceDateTime(dateTimeText) {
+  let text = String(dateTimeText || "").trim();
+
+  if (!text) {
+    return null;
+  }
+
+  let normalizedText = text.replaceAll("/", "-");
+  let parts = normalizedText.split(" ");
+
+  if (parts.length < 2) {
+    return null;
+  }
+
+  let datePart = parts[0] || "";
+  let timePart = parts[1] || "";
+
+  let datePieces = datePart.split("-");
+  let timePieces = timePart.split(":");
+
+  if (datePieces.length !== 3 || timePieces.length < 2) {
+    return null;
+  }
+
+  let year = Number(datePieces[0]);
+  let month = Number(datePieces[1]);
+  let day = Number(datePieces[2]);
+  let hour = Number(timePieces[0]);
+  let minute = Number(timePieces[1]);
+  let second = Number(timePieces[2] || 0);
+
+  if (
+    isNaN(year) || isNaN(month) || isNaN(day) ||
+    isNaN(hour) || isNaN(minute) || isNaN(second)
+  ) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
+function formatAttendanceDurationMinutes(totalMinutes) {
+  let safeMinutes = Number(totalMinutes || 0);
+
+  if (!safeMinutes || safeMinutes < 0) {
+    return "0H";
+  }
+
+  let hourValue = safeMinutes / 60;
+  let roundedHourValue = Math.round(hourValue * 100) / 100;
+
+  return `${roundedHourValue}H`;
+}
+
+function getAttendanceBreakMinutes(checkInDate, endDate) {
+  if (!checkInDate || !endDate) {
+    return 0;
+  }
+
+  let checkInHour = checkInDate.getHours();
+  let checkInMinute = checkInDate.getMinutes();
+  let endHour = endDate.getHours();
+  let endMinute = endDate.getMinutes();
+
+  let checkInBeforeNoon =
+    checkInHour < 12 ||
+    (checkInHour === 12 && checkInMinute === 0 ? false : false);
+
+  let endBeforeNoon =
+    endHour < 12 ||
+    (endHour === 12 && endMinute === 0 ? false : false);
+
+  if (checkInBeforeNoon && !endBeforeNoon) {
+    return 60;
+  }
+
+  return 0;
+}
+function getAttendanceBreakText(record, filterDate) {
+  if (!record || !record.checkInTime) {
+    return "0H";
+  }
+
+  let checkInDate = parseAttendanceDateTime(record.checkInTime);
+  if (!checkInDate) {
+    return "0H";
+  }
+
+  let checkOutText = String(record.checkOutTime || "").trim();
+  let endDate = null;
+
+  if (checkOutText) {
+    endDate = parseAttendanceDateTime(checkOutText);
+
+    if (!endDate) {
+      return "0H";
+    }
+  } else if (isTodayAttendanceDate(filterDate)) {
+    endDate = new Date();
+  } else {
+    return "0H";
+  }
+
+  let breakMinutes = getAttendanceBreakMinutes(checkInDate, endDate);
+  return formatAttendanceDurationMinutes(breakMinutes);
+}
+function getAttendanceWorkMinutes(record, filterDate) {
+  if (!record || !record.checkInTime) {
+    return 0;
+  }
+
+  let checkInDate = parseAttendanceDateTime(record.checkInTime);
+  if (!checkInDate) {
+    return 0;
+  }
+
+  let checkOutText = String(record.checkOutTime || "").trim();
+  let isToday = isTodayAttendanceDate(filterDate);
+  let endDate = null;
+
+  if (checkOutText) {
+    endDate = parseAttendanceDateTime(checkOutText);
+
+    if (!endDate) {
+      return 0;
+    }
+  } else if (isToday) {
+    endDate = new Date();
+  } else {
+    return 0;
+  }
+
+  let diffMinutes = Math.floor((endDate.getTime() - checkInDate.getTime()) / 60000);
+
+  if (diffMinutes < 0) {
+    return 0;
+  }
+
+  let breakMinutes = getAttendanceBreakMinutes(checkInDate, endDate);
+  let finalMinutes = diffMinutes - breakMinutes;
+
+  if (finalMinutes < 0) {
+    finalMinutes = 0;
+  }
+
+  return finalMinutes;
+}
+
+function getAttendanceWorkHoursText(record, filterDate) {
+  if (!record || !record.checkInTime) {
+    return "-";
+  }
+
+  let checkInDate = parseAttendanceDateTime(record.checkInTime);
+  if (!checkInDate) {
+    return "-";
+  }
+
+  let checkOutText = String(record.checkOutTime || "").trim();
+
+  if (!checkOutText && !isTodayAttendanceDate(filterDate)) {
+    return "未下班";
+  }
+
+  let workMinutes = getAttendanceWorkMinutes(record, filterDate);
+
+  if (workMinutes < 0) {
+    return "異常";
+  }
+
+  return formatAttendanceDurationMinutes(workMinutes);
+}
+
+function getAttendanceDisplayStatus(record, filterDate) {
+  if (!record || !record.checkInTime) {
+    return "異常";
+  }
+
+  if (String(record.checkOutTime || "").trim()) {
+    return "已下班";
+  }
+
+  if (isTodayAttendanceDate(filterDate)) {
+    return "上班中";
+  }
+
+  return "異常";
+}
 let attendanceRecordsUnsubscribe = null;
+function renderAttendanceDashboard() {
+  let filterDate = getAttendanceFilterDate();
+
+  let presentElement = document.getElementById("attendancePresentCount");
+  let workingElement = document.getElementById("attendanceWorkingCount");
+  let checkedOutElement = document.getElementById("attendanceCheckedOutCount");
+  let totalWorkHoursElement = document.getElementById("attendanceTotalWorkHours");
+  let summaryElement = document.getElementById("attendanceBoardSummary");
+  let table = document.getElementById("attendanceBoardTable");
+
+  if (
+    !presentElement ||
+    !workingElement ||
+    !checkedOutElement ||
+    !totalWorkHoursElement ||
+    !summaryElement ||
+    !table
+  ) {
+    return;
+  }
+
+  let summaryRows = buildWorkTimeAttendanceSummaryRows(filterDate);
+
+  let presentCount = summaryRows.length;
+  let workingCount = 0;
+  let checkedOutCount = 0;
+  let totalWorkMinutes = 0;
+
+  for (let i = 0; i < summaryRows.length; i++) {
+    let rowData = summaryRows[i];
+
+    if (rowData.displayStatus === "上班中") {
+      workingCount += 1;
+    }
+
+    if (rowData.displayStatus === "已下班") {
+      checkedOutCount += 1;
+    }
+
+    totalWorkMinutes += (rowData.workMinutesIncludingOpen || 0);
+  }
+
+  presentElement.innerText = presentCount;
+  workingElement.innerText = workingCount;
+  checkedOutElement.innerText = checkedOutCount;
+  totalWorkHoursElement.innerText = formatAttendanceDurationMinutes(totalWorkMinutes);
+
+  summaryElement.innerHTML =
+    `日期：<strong>${filterDate}</strong>｜` +
+    `實到 <strong>${presentCount}</strong> 人｜` +
+    `在班 <strong>${workingCount}</strong> 人｜` +
+    `已下班 <strong>${checkedOutCount}</strong> 人`;
+
+  table.innerHTML = `
+    <tr>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>日期</th>
+      <th>上班時間</th>
+      <th>下班時間</th>
+      <th>休息時間</th>
+      <th>實際工時</th>
+      <th>狀態</th>
+    </tr>
+  `;
+
+  if (summaryRows.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+
+    cell.colSpan = 8;
+    cell.innerText = `目前 ${filterDate} 沒有任何出勤紀錄`;
+    return;
+  }
+
+  for (let i = 0; i < summaryRows.length; i++) {
+    let rowData = summaryRows[i];
+    let row = table.insertRow();
+
+    row.insertCell(0).innerText = rowData.employeeCode || "";
+    row.insertCell(1).innerText = rowData.employeeName || "";
+    row.insertCell(2).innerText = rowData.date || "";
+    row.insertCell(3).innerText = rowData.checkInTime || "";
+    row.insertCell(4).innerText = rowData.checkOutTime || "";
+    row.insertCell(5).innerText = rowData.breakText || "";
+    row.insertCell(6).innerText = rowData.workHoursText || "";
+    row.insertCell(7).innerText = rowData.displayStatus || "";
+  }
+}
+function getWorkTimeAttendanceFilterDate() {
+  let input = document.getElementById("workTimeAttendanceFilterDate");
+
+  if (!input) {
+    return getTodayInputDateString();
+  }
+
+  let value = String(input.value || "").trim();
+
+  if (!value) {
+    return getTodayInputDateString();
+  }
+
+  return value;
+}
+
+function initializeWorkTimeAttendanceFilterDate() {
+  let input = document.getElementById("workTimeAttendanceFilterDate");
+  if (!input) return;
+
+  if (!String(input.value || "").trim()) {
+    input.value = getTodayInputDateString();
+  }
+}
+function initializeWorkTimeOvertimeMonth() {
+  let input = document.getElementById("workTimeOvertimeMonth");
+  if (!input) return;
+
+  if (!String(input.value || "").trim()) {
+    let today = new Date();
+    let year = today.getFullYear();
+    let month = String(today.getMonth() + 1).padStart(2, "0");
+    input.value = `${year}-${month}`;
+  }
+}
+
+function buildWorkTimeAttendanceSummaryRows(filterDate) {
+  let normalizedFilterDate = String(filterDate || "")
+    .trim()
+    .replaceAll("/", "-");
+
+  let isToday = isTodayAttendanceDate(filterDate);
+  let now = isToday ? new Date() : null;
+  let summaryRows = [];
+
+  for (let i = 0; i < attendanceRecords.length; i++) {
+    let record = attendanceRecords[i];
+
+    let employeeCode = String(record.employeeCode || "").trim();
+    let employeeName = String(record.employeeName || "").trim();
+    let date = String(record.date || "").trim();
+    let normalizedRecordDate = date.replaceAll("/", "-");
+
+    if (normalizedRecordDate !== normalizedFilterDate) {
+      continue;
+    }
+
+    let checkInTime = String(record.checkInTime || "").trim();
+    let checkOutTime = String(record.checkOutTime || "").trim();
+
+    let hasCheckIn = !!checkInTime;
+    let hasCheckOut = !!checkOutTime;
+
+    let checkInDate = hasCheckIn ? parseAttendanceDateTime(checkInTime) : null;
+    let checkOutDate = hasCheckOut ? parseAttendanceDateTime(checkOutTime) : null;
+
+    let endDate = null;
+
+    if (checkOutDate) {
+      endDate = checkOutDate;
+    } else if (checkInDate && isToday) {
+      endDate = now;
+    }
+
+    let breakMinutes = 0;
+    let workMinutesIncludingOpen = 0;
+    let workMinutesCompleted = 0;
+    let workHoursText = "-";
+    let displayStatus = "異常";
+    let anomalyTypes = [];
+
+    if (!hasCheckIn) {
+      anomalyTypes.push("無打卡");
+    }
+
+    if (checkInDate && endDate) {
+      let rawDiffMinutes = Math.floor((endDate.getTime() - checkInDate.getTime()) / 60000);
+
+      if (rawDiffMinutes < 0) {
+        anomalyTypes.push("負工時");
+      }
+
+      if (rawDiffMinutes > 16 * 60) {
+        anomalyTypes.push("超長工時");
+      }
+
+      if (rawDiffMinutes > 0) {
+        breakMinutes = getAttendanceBreakMinutes(checkInDate, endDate);
+
+        workMinutesIncludingOpen = rawDiffMinutes - breakMinutes;
+        if (workMinutesIncludingOpen < 0) {
+          workMinutesIncludingOpen = 0;
+        }
+
+        if (hasCheckOut) {
+          workMinutesCompleted = workMinutesIncludingOpen;
+        }
+      }
+    }
+
+    if (hasCheckOut) {
+      displayStatus = hasCheckIn ? "已下班" : "異常";
+    } else if (hasCheckIn && isToday) {
+      displayStatus = "上班中";
+    } else if (hasCheckIn) {
+      displayStatus = "異常";
+      anomalyTypes.push("未下班");
+    }
+
+    if (hasCheckIn) {
+      if (!hasCheckOut && !isToday) {
+        workHoursText = "未下班";
+      } else {
+        workHoursText = formatAttendanceDurationMinutes(workMinutesIncludingOpen);
+      }
+    }
+
+    summaryRows.push({
+      employeeCode: employeeCode,
+      employeeName: employeeName,
+      date: date,
+      checkInTime: checkInTime,
+      checkOutTime: checkOutTime,
+      breakMinutes: breakMinutes,
+      breakText: formatAttendanceDurationMinutes(breakMinutes),
+      workMinutesCompleted: workMinutesCompleted,
+      workMinutesIncludingOpen: workMinutesIncludingOpen,
+      workHoursText: workHoursText,
+      displayStatus: displayStatus,
+      anomalyTypes: anomalyTypes
+    });
+  }
+
+  summaryRows.sort((a, b) => {
+    if (a.checkInTime !== b.checkInTime) {
+      return a.checkInTime.localeCompare(b.checkInTime);
+    }
+
+    return a.employeeCode.localeCompare(b.employeeCode);
+  });
+
+  return summaryRows;
+}
+function buildOvertimeDaysSummary() {
+  let dateMap = {};
+
+  for (let i = 0; i < attendanceRecords.length; i++) {
+    let record = attendanceRecords[i];
+    let date = String(record.date || "").trim().replaceAll("/", "-");
+
+    if (!date) {
+      continue;
+    }
+
+    dateMap[date] = true;
+  }
+
+  let overtimeDays = [];
+  let allDates = Object.keys(dateMap);
+
+  for (let i = 0; i < allDates.length; i++) {
+    let date = allDates[i];
+    let summaryRows = buildWorkTimeAttendanceSummaryRows(date);
+
+    if (!summaryRows.length) {
+      continue;
+    }
+
+    let overtimeCount = 0;
+    let totalMinutes = 0;
+
+    for (let j = 0; j < summaryRows.length; j++) {
+      let row = summaryRows[j];
+
+      let targetMinutes =
+        row.displayStatus === "上班中"
+          ? (row.workMinutesIncludingOpen || 0)
+          : (row.workMinutesCompleted || 0);
+
+      if (targetMinutes > 480) {
+        overtimeCount += 1;
+      }
+
+      totalMinutes += (row.workMinutesCompleted || 0);
+    }
+
+    let avgMinutes = summaryRows.length > 0 ? totalMinutes / summaryRows.length : 0;
+
+    if (overtimeCount >= 1) {
+      overtimeDays.push({
+        date: date,
+        overtimeCount: overtimeCount,
+        avgHours: (avgMinutes / 60).toFixed(1),
+        totalPeople: summaryRows.length
+      });
+    }
+  }
+
+  overtimeDays.sort((a, b) => {
+    return b.date.localeCompare(a.date);
+  });
+
+  return overtimeDays;
+}
+function renderWorkTimeOvertimeMonthBoard() {
+  let monthInput = document.getElementById("workTimeOvertimeMonth");
+  let dayCountElement = document.getElementById("workTimeOvertimeMonthDayCount");
+  let summaryElement = document.getElementById("workTimeOvertimeMonthSummary");
+
+  if (!monthInput || !dayCountElement || !summaryElement) {
+    return;
+  }
+
+  let selectedMonth = String(monthInput.value || "").trim();
+
+  if (!selectedMonth) {
+    let today = new Date();
+    let year = today.getFullYear();
+    let month = String(today.getMonth() + 1).padStart(2, "0");
+    selectedMonth = `${year}-${month}`;
+    monthInput.value = selectedMonth;
+  }
+
+  let overtimeDays = buildOvertimeDaysSummary();
+
+  let filteredDays = overtimeDays.filter(item => {
+    return String(item.date || "").startsWith(selectedMonth);
+  });
+
+  dayCountElement.innerText = filteredDays.length;
+
+  if (filteredDays.length === 0) {
+    summaryElement.innerHTML = `指定月份：<strong>${selectedMonth}</strong>｜目前沒有加班日`;
+    return;
+  }
+
+  let dateText = filteredDays
+    .map(item => {
+      let date = String(item.date || "");
+      let shortDate = date.length >= 10 ? date.slice(5) : date;
+
+      return `<button type="button" class="gray" style="padding:4px 10px; font-size:13px;" onclick="toggleWorkTimeOvertimeDayDetail('${date}')">${shortDate}</button>`;
+    })
+    .join(" ");
+
+  summaryElement.innerHTML =
+    `指定月份：<strong>${selectedMonth}</strong>｜` +
+    `加班天數：<strong>${filteredDays.length}</strong> 天<br><br>` +
+    `加班日期：${dateText}`;
+}
+
+function renderWorkTimeAttendanceDashboard() {
+  let filterDate = getWorkTimeAttendanceFilterDate();
+
+  let presentElement = document.getElementById("workTimeAttendancePresentCount");
+  let workingElement = document.getElementById("workTimeAttendanceWorkingCount");
+  let checkedOutElement = document.getElementById("workTimeAttendanceCheckedOutCount");
+  let totalWorkHoursElement = document.getElementById("workTimeAttendanceTotalWorkHours");
+  let summaryElement = document.getElementById("workTimeAttendanceBoardSummary");
+  let table = document.getElementById("workTimeAttendanceBoardTable");
+
+  if (
+    !presentElement ||
+    !workingElement ||
+    !checkedOutElement ||
+    !totalWorkHoursElement ||
+    !summaryElement ||
+    !table
+  ) {
+    return;
+  }
+
+  let summaryRows = buildWorkTimeAttendanceSummaryRows(filterDate);
+
+  let presentCount = summaryRows.length;
+  let workingCount = 0;
+  let checkedOutCount = 0;
+  let totalWorkMinutes = 0;
+
+  for (let i = 0; i < summaryRows.length; i++) {
+    let row = summaryRows[i];
+
+    if (row.displayStatus === "上班中") {
+      workingCount += 1;
+    }
+
+    if (row.displayStatus === "已下班") {
+      checkedOutCount += 1;
+    }
+
+    totalWorkMinutes += (row.workMinutesCompleted || 0);
+  }
+
+  presentElement.innerText = presentCount;
+  workingElement.innerText = workingCount;
+  checkedOutElement.innerText = checkedOutCount;
+  totalWorkHoursElement.innerText = formatAttendanceDurationMinutes(totalWorkMinutes);
+
+  summaryElement.innerHTML =
+    `日期：<strong>${filterDate}</strong>｜` +
+    `實到 <strong>${presentCount}</strong> 人｜` +
+    `在班 <strong>${workingCount}</strong> 人｜` +
+    `已下班 <strong>${checkedOutCount}</strong> 人`;
+
+  table.innerHTML = `
+    <tr>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>日期</th>
+      <th>上班時間</th>
+      <th>下班時間</th>
+      <th>休息時間</th>
+      <th>實際工時</th>
+      <th>狀態</th>
+    </tr>
+  `;
+
+  if (summaryRows.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+
+    cell.colSpan = 8;
+    cell.innerText = `目前 ${filterDate} 沒有任何出勤紀錄`;
+    return;
+  }
+
+  for (let i = 0; i < summaryRows.length; i++) {
+    let record = summaryRows[i];
+    let row = table.insertRow();
+
+    row.insertCell(0).innerText = record.employeeCode || "";
+    row.insertCell(1).innerText = record.employeeName || "";
+    row.insertCell(2).innerText = record.date || "";
+    row.insertCell(3).innerText = record.checkInTime || "";
+    row.insertCell(4).innerText = record.checkOutTime || "";
+    row.insertCell(5).innerText = record.breakText || "";
+    row.insertCell(6).innerText = record.workHoursText || "";
+    row.insertCell(7).innerText = record.displayStatus || "";
+  }
+}
 
 function refreshAttendanceRecordsViews() {
-  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
-  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+  renderAttendanceDashboard();
+  renderWorkTimeAttendanceDashboard();
+  renderWorkTimeOvertimeMonthBoard();
+
+  if (
+    document.getElementById("employeePerformancePanel") &&
+    document.getElementById("employeePerformancePanel").style.display === "block"
+  ) {
     renderEmployeeEfficiencyBoard();
   }
 }
@@ -5432,8 +6270,10 @@ let batchRecordsUnsubscribe = null;
 function refreshBatchRecordsViews() {
   renderBatchRecords();
 
-  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
-  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
+  if (
+    document.getElementById("employeePerformancePanel") &&
+    document.getElementById("employeePerformancePanel").style.display === "block"
+  ) {
     renderEmployeeEfficiencyBoard();
   }
 }
@@ -5554,8 +6394,10 @@ function refreshSortBatchRecordsViews() {
   renderSortBatchRecords();
   renderBatchMaster();
 
-  let flowControlPanel = document.getElementById("flowControlPanel");
-  if (flowControlPanel && flowControlPanel.style.display === "block") {
+  if (
+    document.getElementById("flowControlPanel") &&
+    document.getElementById("flowControlPanel").style.display === "block"
+  ) {
     renderFlowControlTable();
   }
 }
@@ -5676,15 +6518,12 @@ function refreshBatchMasterViews() {
   renderSortBatchRecords();
   updateBatchDashboard();
 
-  let flowControlPanel = document.getElementById("flowControlPanel");
-  if (flowControlPanel && flowControlPanel.style.display === "block") {
+  if (
+    document.getElementById("flowControlPanel") &&
+    document.getElementById("flowControlPanel").style.display === "block"
+  ) {
     renderFlowControlWorkBoard();
     renderFlowControlTable();
-  }
-
-  let employeePerformancePanel = document.getElementById("employeePerformancePanel");
-  if (employeePerformancePanel && employeePerformancePanel.style.display === "block") {
-    renderEmployeeEfficiencyBoard();
   }
 }
 
@@ -5882,11 +6721,30 @@ function showPage(pageId, btn) {
   }
     if (pageId === "attendancePage") {
       console.log("進入 attendancePage");
-  let attendanceMainPanel = document.getElementById("attendanceMainPanel");
-  let workstationMainPanel = document.getElementById("workstationMainPanel");
+      resetAttendancePagePanels(targetPage);
+      initializeAttendanceFilterDate();
+      renderAttendanceDashboard();
+    }
+  let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
+  let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
+  let canExportExcel = currentUser && (currentUser.accessLevel === "Admin" || currentUser.accessLevel === "Manager");
 
-  let toggleAttendancePanelBtn = document.getElementById("toggleAttendancePanelBtn");
-  let toggleWorkstationPanelBtn = document.getElementById("toggleWorkstationPanelBtn");
+  if (exportEmployeesBtn) {
+    exportEmployeesBtn.style.display = canExportExcel ? "inline-block" : "none";
+  }
+
+  if (exportWorkstationRecordsBtn) {
+    exportWorkstationRecordsBtn.style.display = canExportExcel ? "inline-block" : "none";
+  }
+}
+
+function resetAttendancePagePanels(pageElement) {
+  if (!pageElement) return;
+
+  let attendanceMainPanel = pageElement.querySelector("#attendanceMainPanel");
+  let workstationMainPanel = pageElement.querySelector("#workstationMainPanel");
+  let toggleAttendancePanelBtn = pageElement.querySelector("#toggleAttendancePanelBtn");
+  let toggleWorkstationPanelBtn = pageElement.querySelector("#toggleWorkstationPanelBtn");
 
   if (attendanceMainPanel) {
     attendanceMainPanel.style.display = "block";
@@ -5904,20 +6762,62 @@ function showPage(pageId, btn) {
     toggleWorkstationPanelBtn.innerText = "顯示工位打卡";
   }
 }
-  let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
-  let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
-  let canExportExcel = currentUser && (currentUser.accessLevel === "Admin" || currentUser.accessLevel === "Manager");
 
-  if (exportEmployeesBtn) {
-    exportEmployeesBtn.style.display = canExportExcel ? "inline-block" : "none";
+function showAttendanceSubPanel(button, panelType) {
+  let pageElement = null;
+
+  if (button) {
+    pageElement = button.closest(".page");
   }
 
-  if (exportWorkstationRecordsBtn) {
-    exportWorkstationRecordsBtn.style.display = canExportExcel ? "inline-block" : "none";
+  if (!pageElement) {
+    pageElement = document.querySelector('#attendancePage.page.active');
+  }
+
+  if (!pageElement) {
+    pageElement = document.getElementById("attendancePage");
+  }
+
+  if (!pageElement) return;
+
+  let attendanceMainPanel = pageElement.querySelector("#attendanceMainPanel");
+  let workstationMainPanel = pageElement.querySelector("#workstationMainPanel");
+  let toggleAttendancePanelBtn = pageElement.querySelector("#toggleAttendancePanelBtn");
+  let toggleWorkstationPanelBtn = pageElement.querySelector("#toggleWorkstationPanelBtn");
+
+  if (!attendanceMainPanel || !workstationMainPanel) {
+    console.error("attendancePage 切換失敗：找不到面板");
+    return;
+  }
+
+  if (panelType === "attendance") {
+    attendanceMainPanel.style.display = "block";
+    workstationMainPanel.style.display = "none";
+
+    if (toggleAttendancePanelBtn) {
+      toggleAttendancePanelBtn.innerText = "隱藏上下班打卡";
+    }
+
+    if (toggleWorkstationPanelBtn) {
+      toggleWorkstationPanelBtn.innerText = "顯示工位打卡";
+    }
+
+    return;
+  }
+
+  if (panelType === "workstation") {
+    attendanceMainPanel.style.display = "none";
+    workstationMainPanel.style.display = "block";
+
+    if (toggleAttendancePanelBtn) {
+      toggleAttendancePanelBtn.innerText = "顯示上下班打卡";
+    }
+
+    if (toggleWorkstationPanelBtn) {
+      toggleWorkstationPanelBtn.innerText = "隱藏工位打卡";
+    }
   }
 }
-  
-
 
   function showCreateBatchSubPage(pageId, btn) {
     let pages = document.querySelectorAll("#createBatchPage .sub-page");
@@ -6735,31 +7635,45 @@ function renderEmployeePerformanceSortingBoard() {
     return;
   }
 
+      let batchMasterMap = {};
+
+  for (let i = 0; i < batchMaster.length; i++) {
+    let item = batchMaster[i];
+    let batchCode = String(item.batchCode || "").trim();
+
+    if (!batchCode) continue;
+    batchMasterMap[batchCode] = item;
+  }
+
   let employeeMap = {};
 
-  selectedRecords.forEach(record => {
-    let master = batchMaster.find(item => item.batchCode === record.batchCode);
+  for (let i = 0; i < selectedRecords.length; i++) {
+    let record = selectedRecords[i];
+    let employeeCode = String(record.employeeCode || "").trim();
+    let batchCode = String(record.batchCode || "").trim();
 
-    if (!master) return;
-    if ((master.type || "").trim() !== "一般配") return;
-    if (!record.employeeCode) return;
+    if (!employeeCode) continue;
+
+    let master = batchMasterMap[batchCode];
+    if (!master) continue;
+    if (String(master.type || "").trim() !== "一般配") continue;
 
     let qty = safeQty(master.qty);
 
-    if (!employeeMap[record.employeeCode]) {
-      employeeMap[record.employeeCode] = {
-        employeeCode: record.employeeCode,
+    if (!employeeMap[employeeCode]) {
+      employeeMap[employeeCode] = {
+        employeeCode: employeeCode,
         employeeName: record.employeeName || "",
         totalQty: 0,
         batchCount: 0,
-        sortingHours: getSortingHoursByEmployeeAndDate(record.employeeCode, selectedDateText),
+        sortingHours: getSortingHoursByEmployeeAndDate(employeeCode, selectedDateText),
         efficiency: 0
       };
     }
 
-    employeeMap[record.employeeCode].totalQty += qty;
-    employeeMap[record.employeeCode].batchCount += 1;
-  });
+    employeeMap[employeeCode].totalQty += qty;
+    employeeMap[employeeCode].batchCount += 1;
+  }
 
   let rankingData = Object.values(employeeMap).map(emp => {
     emp.efficiency = emp.sortingHours > 0
@@ -7054,6 +7968,69 @@ function toggleWorkstationPanel() {
     }
   }
 }
+function toggleWorkTimePanel() {
+  let panel = document.getElementById("workTimePanel");
+  let btn = document.getElementById("toggleWorkTimeBtn");
+
+  let flowPanel = document.getElementById("flowControlPanel");
+  let employeePanel = document.getElementById("employeePerformancePanel");
+  let workstationPanel = document.getElementById("workstationPanel");
+
+  let flowBtn = document.getElementById("toggleFlowControlBtn");
+  let employeeBtn = document.getElementById("toggleEmployeePerformanceBtn");
+  let workstationBtn = document.getElementById("toggleWorkstationBtn");
+
+  if (!panel || !btn) {
+    return;
+  }
+
+  let isOpening = panel.style.display === "none";
+
+  if (flowPanel) flowPanel.style.display = "none";
+  if (employeePanel) employeePanel.style.display = "none";
+  if (workstationPanel) workstationPanel.style.display = "none";
+  panel.style.display = "none";
+
+  if (flowBtn) flowBtn.innerText = "顯示 / 隱藏貨態追蹤";
+  if (employeeBtn) employeeBtn.innerText = "顯示 / 隱藏員工績效";
+  if (workstationBtn) workstationBtn.innerText = "顯示 / 隱藏工位看板";
+  btn.innerText = "顯示 / 隱藏工時查詢";
+
+  if (isOpening) {
+    panel.style.display = "block";
+    btn.innerText = "隱藏工時查詢";
+    showWorkTimeSubPanel("attendance");
+  }
+}
+
+function showWorkTimeSubPanel(type) {
+  let attendancePanel = document.getElementById("workTimeAttendancePanel");
+  let workstationPanel = document.getElementById("workTimeWorkstationPanel");
+
+  let attendanceBtn = document.getElementById("workTimeAttendanceBtn");
+  let workstationBtn = document.getElementById("workTimeWorkstationBtn");
+
+  if (attendancePanel) attendancePanel.style.display = "none";
+  if (workstationPanel) workstationPanel.style.display = "none";
+
+  if (attendanceBtn) attendanceBtn.className = "gray";
+  if (workstationBtn) workstationBtn.className = "gray";
+
+  if (type === "attendance") {
+    if (attendancePanel) attendancePanel.style.display = "block";
+    if (attendanceBtn) attendanceBtn.className = "green";
+
+    initializeWorkTimeAttendanceFilterDate();
+    renderWorkTimeAttendanceDashboard();
+    initializeWorkTimeOvertimeMonth();
+    renderWorkTimeOvertimeMonthBoard();
+  }
+
+  if (type === "workstation") {
+    if (workstationPanel) workstationPanel.style.display = "block";
+    if (workstationBtn) workstationBtn.className = "green";
+  }
+}
   function renderEmployeeEfficiencyBoard() {
 
     if (window.employeePerformanceType && window.employeePerformanceType !== "picking") {
@@ -7139,37 +8116,89 @@ function toggleWorkstationPanel() {
       return;
     }
 
+    let pickingHoursMap = {};
+
+  for (let i = 0; i < workstationRecords.length; i++) {
+    let stationRecord = workstationRecords[i];
+
+    let stationEmployeeCode = String(stationRecord.employeeCode || "").trim();
+    let workstationName = String(stationRecord.workstation || "").trim();
+    let startTime = String(stationRecord.startTime || "").trim();
+
+    if (!stationEmployeeCode) continue;
+    if (workstationName !== "撿貨") continue;
+    if (!startTime.startsWith(selectedDateText)) continue;
+
+    let endTime = String(stationRecord.endTime || "").trim();
+    if (!endTime) {
+      endTime = getNowString();
+    }
+
+    let durationHours = getDurationHours(startTime, endTime);
+
+    if (!pickingHoursMap[stationEmployeeCode]) {
+      pickingHoursMap[stationEmployeeCode] = 0;
+    }
+
+    pickingHoursMap[stationEmployeeCode] += durationHours;
+  }
+
+    let sortingHoursMap = {};
+
+  for (let i = 0; i < workstationRecords.length; i++) {
+    let stationRecord = workstationRecords[i];
+
+    let stationEmployeeCode = String(stationRecord.employeeCode || "").trim();
+    let workstationName = String(stationRecord.workstation || "").trim();
+    let startTime = String(stationRecord.startTime || "").trim();
+
+    if (!stationEmployeeCode) continue;
+    if (workstationName !== "配貨") continue;
+    if (!startTime.startsWith(selectedDateText)) continue;
+
+    let endTime = String(stationRecord.endTime || "").trim();
+    if (!endTime) {
+      endTime = getNowString();
+    }
+
+    let durationHours = getDurationHours(startTime, endTime);
+
+    if (!sortingHoursMap[stationEmployeeCode]) {
+      sortingHoursMap[stationEmployeeCode] = 0;
+    }
+
+    sortingHoursMap[stationEmployeeCode] += durationHours;
+  }
+
   let employeeMap = {};
 
-  selectedRecords.forEach(record => {
-    let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
-    let type = master.type || "";
+  for (let i = 0; i < selectedRecords.length; i++) {
+    let record = selectedRecords[i];
+
+    let employeeCode = String(record.employeeCode || "").trim();
+    if (!employeeCode) continue;
+
+    let master = batchMaster.find(item => item.batchCode === record.batchCode);
+
+    if (!master) continue;
+    if ((String(master.type || "").trim()) !== "一般配") continue;
+
     let qty = safeQty(master.qty);
 
-    if (!record.employeeCode) return;
-
-    if (!employeeMap[record.employeeCode]) {
-      employeeMap[record.employeeCode] = {
-        employeeCode: record.employeeCode,
+    if (!employeeMap[employeeCode]) {
+      employeeMap[employeeCode] = {
+        employeeCode: employeeCode,
         employeeName: record.employeeName || "",
-        normalQty: 0,
-        noPackQty: 0,
-        normalBatchCount: 0,
-        noPackBatchCount: 0,
-        pickingHours: getPickingHoursByEmployeeAndDate(record.employeeCode, selectedDateText),
-        judgeType: "",
-        judgeValue: 0
+        totalQty: 0,
+        batchCount: 0,
+        sortingHours: Number((sortingHoursMap[employeeCode] || 0).toFixed(2)),
+        efficiency: 0
       };
     }
 
-    if (type === "一般配") {
-      employeeMap[record.employeeCode].normalQty += qty;
-      employeeMap[record.employeeCode].normalBatchCount += 1;
-    } else if (type === "無包裝") {
-      employeeMap[record.employeeCode].noPackQty += qty;
-      employeeMap[record.employeeCode].noPackBatchCount += 1;
-    }
-  });
+    employeeMap[employeeCode].totalQty += qty;
+    employeeMap[employeeCode].batchCount += 1;
+  }
 
   let rankingData = Object.values(employeeMap).map(emp => {
     let normalEfficiency = emp.pickingHours > 0
@@ -7483,46 +8512,88 @@ function getTodayPickingHoursByEmployee(employeeCode) {
   return Number(totalHours.toFixed(2));
 }
 function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
+  let safeEmployeeCode = String(employeeCode || "").trim();
   let safeDateText = String(targetDateText || "").trim();
 
-  if (!safeDateText) {
+  if (!safeEmployeeCode || !safeDateText) {
     return 0;
   }
 
-  let pickingRecords = workstationRecords.filter(record => {
-    return record.employeeCode === employeeCode &&
-      record.workstation === "撿貨" &&
-      (record.startTime || "").startsWith(safeDateText);
-  });
-
   let totalHours = 0;
+  let nowString = "";
+  let nowStringLoaded = false;
 
-  pickingRecords.forEach(record => {
-    let endTime = record.endTime || getNowString();
-    totalHours += getDurationHours(record.startTime, endTime);
-  });
+  for (let i = 0; i < workstationRecords.length; i++) {
+    let record = workstationRecords[i];
+
+    if (String(record.employeeCode || "").trim() !== safeEmployeeCode) {
+      continue;
+    }
+
+    if (String(record.workstation || "").trim() !== "撿貨") {
+      continue;
+    }
+
+    let startTime = String(record.startTime || "").trim();
+    if (!startTime.startsWith(safeDateText)) {
+      continue;
+    }
+
+    let endTime = String(record.endTime || "").trim();
+
+    if (!endTime) {
+      if (!nowStringLoaded) {
+        nowString = getNowString();
+        nowStringLoaded = true;
+      }
+      endTime = nowString;
+    }
+
+    totalHours += getDurationHours(startTime, endTime);
+  }
 
   return Number(totalHours.toFixed(2));
 }
 function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
+  let safeEmployeeCode = String(employeeCode || "").trim();
   let safeDateText = String(targetDateText || "").trim();
 
-  if (!safeDateText) {
+  if (!safeEmployeeCode || !safeDateText) {
     return 0;
   }
 
-  let sortingRecords = workstationRecords.filter(record => {
-    return record.employeeCode === employeeCode &&
-      record.workstation === "配貨" &&
-      (record.startTime || "").startsWith(safeDateText);
-  });
-
   let totalHours = 0;
+  let nowString = "";
+  let nowStringLoaded = false;
 
-  sortingRecords.forEach(record => {
-    let endTime = record.endTime || getNowString();
-    totalHours += getDurationHours(record.startTime, endTime);
-  });
+  for (let i = 0; i < workstationRecords.length; i++) {
+    let record = workstationRecords[i];
+
+    if (String(record.employeeCode || "").trim() !== safeEmployeeCode) {
+      continue;
+    }
+
+    if (String(record.workstation || "").trim() !== "配貨") {
+      continue;
+    }
+
+    let startTime = String(record.startTime || "").trim();
+    if (!startTime.startsWith(safeDateText)) {
+      continue;
+    }
+
+    let endTime = String(record.endTime || "").trim();
+
+    if (!endTime) {
+      if (!nowStringLoaded) {
+        nowString = getNowString();
+        nowStringLoaded = true;
+      }
+      endTime = nowString;
+    }
+
+    totalHours += getDurationHours(startTime, endTime);
+  }
 
   return Number(totalHours.toFixed(2));
 }
@@ -7557,40 +8628,72 @@ function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
 }
 
   function updateBatchDashboard() {
-    let total = batchMaster.length;
-    let notStarted = batchMaster.filter(item => item.status === "未撿貨").length;
-    let picking = batchMaster.filter(item => item.status === "開始撿貨").length;
-    let packWait = batchMaster.filter(item => item.status === "待包貨").length;
+  let total = batchMaster.length;
+  let notStarted = 0;
+  let picking = 0;
+  let packWait = 0;
 
-    document.getElementById("dashboardTotal").innerText = total;
-    document.getElementById("dashboardNotStarted").innerText = notStarted;
-    document.getElementById("dashboardPicking").innerText = picking;
-    document.getElementById("dashboardPackWait").innerText = packWait;
+  let normalTotalQty = 0;
+  let normalNotStartedQty = 0;
+  let normalPickingQty = 0;
+  let normalPackWaitQty = 0;
 
-    document.getElementById("dashboardNormalTotalQty").innerText =
-      sumQtyBy(item => item.type === "一般配");
+  let noPackTotalQty = 0;
+  let noPackNotStartedQty = 0;
+  let noPackPickingQty = 0;
+  let noPackPackWaitQty = 0;
 
-    document.getElementById("dashboardNormalNotStartedQty").innerText =
-      sumQtyBy(item => item.type === "一般配" && item.status === "未撿貨");
+  batchMaster.forEach(item => {
+    let status = String(item.status || "").trim();
+    let type = String(item.type || "").trim();
+    let qty = safeQty(item.qty);
 
-    document.getElementById("dashboardNormalPickingQty").innerText =
-      sumQtyBy(item => item.type === "一般配" && item.status === "開始撿貨");
+    if (status === "未撿貨") {
+      notStarted++;
+    } else if (status === "開始撿貨") {
+      picking++;
+    } else if (status === "待包貨") {
+      packWait++;
+    }
 
-    document.getElementById("dashboardNormalPackWaitQty").innerText =
-      sumQtyBy(item => item.type === "一般配" && item.status === "待包貨");
+    if (type === "一般配") {
+      normalTotalQty += qty;
 
-    document.getElementById("dashboardNoPackTotalQty").innerText =
-      sumQtyBy(item => item.type === "無包裝");
+      if (status === "未撿貨") {
+        normalNotStartedQty += qty;
+      } else if (status === "開始撿貨") {
+        normalPickingQty += qty;
+      } else if (status === "待包貨") {
+        normalPackWaitQty += qty;
+      }
+    } else if (type === "無包裝") {
+      noPackTotalQty += qty;
 
-    document.getElementById("dashboardNoPackNotStartedQty").innerText =
-      sumQtyBy(item => item.type === "無包裝" && item.status === "未撿貨");
+      if (status === "未撿貨") {
+        noPackNotStartedQty += qty;
+      } else if (status === "開始撿貨") {
+        noPackPickingQty += qty;
+      } else if (status === "待包貨") {
+        noPackPackWaitQty += qty;
+      }
+    }
+  });
 
-    document.getElementById("dashboardNoPackPickingQty").innerText =
-      sumQtyBy(item => item.type === "無包裝" && item.status === "開始撿貨");
+  document.getElementById("dashboardTotal").innerText = total;
+  document.getElementById("dashboardNotStarted").innerText = notStarted;
+  document.getElementById("dashboardPicking").innerText = picking;
+  document.getElementById("dashboardPackWait").innerText = packWait;
 
-    document.getElementById("dashboardNoPackPackWaitQty").innerText =
-      sumQtyBy(item => item.type === "無包裝" && item.status === "待包貨");
-  }
+  document.getElementById("dashboardNormalTotalQty").innerText = normalTotalQty;
+  document.getElementById("dashboardNormalNotStartedQty").innerText = normalNotStartedQty;
+  document.getElementById("dashboardNormalPickingQty").innerText = normalPickingQty;
+  document.getElementById("dashboardNormalPackWaitQty").innerText = normalPackWaitQty;
+
+  document.getElementById("dashboardNoPackTotalQty").innerText = noPackTotalQty;
+  document.getElementById("dashboardNoPackNotStartedQty").innerText = noPackNotStartedQty;
+  document.getElementById("dashboardNoPackPickingQty").innerText = noPackPickingQty;
+  document.getElementById("dashboardNoPackPackWaitQty").innerText = noPackPackWaitQty;
+}
 
   function renderEmployees() {
     let table = document.getElementById("employeeTable");
@@ -7894,7 +8997,8 @@ async function processSortBatchScan() {
     }
     return;
   }
-        let existedSortRecord = sortBatchRecords.find(record =>
+
+  let existedSortRecord = sortBatchRecords.find(record =>
     record.batchCode === batchCode &&
     !record.endTime
   );
@@ -7922,14 +9026,6 @@ async function processSortBatchScan() {
       return;
     }
 
-    if ((existedSortRecord.status || "").trim() !== "配貨中") {
-      if (message) {
-        message.innerText = `此配貨紀錄狀態異常：${existedSortRecord.status || "未知"}`;
-        message.className = "message danger-text";
-      }
-      return;
-    }
-
     existedSortRecord.endTime = getNowString();
     existedSortRecord.status = "待包貨";
     await saveSortBatchRecordToFirestore(existedSortRecord);
@@ -7947,8 +9043,7 @@ async function processSortBatchScan() {
       batchCodeInput.focus();
     }
 
-    renderSortBatchRecords();
-    renderBatchMaster();
+    refreshSortBatchRecordsViews();
     return;
   }
 
@@ -7985,8 +9080,7 @@ async function processSortBatchScan() {
     batchCodeInput.focus();
   }
 
-  renderSortBatchRecords();
-  renderBatchMaster();
+  refreshSortBatchRecordsViews();
 }
 
   
@@ -8058,24 +9152,29 @@ function clearWorkstationMode() {
   document.getElementById("workstationMessage").innerText = "";
 }
 function setWorkstationGroup(group) {
-  let groupResult = document.getElementById("workstationGroupResult");
+  let result = document.getElementById("workstationGroupResult");
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
-  let message = document.getElementById("workstationMessage");
 
-  workstationGroup = group;
+  // 記錄選擇
+  currentWorkstationGroup = group;
 
-  if (group === "inbound") {
-    groupResult.innerHTML = "<strong>目前工位群組：</strong>進貨";
-    inboundArea.style.display = "block";
-    outboundArea.style.display = "none";
-  } else if (group === "outbound") {
-    groupResult.innerHTML = "<strong>目前工位群組：</strong>出貨";
-    inboundArea.style.display = "none";
-    outboundArea.style.display = "block";
+  // 顯示文字
+  if (result) {
+    result.innerText = "目前群組：" + (group === "inbound" ? "進貨" : "出貨");
   }
 
-  message.innerText = "";
+  // 🔥 核心修正（你缺的就是這段）
+  if (inboundArea) inboundArea.style.display = "none";
+  if (outboundArea) outboundArea.style.display = "none";
+
+  if (group === "inbound") {
+    if (inboundArea) inboundArea.style.display = "block";
+  }
+
+  if (group === "outbound") {
+    if (outboundArea) outboundArea.style.display = "block";
+  }
 }
 function setWorkstationName(name) {
   workstationName = name;
@@ -8178,6 +9277,12 @@ function handleAttendanceScan() {
     }
   }
 
+  function refreshBatchProcessViews() {
+    renderBatchRecords();
+    renderBatchMaster();
+    updateBatchDashboard();
+  }
+
   if (!currentBatchEmployee) {
     showBatchError("請先確認員工", "請先掃描員工編號，再開始批次作業");
     return;
@@ -8220,7 +9325,6 @@ function handleAttendanceScan() {
     return;
   }
 
-
   let employeeOpenBatch = batchRecords.find(item =>
     item.employeeCode === currentBatchEmployee.code &&
     !item.endTime &&
@@ -8235,7 +9339,7 @@ function handleAttendanceScan() {
     return;
   }
 
-    if (!record) {
+  if (!record) {
     if ((master.status || "").trim() !== "未撿貨") {
       showBatchError(
         `批次 ${batchCode} 目前狀態為「${master.status || "未知"}」`,
@@ -8259,9 +9363,7 @@ function handleAttendanceScan() {
     master.status = "開始撿貨";
     await saveBatchMasterToFirestore(master);
 
-    renderBatchRecords();
-    renderBatchMaster();
-    updateBatchDashboard();
+    refreshBatchProcessViews();
 
     if (employeeResult) {
       employeeResult.innerHTML = `
@@ -8286,7 +9388,7 @@ function handleAttendanceScan() {
       return;
     }
 
-        if (record.endTime) {
+    if (record.endTime) {
       showBatchError(
         `批次 ${batchCode} 已不可再次刷卡`,
         `目前狀態：${record.status || "未知"}`
@@ -8319,11 +9421,9 @@ function handleAttendanceScan() {
     master.status = nextStatus;
     await saveBatchMasterToFirestore(master);
 
-    renderBatchRecords();
-    renderBatchMaster();
-    updateBatchDashboard();
+    refreshBatchProcessViews();
 
-    let nextStatusText = master && master.type === "一般配" ? "待配貨" : "待包貨";
+    let nextStatusText = nextStatus;
 
     if (employeeResult) {
       employeeResult.innerHTML = `
@@ -8567,6 +9667,7 @@ function exportWorkstationRecords() {
   }
 
   async function uploadBatchMaster() {
+  let table = document.getElementById("batchGridTable");
   let message = document.getElementById("createBatchMessage");
   let currentType = document.getElementById("currentBatchType").value;
   let workDate = document.getElementById("batchWorkDate").value.trim();
@@ -8577,14 +9678,15 @@ function exportWorkstationRecords() {
     return;
   }
 
-  let workDateCode = workDate.replace(/-/g, "").slice(2);
+  let rows = table.querySelectorAll("tr");
   let rowsToCreate = [];
   let inputtedRowCount = 0;
 
-  for (let i = 1; i <= 20; i++) {
-    let batchCode = document.getElementById(`gridBatchCode${i}`).value.trim();
-    let name = document.getElementById(`gridBatchName${i}`).value.trim();
-    let qty = document.getElementById(`gridBatchQty${i}`).value.trim();
+  for (let i = 1; i < rows.length; i++) {
+    let cells = rows[i].querySelectorAll("input");
+    let batchCode = cells[0].value.trim();
+    let name = cells[1].value.trim();
+    let qty = cells[2].value.trim();
 
     if (!batchCode && !name && !qty) {
       continue;
@@ -8592,15 +9694,10 @@ function exportWorkstationRecords() {
 
     inputtedRowCount++;
 
-    if (!batchCode) {
-      message.innerText = `第 ${i} 列缺少批次編號`;
-      message.className = "message danger-text";
-      return;
-    }
+    let workDateCode = workDate.replace(/-/g, "").slice(2);
+    let codeDatePart = batchCode.slice(0, 6);
 
-    let batchDateCode = batchCode.slice(0, 6);
-
-    if (batchDateCode !== workDateCode) {
+    if (codeDatePart !== workDateCode) {
       message.innerText = `第 ${i} 列批次編號日期與目標作業日期不一致`;
       message.className = "message danger-text";
       return;
@@ -8615,21 +9712,20 @@ function exportWorkstationRecords() {
     }
 
     if (currentType === "無包裝" && !hasW) {
-      message.innerText = `第 ${i} 列類型是無包裝，批次編號必須包含 W`;
+      message.innerText = `第 ${i} 列類型是無包裝，批次編號必須包含 -W`;
       message.className = "message danger-text";
       return;
     }
 
-    let existsInBatchMaster = batchMaster.find(item => item.batchCode === batchCode);
-    if (existsInBatchMaster) {
-      message.innerText = `第 ${i} 列批次編號已存在`;
+    let existed = batchMaster.find(item => item.batchCode === batchCode);
+    if (existed) {
+      message.innerText = `第 ${i} 列批次編號已存在：${batchCode}`;
       message.className = "message danger-text";
       return;
     }
 
-    let existsInCurrentUpload = rowsToCreate.find(item => item.batchCode === batchCode);
-    if (existsInCurrentUpload) {
-      message.innerText = `第 ${i} 列批次編號與本次上傳其他列重複`;
+    if (!batchCode || !name || !qty) {
+      message.innerText = `第 ${i} 列資料不完整，請確認批次編號、名稱、數量`;
       message.className = "message danger-text";
       return;
     }
@@ -8657,10 +9753,6 @@ function exportWorkstationRecords() {
     await saveBatchMasterToFirestore(newBatch);
   }
 
-  renderBatchMaster();
-  renderBatchRecords();
-  updateBatchDashboard();
-
   message.innerText = `成功新增 ${rowsToCreate.length} 筆 ${currentType} 批次`;
   message.className = "message";
 
@@ -8673,78 +9765,82 @@ function exportWorkstationRecords() {
   }
 
   function renderBatchMaster() {
-    let table = document.getElementById("batchMasterTable");
-    if (!table) return;
+  let table = document.getElementById("batchMasterTable");
+  if (!table) return;
 
-    let keyword = document.getElementById("batchSearchKeyword")
-      ? document.getElementById("batchSearchKeyword").value.trim().toLowerCase()
-      : "";
+  let keywordInput = document.getElementById("batchSearchKeyword");
+  let keyword = keywordInput
+    ? String(keywordInput.value || "").trim().toLowerCase()
+    : "";
 
-    let filtered = batchMaster.filter(item => {
-      if (!keyword) return true;
-      return (
-        (item.batchCode || "").toLowerCase().includes(keyword) ||
-        (item.name || "").toLowerCase().includes(keyword) ||
-        (item.type || "").toLowerCase().includes(keyword)
-      );
-    });
-
-    table.innerHTML = `
-      <tr>
-        <th>勾選</th>
-        <th>目標作業日期</th>
-        <th>批次編號</th>
-        <th>名稱</th>
-        <th>數量</th>
-        <th>類型</th>
-        <th>狀態</th>
-        <th>建立時間</th>
-        <th>操作</th>
-      </tr>
-    `;
-
-    filtered.forEach(item => {
-      let row = table.insertRow();
-            row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
-            row.insertCell(1).innerText = item.workDate || "";
-            row.insertCell(2).innerText = item.batchCode || "";
-            row.insertCell(3).innerText = item.name || "";
-            row.insertCell(4).innerText = item.qty || "";
-            row.insertCell(5).innerText = item.type || "";
-            row.insertCell(6).innerHTML = getBatchStatusTag(item.status || "未撿貨");
-            row.insertCell(7).innerText = item.createdAt || "";
-            row.insertCell(8).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
-    });
-  }
-
-  async function deleteBatchMaster(code) {
-    let message = document.getElementById("manageBatchMessage");
-
-    let relatedRecords = batchRecords.filter(record => record.batchCode === code);
-
-    for (let i = 0; i < relatedRecords.length; i++) {
-      let record = relatedRecords[i];
-      let docId = `${record.batchCode}__${record.employeeCode}`;
-
-      await window.db
-        .collection(FIRESTORE_COLLECTIONS.batchRecords)
-        .doc(docId)
-        .delete();
+  let filtered = batchMaster.filter(item => {
+    if (!keyword) {
+      return true;
     }
 
-    batchRecords = batchRecords.filter(record => record.batchCode !== code);
-    batchMaster = batchMaster.filter(item => item.batchCode !== code);
+    let batchCodeText = String(item.batchCode || "").toLowerCase();
+    let nameText = String(item.name || "").toLowerCase();
+    let typeText = String(item.type || "").toLowerCase();
 
-    await deleteBatchMasterFromFirestore(code);
+    return (
+      batchCodeText.includes(keyword) ||
+      nameText.includes(keyword) ||
+      typeText.includes(keyword)
+    );
+  });
 
-    renderBatchMaster();
-    renderBatchRecords();
-    updateBatchDashboard();
-    
+  table.innerHTML = `
+    <tr>
+      <th>勾選</th>
+      <th>目標作業日期</th>
+      <th>批次編號</th>
+      <th>名稱</th>
+      <th>數量</th>
+      <th>類型</th>
+      <th>狀態</th>
+      <th>建立時間</th>
+      <th>操作</th>
+    </tr>
+  `;
 
-    message.innerText = `已刪除批次：${code}`;
-    message.className = "message";
+  filtered.forEach(item => {
+    let row = table.insertRow();
+
+    row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
+    row.insertCell(1).innerText = item.workDate || "";
+    row.insertCell(2).innerText = item.batchCode || "";
+    row.insertCell(3).innerText = item.name || "";
+    row.insertCell(4).innerText = item.qty || "";
+    row.insertCell(5).innerText = item.type || "";
+    row.insertCell(6).innerHTML = getBatchStatusTag(item.status || "未撿貨");
+    row.insertCell(7).innerText = item.createdAt || "";
+    row.insertCell(8).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
+  });
+}
+
+  async function deleteBatchMaster(code) {
+  let message = document.getElementById("manageBatchMessage");
+
+  let relatedRecords = batchRecords.filter(record => record.batchCode === code);
+
+  for (let i = 0; i < relatedRecords.length; i++) {
+    let record = relatedRecords[i];
+    let docId = `${record.batchCode}__${record.employeeCode}`;
+
+    await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .doc(docId)
+      .delete();
   }
+
+  batchRecords = batchRecords.filter(record => record.batchCode !== code);
+  batchMaster = batchMaster.filter(item => item.batchCode !== code);
+
+  await deleteBatchMasterFromFirestore(code);
+
+  message.innerText = `已刪除批次：${code}`;
+  message.className = "message";
+}
 
   async function deleteSelectedBatchMaster() {
   let checks = document.querySelectorAll(".batchMasterCheck:checked");
@@ -8777,10 +9873,6 @@ function exportWorkstationRecords() {
 
   batchRecords = batchRecords.filter(record => !codes.includes(record.batchCode));
   batchMaster = batchMaster.filter(item => !codes.includes(item.batchCode));
-
-  renderBatchMaster();
-  renderBatchRecords();
-  updateBatchDashboard();
 
   message.innerText = `已刪除 ${codes.length} 筆被勾選批次`;
   message.className = "message";
