@@ -1130,542 +1130,627 @@
       </div>
     </div>
 
-        <div id="employeeEfficiencyPage" class="page">
+<div id="employeeEfficiencyPage" class="page">
   <div class="card">
     <h2>作業控制塔（Control Tower）</h2>
 
     <div class="button-row">
-     <button id="toggleFlowControlBtn" onclick="toggleFlowControlPanel()">顯示 / 隱藏貨態追蹤</button>
-     <button id="toggleEmployeePerformanceBtn" class="teal" onclick="toggleEmployeePerformancePanel()">顯示 / 隱藏員工績效</button>
-     <button id="toggleWorkstationBtn" class="gray" onclick="toggleWorkstationPanel()">顯示 / 隱藏工位看板</button>
-     <button id="toggleWorkTimeBtn" class="orange" onclick="toggleWorkTimePanel()">顯示 / 隱藏工時查詢</button>
-  </div>
+      <button id="toggleFlowControlBtn" onclick="toggleFlowControlPanel()">顯示 / 隱藏貨態追蹤</button>
+      <button id="toggleEmployeePerformanceBtn" class="teal" onclick="toggleEmployeePerformancePanel()">顯示 / 隱藏員工績效</button>
+      <button id="toggleWorkstationBtn" class="gray" onclick="toggleWorkstationPanel()">顯示 / 隱藏工位看板</button>
+      <button id="toggleWorkTimeBtn" class="orange" onclick="toggleWorkTimePanel()">顯示 / 隱藏工時查詢</button>
+    </div>
 
     <div id="flowControlPanel" style="display:none;">
-  <div class="card" style="margin-top:16px;">
-    <h3>即時工作看板</h3>
+      <div class="card" style="margin-top:16px;">
+        <h3>即時工作看板</h3>
 
-    <div class="flow-workboard-filter-row">
-      <div>
-        <label for="flowControlWorkDate">WorkDate 篩選器</label>
-        <input
-          type="date"
-          id="flowControlWorkDate"
-          onchange="handleFlowControlWorkDateChange()"
-        >
+        <div class="flow-workboard-filter-row">
+          <div>
+            <label for="flowControlWorkDate">WorkDate 篩選器</label>
+            <input
+              type="date"
+              id="flowControlWorkDate"
+              onchange="handleFlowControlWorkDateChange()"
+            >
+          </div>
+        </div>
+
+        <div id="flowControlWorkBoardSummary" class="result-box flow-workboard-summary">
+          這裡之後會顯示目前 WorkDate 的即時工作總覽
+        </div>
+
+        <div class="dashboard-section-title flow-workboard-section">一般配</div>
+        <div class="flow-workboard-grid">
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">今天總數量 / 批次</div>
+            <div class="dashboard-value" id="flowNormalTotalValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">待撿貨</div>
+            <div class="dashboard-value" id="flowNormalNotStartedValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">撿貨中</div>
+            <div class="dashboard-value" id="flowNormalPickingValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">待配貨</div>
+            <div class="dashboard-value" id="flowNormalWaitingSortValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">配貨中</div>
+            <div class="dashboard-value" id="flowNormalSortingValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">待包貨</div>
+            <div class="dashboard-value" id="flowNormalWaitingPackValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">已完成</div>
+            <div class="dashboard-value" id="flowNormalCompletedValue">0 / 0批</div>
+          </div>
+        </div>
+
+        <div class="dashboard-section-title flow-workboard-section">無包裝</div>
+        <div class="flow-workboard-grid">
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">今天總數量 / 批次</div>
+            <div class="dashboard-value" id="flowNoPackTotalValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">待撿貨</div>
+            <div class="dashboard-value" id="flowNoPackNotStartedValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">撿貨中</div>
+            <div class="dashboard-value" id="flowNoPackPickingValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">待包貨</div>
+            <div class="dashboard-value" id="flowNoPackWaitingPackValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">包貨中</div>
+            <div class="dashboard-value" id="flowNoPackPackingValue">0 / 0批</div>
+          </div>
+          <div class="flow-workboard-card">
+            <div class="dashboard-title">已完成</div>
+            <div class="dashboard-value" id="flowNoPackCompletedValue">0 / 0批</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>貨態分流（Flow Control）</h3>
+
+        <div class="button-row" id="flowTypeButtonGroup">
+          <button onclick="setFlowControlType('一般配')">一般配</button>
+          <button onclick="setFlowControlType('無包裝')">無包裝</button>
+        </div>
+
+        <div class="info-box">
+          <strong>新版貨態流程：</strong><br>
+          一般配：待撿貨 → 撿貨中 → 待配貨 → 配貨中 → 待包貨 → 已完成<br>
+          無包裝：待撿貨 → 撿貨中 → 待包貨 → 包貨中 → 已完成<br><br>
+          請先選擇上方類型（一般配 / 無包裝），再選擇下方流程狀態查看批次
+        </div>
+
+        <div id="flowControlMessage" class="message"></div>
+        <div id="flowStatusButtonGroup" class="button-row" style="margin-top:10px;"></div>
+        <div id="flowControlSummaryText" class="result-box" style="margin-top:10px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>貨態列表</h3>
+
+        <table id="flowControlTable">
+          <tr>
+            <th>批次編號</th>
+            <th>名稱</th>
+            <th>類型</th>
+            <th>數量</th>
+            <th>目前狀態</th>
+          </tr>
+        </table>
       </div>
     </div>
 
-    <div id="flowControlWorkBoardSummary" class="result-box flow-workboard-summary">
-      這裡之後會顯示目前 WorkDate 的即時工作總覽
-    </div>
-
-    <div class="dashboard-section-title flow-workboard-section">一般配</div>
-    <div class="flow-workboard-grid">
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">今天總數量 / 批次</div>
-        <div class="dashboard-value" id="flowNormalTotalValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">待撿貨</div>
-        <div class="dashboard-value" id="flowNormalNotStartedValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">撿貨中</div>
-        <div class="dashboard-value" id="flowNormalPickingValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">待配貨</div>
-        <div class="dashboard-value" id="flowNormalWaitingSortValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">配貨中</div>
-        <div class="dashboard-value" id="flowNormalSortingValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">待包貨</div>
-        <div class="dashboard-value" id="flowNormalWaitingPackValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">已完成</div>
-        <div class="dashboard-value" id="flowNormalCompletedValue">0 / 0批</div>
-      </div>
-    </div>
-
-    <div class="dashboard-section-title flow-workboard-section">無包裝</div>
-    <div class="flow-workboard-grid">
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">今天總數量 / 批次</div>
-        <div class="dashboard-value" id="flowNoPackTotalValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">待撿貨</div>
-        <div class="dashboard-value" id="flowNoPackNotStartedValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">撿貨中</div>
-        <div class="dashboard-value" id="flowNoPackPickingValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">待包貨</div>
-        <div class="dashboard-value" id="flowNoPackWaitingPackValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">包貨中</div>
-        <div class="dashboard-value" id="flowNoPackPackingValue">0 / 0批</div>
-      </div>
-      <div class="flow-workboard-card">
-        <div class="dashboard-title">已完成</div>
-        <div class="dashboard-value" id="flowNoPackCompletedValue">0 / 0批</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>貨態分流（Flow Control）</h3>
-
-    <div class="button-row" id="flowTypeButtonGroup">
-      <button onclick="setFlowControlType('一般配')">一般配</button>
-      <button onclick="setFlowControlType('無包裝')">無包裝</button>
-    </div>
-
-    <div class="info-box">
-      <strong>新版貨態流程：</strong><br>
-      一般配：待撿貨 → 撿貨中 → 待配貨 → 配貨中 → 待包貨 → 已完成<br>
-      無包裝：待撿貨 → 撿貨中 → 待包貨 → 包貨中 → 已完成<br><br>
-      請先選擇上方類型（一般配 / 無包裝），再選擇下方流程狀態查看批次
-    </div>
-
-    <div id="flowControlMessage" class="message"></div>
-    <div id="flowStatusButtonGroup" class="button-row" style="margin-top:10px;"></div>
-    <div id="flowControlSummaryText" class="result-box" style="margin-top:10px;"></div>
-  </div>
-
-  <div class="card">
-    <h3>貨態列表</h3>
-
-    <table id="flowControlTable">
-      <tr>
-        <th>批次編號</th>
-        <th>名稱</th>
-        <th>類型</th>
-        <th>數量</th>
-        <th>目前狀態</th>
-      </tr>
-    </table>
-  </div>
-</div>
     <div id="workstationPanel" style="display:none;">
-  <div class="card" style="margin-top:16px;">
-    <h3>工位管理看板</h3>
+      <div class="card" style="margin-top:16px;">
+        <h3>工位管理看板</h3>
 
-    <div class="button-row">
-     <button class="gray" onclick="exportWorkstationRecords()">
-       匯出工位紀錄 XLSX
-     </button>
-   </div>
-    <div id="controlTowerWorkstationCountBoard">
-      <div class="dashboard-section-title">進貨區目前人數</div>
-      <div class="dashboard-grid">
-        <div class="dashboard-card"><div class="dashboard-title">貨櫃</div><div id="ctCount貨櫃" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">驗收</div><div id="ctCount驗收" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">上架</div><div id="ctCount上架" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">補貨</div><div id="ctCount補貨" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">進貨 Leader</div><div id="ctCountInboundLeader" class="dashboard-value">0</div></div>
-      </div>
+        <div class="button-row">
+          <button class="gray" onclick="exportWorkstationRecords()">
+            匯出工位紀錄 XLSX
+          </button>
+        </div>
 
-      <div class="dashboard-section-title">出貨區目前人數</div>
-      <div class="dashboard-grid">
-        <div class="dashboard-card"><div class="dashboard-title">撿貨</div><div id="ctCount撿貨" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">配貨</div><div id="ctCount配貨" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">包貨｜無包裝</div><div id="ctCount包貨無包裝" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">包貨｜一般配</div><div id="ctCount包貨一般配" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">包貨｜宅配</div><div id="ctCount包貨宅配" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">印單</div><div id="ctCount印單" class="dashboard-value">0</div></div>
-        <div class="dashboard-card"><div class="dashboard-title">出貨 Leader</div><div id="ctCountOutboundLeader" class="dashboard-value">0</div></div>
-      </div>
-    </div>
-  </div>
+        <div id="controlTowerWorkstationCountBoard">
+          <div class="dashboard-section-title">進貨區目前人數</div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card"><div class="dashboard-title">貨櫃</div><div id="ctCount貨櫃" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">驗收</div><div id="ctCount驗收" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">上架</div><div id="ctCount上架" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">補貨</div><div id="ctCount補貨" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">進貨 Leader</div><div id="ctCountInboundLeader" class="dashboard-value">0</div></div>
+          </div>
 
-  <div class="card">
-    <h3>目前作業中工位</h3>
-
-    <div id="ctActiveWorkstationSummary" class="result-box">
-      這裡之後會顯示：目前誰正在什麼工位作業中
-    </div>
-
-    <table id="ctActiveWorkstationTable">
-      <tr>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>群組</th>
-        <th>工位</th>
-        <th>開始時間</th>
-        <th>狀態</th>
-      </tr>
-    </table>
-  </div>
-
-  <div class="card">
-    <h3>今日工位紀錄</h3>
-
-    <div class="button-row">
-      <button id="ctTodayFilterBtn" class="green" type="button">只看今天</button>
-      <button id="ctAllFilterBtn" class="gray" type="button">顯示全部</button>
-    </div>
-
-    <div id="ctTodayWorkstationSummary" class="result-box">
-      這裡之後會顯示：今天所有工位刷卡紀錄
-    </div>
-
-    <table id="ctTodayWorkstationTable">
-      <tr>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>群組</th>
-        <th>工位</th>
-        <th>開始時間</th>
-        <th>結束時間</th>
-        <th>狀態</th>
-      </tr>
-    </table>
-  </div>
-</div>
-
-<div id="workTimePanel" style="display:none;">
-  <div class="card" style="margin-top:16px;">
-    <h3>工時查詢</h3>
-
-    <div class="button-row">
-      <button id="workTimeAttendanceBtn" class="green" onclick="showWorkTimeSubPanel('attendance')">出勤查詢</button>
-      <button id="workTimeWorkstationBtn" class="gray" onclick="showWorkTimeSubPanel('workstation')">工位查詢</button>
-    </div>
-
-    <div class="info-box">
-      這裡之後會整合作業控制塔內的工時查詢功能。<br>
-      第二層分成：出勤查詢、工位查詢。
-    </div>
-  </div>
-
-  <div id="workTimeAttendancePanel" style="display:block;">
-    <div class="card" style="margin-top:16px;">
-      <h3>出勤查詢看板</h3>
-
-      <div class="flow-workboard-filter-row">
-        <div>
-          <label for="workTimeAttendanceFilterDate">選擇日期</label>
-          <input
-            type="date"
-            id="workTimeAttendanceFilterDate"
-            onchange="renderWorkTimeAttendanceDashboard()"
-          >
+          <div class="dashboard-section-title">出貨區目前人數</div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card"><div class="dashboard-title">撿貨</div><div id="ctCount撿貨" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">配貨</div><div id="ctCount配貨" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">包貨｜無包裝</div><div id="ctCount包貨無包裝" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">包貨｜一般配</div><div id="ctCount包貨一般配" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">包貨｜宅配</div><div id="ctCount包貨宅配" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">印單</div><div id="ctCount印單" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">出貨 Leader</div><div id="ctCountOutboundLeader" class="dashboard-value">0</div></div>
+          </div>
         </div>
       </div>
 
-      <div class="info-box">
-        預設帶入今天。<br>
-        切換日期後，會自動刷新：
-        實到人數、在班人數、已下班人數、總工時、出勤清單。
+      <div class="card">
+        <h3>目前作業中工位</h3>
+
+        <div id="ctActiveWorkstationSummary" class="result-box">
+          這裡之後會顯示：目前誰正在什麼工位作業中
+        </div>
+
+        <table id="ctActiveWorkstationTable">
+          <tr>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>群組</th>
+            <th>工位</th>
+            <th>開始時間</th>
+            <th>狀態</th>
+          </tr>
+        </table>
       </div>
 
-      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
-        <div class="dashboard-card">
-          <div class="dashboard-title">指定日期實到人數</div>
-          <div class="dashboard-value" id="workTimeAttendancePresentCount">0</div>
+      <div class="card">
+        <h3>今日工位紀錄</h3>
+
+        <div class="button-row">
+          <button id="ctTodayFilterBtn" class="green" type="button">只看今天</button>
+          <button id="ctAllFilterBtn" class="gray" type="button">顯示全部</button>
         </div>
 
-        <div class="dashboard-card">
-          <div class="dashboard-title">指定日期在班人數</div>
-          <div class="dashboard-value" id="workTimeAttendanceWorkingCount">0</div>
+        <div id="ctTodayWorkstationSummary" class="result-box">
+          這裡之後會顯示：今天所有工位刷卡紀錄
         </div>
 
-        <div class="dashboard-card">
-          <div class="dashboard-title">指定日期已下班人數</div>
-          <div class="dashboard-value" id="workTimeAttendanceCheckedOutCount">0</div>
-        </div>
-
-        <div class="dashboard-card">
-          <div class="dashboard-title">指定日期總工時</div>
-          <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
-        </div>
+        <table id="ctTodayWorkstationTable">
+          <tr>
+            <th>員工編號</th>
+            <th>員工姓名</th>
+            <th>群組</th>
+            <th>工位</th>
+            <th>開始時間</th>
+            <th>結束時間</th>
+            <th>狀態</th>
+          </tr>
+        </table>
       </div>
-
-      <div id="workTimeAttendanceBoardSummary" class="result-box">
-        這裡之後會顯示指定日期的出勤摘要
-      </div>
-
-      <table id="workTimeAttendanceBoardTable">
-        <tr>
-          <th>員工編號</th>
-          <th>員工姓名</th>
-          <th>日期</th>
-          <th>上班時間</th>
-          <th>下班時間</th>
-          <th>休息時間</th>
-          <th>實際工時</th>
-          <th>狀態</th>
-        </tr>
-      </table>
     </div>
 
-    <div class="card" style="margin-top:16px;">
-      <h3>月份加班統計</h3>
+    <div id="workTimePanel" style="display:none;">
+      <div class="card" style="margin-top:16px;">
+        <h3>工時查詢</h3>
 
-      <div class="flow-workboard-filter-row">
-        <div>
-          <label for="workTimeOvertimeMonth">選擇月份</label>
-          <input
-            type="month"
-            id="workTimeOvertimeMonth"
-            onchange="renderWorkTimeOvertimeMonthBoard()"
-          >
+        <div class="button-row">
+          <button id="workTimeAttendanceBtn" class="green" onclick="showWorkTimeSubPanel('attendance')">出勤查詢</button>
+          <button id="workTimeWorkstationBtn" class="gray" onclick="showWorkTimeSubPanel('workstation')">工位查詢</button>
         </div>
-      </div>
 
-      <div class="info-box">
-        依指定月份統計加班日。<br>
-        判斷規則：只要當日有任一員工實際工時超過 8H，即算加班日。
-      </div>
-
-      <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
-        <div class="dashboard-card">
-          <div class="dashboard-title">指定月份加班天數</div>
-          <div class="dashboard-value" id="workTimeOvertimeMonthDayCount">0</div>
+        <div class="info-box">
+          這裡之後會整合作業控制塔內的工時查詢功能。<br>
+          第二層分成：出勤查詢、工位查詢。
         </div>
       </div>
 
-      <div id="workTimeOvertimeMonthSummary" class="result-box">
-        這裡之後會顯示指定月份的加班日期摘要
-      </div>
-    </div>
+      <div id="workTimeAttendancePanel" style="display:block;">
+        <div class="card" style="margin-top:16px;">
+          <h3>出勤查詢看板</h3>
 
-    <div id="workTimeOvertimeDayDetailPanel" class="card" style="margin-top:16px; display:none;">
-      <h3>加班員工清單</h3>
+          <div class="flow-workboard-filter-row">
+            <div>
+              <label for="workTimeAttendanceFilterDate">選擇日期</label>
+              <input
+                type="date"
+                id="workTimeAttendanceFilterDate"
+                onchange="renderWorkTimeAttendanceDashboard()"
+              >
+            </div>
+          </div>
 
-      <div id="workTimeOvertimeDayDetailSummary" class="result-box">
-        這裡之後會顯示指定加班日的摘要
-      </div>
+          <div class="info-box">
+            預設帶入今天。<br>
+            切換日期後，會自動刷新：
+            實到人數、在班人數、已下班人數、總工時、出勤清單。
+          </div>
 
-      <table id="workTimeOvertimeDayDetailTable">
-        <tr>
-          <th>員工編號</th>
-          <th>員工姓名</th>
-          <th>日期</th>
-          <th>上班時間</th>
-          <th>下班時間</th>
-          <th>實際工時</th>
-          <th>狀態</th>
-        </tr>
-      </table>
-    </div>
-  </div>
+          <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定日期實到人數</div>
+              <div class="dashboard-value" id="workTimeAttendancePresentCount">0</div>
+            </div>
 
-  <div id="workTimeWorkstationPanel" style="display:none;">
-    <div class="card" style="margin-top:16px;">
-      <h3>工位查詢</h3>
-      <div class="info-box">此模組後續建立</div>
-    </div>
-  </div>
-</div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定日期在班人數</div>
+              <div class="dashboard-value" id="workTimeAttendanceWorkingCount">0</div>
+            </div>
 
-<div id="employeePerformancePanel" style="display:none;">
-  <div class="card" style="margin-top:16px;">
-    <h3>員工績效入口</h3>
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定日期已下班人數</div>
+              <div class="dashboard-value" id="workTimeAttendanceCheckedOutCount">0</div>
+            </div>
 
-    <div class="button-row">
-      <button id="employeePerformancePickingBtn" class="green" onclick="setEmployeePerformanceType('picking')">撿貨績效</button>
-      <button id="employeePerformanceSortingBtn" class="gray" onclick="setEmployeePerformanceType('sorting')">配貨績效</button>
-      <button id="employeePerformancePackNormalBtn" class="gray" onclick="setEmployeePerformanceType('packNormal')">包貨｜一般配績效</button>
-      <button id="employeePerformancePackNoPackBtn" class="gray" onclick="setEmployeePerformanceType('packNoPack')">包貨｜無包裝績效</button>
-    </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定日期總工時</div>
+              <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
+            </div>
+          </div>
 
-    <div id="employeePerformanceIntroBox" class="info-box" style="margin-top:12px;">
-      目前為撿貨績效說明（後續會依類型切換）
-    </div>
-  </div>
+          <div id="workTimeAttendanceBoardSummary" class="result-box">
+            這裡之後會顯示指定日期的出勤摘要
+          </div>
 
-  <div id="employeePerformancePickingPanel">
-    <div class="card" style="margin-top:16px;">
-      <h3>撿貨績效日期篩選</h3>
+          <table id="workTimeAttendanceBoardTable">
+            <tr>
+              <th>員工編號</th>
+              <th>員工姓名</th>
+              <th>日期</th>
+              <th>上班時間</th>
+              <th>下班時間</th>
+              <th>休息時間</th>
+              <th>實際工時</th>
+              <th>狀態</th>
+            </tr>
+          </table>
+        </div>
 
-      <div class="flow-workboard-filter-row">
-        <div>
-          <label for="employeePerformanceWorkDate">選擇日期</label>
-          <input
-            type="date"
-            id="employeePerformanceWorkDate"
-            onchange="handleEmployeePerformanceWorkDateChange()"
-          >
+        <div class="card" style="margin-top:16px;">
+          <h3>月份加班統計</h3>
+
+          <div class="flow-workboard-filter-row">
+            <div>
+              <label for="workTimeOvertimeMonth">選擇月份</label>
+              <input
+                type="month"
+                id="workTimeOvertimeMonth"
+                onchange="renderWorkTimeOvertimeMonthBoard()"
+              >
+            </div>
+          </div>
+
+          <div class="info-box">
+            依指定月份統計加班日。<br>
+            判斷規則：只要當日有任一員工實際工時超過 8H，即算加班日。
+          </div>
+
+          <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定月份加班天數</div>
+              <div class="dashboard-value" id="workTimeOvertimeMonthDayCount">0</div>
+            </div>
+          </div>
+
+          <div id="workTimeOvertimeMonthSummary" class="result-box">
+            這裡之後會顯示指定月份的加班日期摘要
+          </div>
+        </div>
+
+        <div id="workTimeOvertimeDayDetailPanel" class="card" style="margin-top:16px; display:none;">
+          <h3>加班員工清單</h3>
+
+          <div id="workTimeOvertimeDayDetailSummary" class="result-box">
+            這裡之後會顯示指定加班日的摘要
+          </div>
+
+          <table id="workTimeOvertimeDayDetailTable">
+            <tr>
+              <th>員工編號</th>
+              <th>員工姓名</th>
+              <th>日期</th>
+              <th>上班時間</th>
+              <th>下班時間</th>
+              <th>實際工時</th>
+              <th>狀態</th>
+            </tr>
+          </table>
         </div>
       </div>
 
-      <div class="info-box">
-        預設帶入今天。切換日期後，會重新刷新撿貨績效摘要卡、異常員工清單與排名表。
-      </div>
-    </div>
+      <div id="workTimeWorkstationPanel" style="display:none;">
+        <div class="card" style="margin-top:16px;">
+          <h3>工位查詢看板</h3>
 
-    <div id="employeeEfficiencySummary" class="message"></div>
+          <div class="flow-workboard-filter-row">
+            <div>
+              <label for="workTimeWorkstationFilterDate">選擇日期</label>
+              <input
+                type="date"
+                id="workTimeWorkstationFilterDate"
+                onchange="renderWorkTimeWorkstationDashboard()"
+              >
+            </div>
+          </div>
 
-    <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
-      <div class="dashboard-card">
-        <div class="dashboard-title">一般配有排名人數</div>
-        <div class="dashboard-value" id="normalCountValue">0</div>
-      </div>
+          <div class="info-box">
+            預設帶入今天。<br>
+            切換日期後，會自動刷新工位總工時卡片。
+          </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">一般配最高效率</div>
-        <div class="dashboard-value" id="normalTopValue">0</div>
-      </div>
+          <div id="workTimeWorkstationBoardSummary" class="result-box">
+            這裡之後會顯示工位工時摘要
+          </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">一般配平均效率</div>
-        <div class="dashboard-value" id="normalAvgValue">0</div>
-      </div>
+          <div class="dashboard-section-title">工位總工時</div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">一般配最低效率</div>
-        <div class="dashboard-value" id="normalMinValue">0</div>
-      </div>
+          <div class="dashboard-grid" style="margin-top:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">貨櫃</div>
+              <div class="dashboard-value" id="workTimeWS_貨櫃">0H</div>
+            </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">無包裝有排名人數</div>
-        <div class="dashboard-value" id="noPackCountValue">0</div>
-      </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">驗收</div>
+              <div class="dashboard-value" id="workTimeWS_驗收">0H</div>
+            </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">無包裝最高效率</div>
-        <div class="dashboard-value" id="noPackTopValue">0</div>
-      </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">上架</div>
+              <div class="dashboard-value" id="workTimeWS_上架">0H</div>
+            </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">無包裝平均效率</div>
-        <div class="dashboard-value" id="noPackAvgValue">0</div>
-      </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">補貨</div>
+              <div class="dashboard-value" id="workTimeWS_補貨">0H</div>
+            </div>
 
-      <div class="dashboard-card">
-        <div class="dashboard-title">無包裝最低效率</div>
-        <div class="dashboard-value" id="noPackMinValue">0</div>
-      </div>
-    </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">撿貨</div>
+              <div class="dashboard-value" id="workTimeWS_撿貨">0H</div>
+            </div>
 
-    <div class="card" style="margin-top:16px;">
-      <h3>今日異常員工清單</h3>
-      <div id="employeeEfficiencyAlertSummary" class="result-box">目前尚無異常員工資料</div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">配貨</div>
+              <div class="dashboard-value" id="workTimeWS_配貨">0H</div>
+            </div>
 
-      <table id="employeeEfficiencyAlertTable">
-        <tr>
-          <th>員工編號</th>
-          <th>員工姓名</th>
-          <th>今日判定類型</th>
-          <th>撿貨工時</th>
-          <th>效率值</th>
-        </tr>
-      </table>
-    </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">包貨｜無包裝</div>
+              <div class="dashboard-value" id="workTimeWS_包貨無包裝">0H</div>
+            </div>
 
-    <table id="employeeEfficiencyTable">
-      <tr>
-        <th>排名</th>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>一般配批次</th>
-        <th>無包裝批次</th>
-        <th>一般配總量</th>
-        <th>無包裝總PCS</th>
-        <th>今日判定類型</th>
-        <th>撿貨工時</th>
-        <th>效率值</th>
-      </tr>
-    </table>
-  </div>
+            <div class="dashboard-card">
+              <div class="dashboard-title">包貨｜一般配</div>
+              <div class="dashboard-value" id="workTimeWS_包貨一般配">0H</div>
+            </div>
 
-  <div id="employeePerformanceSortingPanel" style="display:none;">
-    <div class="card" style="margin-top:16px;">
-      <h3>配貨績效日期篩選</h3>
+            <div class="dashboard-card">
+              <div class="dashboard-title">包貨｜宅配</div>
+              <div class="dashboard-value" id="workTimeWS_包貨宅配">0H</div>
+            </div>
 
-      <div class="flow-workboard-filter-row">
-        <div>
-          <label for="employeePerformanceSortingWorkDate">選擇日期</label>
-          <input
-            type="date"
-            id="employeePerformanceSortingWorkDate"
-            onchange="handleEmployeePerformanceSortingWorkDateChange()"
-          >
+            <div class="dashboard-card">
+              <div class="dashboard-title">印單</div>
+              <div class="dashboard-value" id="workTimeWS_印單">0H</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">進貨 Leader</div>
+              <div class="dashboard-value" id="workTimeWS_進貨Leader">0H</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">出貨 Leader</div>
+              <div class="dashboard-value" id="workTimeWS_出貨Leader">0H</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="info-box">
-        預設帶入今天。切換日期後，會重新刷新配貨績效摘要卡、異常員工清單與排名表。
+      <div id="employeePerformancePanel" style="display:none;">
+        <div class="card" style="margin-top:16px;">
+          <h3>員工績效入口</h3>
+
+          <div class="button-row">
+            <button id="employeePerformancePickingBtn" class="green" onclick="setEmployeePerformanceType('picking')">撿貨績效</button>
+            <button id="employeePerformanceSortingBtn" class="gray" onclick="setEmployeePerformanceType('sorting')">配貨績效</button>
+            <button id="employeePerformancePackNormalBtn" class="gray" onclick="setEmployeePerformanceType('packNormal')">包貨｜一般配績效</button>
+            <button id="employeePerformancePackNoPackBtn" class="gray" onclick="setEmployeePerformanceType('packNoPack')">包貨｜無包裝績效</button>
+          </div>
+
+          <div id="employeePerformanceIntroBox" class="info-box" style="margin-top:12px;">
+            目前為撿貨績效說明（後續會依類型切換）
+          </div>
+        </div>
+
+        <div id="employeePerformancePickingPanel">
+          <div class="card" style="margin-top:16px;">
+            <h3>撿貨績效日期篩選</h3>
+
+            <div class="flow-workboard-filter-row">
+              <div>
+                <label for="employeePerformanceWorkDate">選擇日期</label>
+                <input
+                  type="date"
+                  id="employeePerformanceWorkDate"
+                  onchange="handleEmployeePerformanceWorkDateChange()"
+                >
+              </div>
+            </div>
+
+            <div class="info-box">
+              預設帶入今天。切換日期後，會重新刷新撿貨績效摘要卡、異常員工清單與排名表。
+            </div>
+          </div>
+
+          <div id="employeeEfficiencySummary" class="message"></div>
+
+          <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">一般配有排名人數</div>
+              <div class="dashboard-value" id="normalCountValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">一般配最高效率</div>
+              <div class="dashboard-value" id="normalTopValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">一般配平均效率</div>
+              <div class="dashboard-value" id="normalAvgValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">一般配最低效率</div>
+              <div class="dashboard-value" id="normalMinValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">無包裝有排名人數</div>
+              <div class="dashboard-value" id="noPackCountValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">無包裝最高效率</div>
+              <div class="dashboard-value" id="noPackTopValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">無包裝平均效率</div>
+              <div class="dashboard-value" id="noPackAvgValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">無包裝最低效率</div>
+              <div class="dashboard-value" id="noPackMinValue">0</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <h3>今日異常員工清單</h3>
+            <div id="employeeEfficiencyAlertSummary" class="result-box">目前尚無異常員工資料</div>
+
+            <table id="employeeEfficiencyAlertTable">
+              <tr>
+                <th>員工編號</th>
+                <th>員工姓名</th>
+                <th>今日判定類型</th>
+                <th>撿貨工時</th>
+                <th>效率值</th>
+              </tr>
+            </table>
+          </div>
+
+          <table id="employeeEfficiencyTable">
+            <tr>
+              <th>排名</th>
+              <th>員工編號</th>
+              <th>員工姓名</th>
+              <th>一般配批次</th>
+              <th>無包裝批次</th>
+              <th>一般配總量</th>
+              <th>無包裝總PCS</th>
+              <th>今日判定類型</th>
+              <th>撿貨工時</th>
+              <th>效率值</th>
+            </tr>
+          </table>
+        </div>
+
+        <div id="employeePerformanceSortingPanel" style="display:none;">
+          <div class="card" style="margin-top:16px;">
+            <h3>配貨績效日期篩選</h3>
+
+            <div class="flow-workboard-filter-row">
+              <div>
+                <label for="employeePerformanceSortingWorkDate">選擇日期</label>
+                <input
+                  type="date"
+                  id="employeePerformanceSortingWorkDate"
+                  onchange="handleEmployeePerformanceSortingWorkDateChange()"
+                >
+              </div>
+            </div>
+
+            <div class="info-box">
+              預設帶入今天。切換日期後，會重新刷新配貨績效摘要卡、異常員工清單與排名表。
+            </div>
+          </div>
+
+          <div id="employeePerformanceSortingSummary" class="message"></div>
+
+          <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">有排名人數</div>
+              <div class="dashboard-value" id="sortingCountValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">最高效率</div>
+              <div class="dashboard-value" id="sortingTopValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">平均效率</div>
+              <div class="dashboard-value" id="sortingAvgValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">最低效率</div>
+              <div class="dashboard-value" id="sortingMinValue">0</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <h3>今日異常員工清單</h3>
+            <div id="employeePerformanceSortingAlertSummary" class="result-box">
+              目前尚無異常員工資料
+            </div>
+
+            <table id="employeePerformanceSortingAlertTable">
+              <tr>
+                <th>員工編號</th>
+                <th>員工姓名</th>
+                <th>配貨工時</th>
+                <th>效率值</th>
+              </tr>
+            </table>
+          </div>
+
+          <table id="employeePerformanceSortingTable">
+            <tr>
+              <th>排名</th>
+              <th>員工編號</th>
+              <th>員工姓名</th>
+              <th>一般配批次數</th>
+              <th>一般配總量</th>
+              <th>配貨工時</th>
+              <th>效率值</th>
+            </tr>
+          </table>
+        </div>
+
+        <div id="employeePerformancePackNormalPanel" style="display:none;">
+          <div class="card" style="margin-top:16px;">
+            <h3>包貨｜一般配績效</h3>
+            <div class="info-box">此模組後續建立</div>
+          </div>
+        </div>
+
+        <div id="employeePerformancePackNoPackPanel" style="display:none;">
+          <div class="card" style="margin-top:16px;">
+            <h3>包貨｜無包裝績效</h3>
+            <div class="info-box">此模組後續建立</div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div id="employeePerformanceSortingSummary" class="message"></div>
-
-    <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
-      <div class="dashboard-card">
-        <div class="dashboard-title">有排名人數</div>
-        <div class="dashboard-value" id="sortingCountValue">0</div>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-title">最高效率</div>
-        <div class="dashboard-value" id="sortingTopValue">0</div>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-title">平均效率</div>
-        <div class="dashboard-value" id="sortingAvgValue">0</div>
-      </div>
-
-      <div class="dashboard-card">
-        <div class="dashboard-title">最低效率</div>
-        <div class="dashboard-value" id="sortingMinValue">0</div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:16px;">
-      <h3>今日異常員工清單</h3>
-      <div id="employeePerformanceSortingAlertSummary" class="result-box">
-        目前尚無異常員工資料
-      </div>
-
-      <table id="employeePerformanceSortingAlertTable">
-        <tr>
-          <th>員工編號</th>
-          <th>員工姓名</th>
-          <th>配貨工時</th>
-          <th>效率值</th>
-        </tr>
-      </table>
-    </div>
-
-    <table id="employeePerformanceSortingTable">
-      <tr>
-        <th>排名</th>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>一般配批次數</th>
-        <th>一般配總量</th>
-        <th>配貨工時</th>
-        <th>效率值</th>
-      </tr>
-    </table>
-  </div>
-
-  <div id="employeePerformancePackNormalPanel" style="display:none;">
-    <div class="card" style="margin-top:16px;">
-      <h3>包貨｜一般配績效</h3>
-      <div class="info-box">此模組後續建立</div>
-    </div>
-  </div>
-
-  <div id="employeePerformancePackNoPackPanel" style="display:none;">
-    <div class="card" style="margin-top:16px;">
-      <h3>包貨｜無包裝績效</h3>
-      <div class="info-box">此模組後續建立</div>
-    </div>
-  </div>
-</div>
   </div>
 </div>
 
@@ -1793,6 +1878,7 @@
 let employees = [];
 let SYSTEM_COMPANY_NAME = "MUYAO";
 let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
+let LAST_ACTIVE_STORAGE_KEY = "warehouseLastActiveTime";
 let accounts = [];
 let currentUser = null;
 let IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 分鐘
@@ -1800,8 +1886,42 @@ let idleTimeoutHandle = null;
 let idleTrackingEnabled = false;
 let idleActivityEventsBound = false;
 
+function updateLastActiveTime() {
+  localStorage.setItem(LAST_ACTIVE_STORAGE_KEY, String(Date.now()));
+}
+
+function getLastActiveTime() {
+  let rawValue = localStorage.getItem(LAST_ACTIVE_STORAGE_KEY);
+  let parsedValue = Number(rawValue);
+
+  if (!rawValue || isNaN(parsedValue) || parsedValue <= 0) {
+    return 0;
+  }
+
+  return parsedValue;
+}
+
+function clearLastActiveTime() {
+  localStorage.removeItem(LAST_ACTIVE_STORAGE_KEY);
+}
+
+function isLoginSessionExpired() {
+  let lastActiveTime = getLastActiveTime();
+
+  if (!lastActiveTime) {
+    return true;
+  }
+
+  let now = Date.now();
+  let diffMs = now - lastActiveTime;
+
+  return diffMs > IDLE_TIMEOUT_MS;
+}
+
 function resetIdleTimer() {
   if (!idleTrackingEnabled) return;
+
+  updateLastActiveTime();
 
   if (idleTimeoutHandle) {
     clearTimeout(idleTimeoutHandle);
@@ -1829,6 +1949,7 @@ function bindIdleActivityEvents() {
 function startIdleTracking() {
   idleTrackingEnabled = true;
   bindIdleActivityEvents();
+  updateLastActiveTime();
   resetIdleTimer();
 }
 
@@ -2073,10 +2194,12 @@ function getCurrentLoginUser() {
 
 function saveCurrentLoginUser(user) {
   localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify(user));
+  updateLastActiveTime();
 }
 
 function clearCurrentLoginUser() {
   localStorage.removeItem(LOGIN_STORAGE_KEY);
+  clearLastActiveTime();
 }
 
 function renderAccounts() {
@@ -3108,13 +3231,19 @@ function bindLoginEnterEvent() {
 function checkLoginStatus() {
   let savedUser = getCurrentLoginUser();
 
-  if (savedUser) {
-    currentUser = savedUser;
-    showSystemPage();
-  } else {
+  if (!savedUser) {
     currentUser = null;
     showLoginPage();
+    return;
   }
+
+  if (isLoginSessionExpired()) {
+    performLogout();
+    return;
+  }
+
+  currentUser = savedUser;
+  showSystemPage();
 }
 
 function performLogout() {
@@ -5558,6 +5687,214 @@ function initializeWorkTimeOvertimeMonth() {
     input.value = `${year}-${month}`;
   }
 }
+const WORK_TIME_WORKSTATION_CARD_CONFIG = [
+  { workstationKey: "貨櫃", elementId: "workTimeWS_貨櫃" },
+  { workstationKey: "驗收", elementId: "workTimeWS_驗收" },
+  { workstationKey: "上架", elementId: "workTimeWS_上架" },
+  { workstationKey: "補貨", elementId: "workTimeWS_補貨" },
+  { workstationKey: "撿貨", elementId: "workTimeWS_撿貨" },
+  { workstationKey: "配貨", elementId: "workTimeWS_配貨" },
+  { workstationKey: "包貨｜無包裝", elementId: "workTimeWS_包貨無包裝" },
+  { workstationKey: "包貨｜一般配", elementId: "workTimeWS_包貨一般配" },
+  { workstationKey: "包貨｜宅配", elementId: "workTimeWS_包貨宅配" },
+  { workstationKey: "印單", elementId: "workTimeWS_印單" },
+  { workstationKey: "進貨Leader", elementId: "workTimeWS_進貨Leader" },
+  { workstationKey: "出貨Leader", elementId: "workTimeWS_出貨Leader" }
+];
+
+function getWorkTimeWorkstationFilterDate() {
+  let input = document.getElementById("workTimeWorkstationFilterDate");
+
+  if (!input) {
+    return getTodayInputDateString();
+  }
+
+  let value = String(input.value || "").trim();
+
+  if (!value) {
+    return getTodayInputDateString();
+  }
+
+  return value;
+}
+
+function initializeWorkTimeWorkstationFilterDate() {
+  let input = document.getElementById("workTimeWorkstationFilterDate");
+  if (!input) return;
+
+  if (!String(input.value || "").trim()) {
+    input.value = getTodayInputDateString();
+  }
+}
+
+function buildWorkTimeWorkstationSummary(filterDate) {
+  let normalizedFilterDate = String(filterDate || "")
+    .trim()
+    .replaceAll("/", "-");
+
+  let isToday = isTodayAttendanceDate(normalizedFilterDate);
+  let now = isToday ? new Date() : null;
+
+  let filteredRecords = [];
+  let cardHoursMap = {};
+  let totalMinutes = 0;
+  let completedMinutes = 0;
+  let workingMinutes = 0;
+  let countedRecordCount = 0;
+  let abnormalOpenCount = 0;
+
+  for (let i = 0; i < WORK_TIME_WORKSTATION_CARD_CONFIG.length; i++) {
+    let config = WORK_TIME_WORKSTATION_CARD_CONFIG[i];
+    cardHoursMap[config.workstationKey] = 0;
+  }
+
+  for (let i = 0; i < workstationRecords.length; i++) {
+    let record = workstationRecords[i];
+
+    let employeeCode = String(record.employeeCode || "").trim();
+    let employeeName = String(record.employeeName || "").trim();
+    let group = String(record.group || "").trim();
+    let workstation = String(record.workstation || "").trim();
+    let workstationKey = workstation;
+
+    if (workstation === "Leader") {
+      if (group === "inbound") {
+        workstationKey = "進貨Leader";
+      } else if (group === "outbound") {
+        workstationKey = "出貨Leader";
+      }
+    }
+    let startTimeText = String(record.startTime || "").trim();
+    let endTimeText = String(record.endTime || "").trim();
+    let status = String(record.status || "").trim();
+
+    if (!startTimeText) {
+      continue;
+    }
+
+    let startDate = parseAttendanceDateTime(startTimeText);
+    if (!startDate) {
+      continue;
+    }
+
+    let recordDate = String(formatDate(startDate) || "")
+      .trim()
+      .replaceAll("/", "-");
+
+    if (recordDate !== normalizedFilterDate) {
+      continue;
+    }
+
+    let endDate = null;
+    let workMinutes = 0;
+    let displayStatus = "";
+    let isCounted = false;
+
+    if (endTimeText) {
+      endDate = parseAttendanceDateTime(endTimeText);
+
+      if (endDate) {
+        let diffMinutes = Math.floor((endDate.getTime() - startDate.getTime()) / 60000);
+
+        if (diffMinutes > 0) {
+          workMinutes = diffMinutes;
+          isCounted = true;
+          completedMinutes += workMinutes;
+        }
+      }
+
+      displayStatus = "已結束";
+    } else if (isToday && now) {
+      let diffMinutes = Math.floor((now.getTime() - startDate.getTime()) / 60000);
+
+      if (diffMinutes > 0) {
+        workMinutes = diffMinutes;
+        isCounted = true;
+        workingMinutes += workMinutes;
+      }
+
+      displayStatus = "作業中";
+    } else {
+      displayStatus = "異常未結束";
+      abnormalOpenCount += 1;
+    }
+
+    if (isCounted) {
+      totalMinutes += workMinutes;
+      countedRecordCount += 1;
+
+      if (Object.prototype.hasOwnProperty.call(cardHoursMap, workstationKey)) {
+        cardHoursMap[workstationKey] += workMinutes;
+      }
+    }
+
+    filteredRecords.push({
+      employeeCode: employeeCode,
+      employeeName: employeeName,
+      group: group,
+      workstation: workstation,
+      startTime: startTimeText,
+      endTime: endTimeText,
+      status: status,
+      workMinutes: workMinutes,
+      workHoursText: formatAttendanceDurationMinutes(workMinutes),
+      displayStatus: displayStatus,
+      isCounted: isCounted
+    });
+  }
+
+  filteredRecords.sort(function(a, b) {
+    if (a.startTime !== b.startTime) {
+      return a.startTime.localeCompare(b.startTime);
+    }
+
+    return a.employeeCode.localeCompare(b.employeeCode);
+  });
+
+  return {
+    filterDate: normalizedFilterDate,
+    filteredRecords: filteredRecords,
+    cardHoursMap: cardHoursMap,
+    totalMinutes: totalMinutes,
+    completedMinutes: completedMinutes,
+    workingMinutes: workingMinutes,
+    countedRecordCount: countedRecordCount,
+    abnormalOpenCount: abnormalOpenCount
+  };
+}
+
+function setWorkTimeWorkstationCardValue(elementId, valueText) {
+  let element = document.getElementById(elementId);
+  if (!element) return;
+
+  element.innerText = valueText;
+}
+
+function renderWorkTimeWorkstationDashboard() {
+  let summaryElement = document.getElementById("workTimeWorkstationBoardSummary");
+  if (!summaryElement) return;
+
+  let filterDate = getWorkTimeWorkstationFilterDate();
+  let summaryData = buildWorkTimeWorkstationSummary(filterDate);
+
+  for (let i = 0; i < WORK_TIME_WORKSTATION_CARD_CONFIG.length; i++) {
+    let config = WORK_TIME_WORKSTATION_CARD_CONFIG[i];
+    let totalMinutes = summaryData.cardHoursMap[config.workstationKey] || 0;
+
+    setWorkTimeWorkstationCardValue(
+      config.elementId,
+      formatAttendanceDurationMinutes(totalMinutes)
+    );
+  }
+
+  summaryElement.innerHTML =
+    `日期：<strong>${summaryData.filterDate}</strong>｜` +
+    `總工時：<strong>${formatAttendanceDurationMinutes(summaryData.totalMinutes || 0)}</strong>｜` +
+    `已完成工時：<strong>${formatAttendanceDurationMinutes(summaryData.completedMinutes || 0)}</strong>｜` +
+    `作業中工時：<strong>${formatAttendanceDurationMinutes(summaryData.workingMinutes || 0)}</strong>｜` +
+    `納入計算筆數：<strong>${summaryData.countedRecordCount || 0}</strong>｜` +
+    `異常未結束：<strong>${summaryData.abnormalOpenCount || 0}</strong>`;
+}
 
 function buildWorkTimeAttendanceSummaryRows(filterDate) {
   let normalizedFilterDate = String(filterDate || "")
@@ -6722,8 +7059,6 @@ function showPage(pageId, btn) {
     if (pageId === "attendancePage") {
       console.log("進入 attendancePage");
       resetAttendancePagePanels(targetPage);
-      initializeAttendanceFilterDate();
-      renderAttendanceDashboard();
     }
   let exportEmployeesBtn = document.getElementById("exportEmployeesBtn");
   let exportWorkstationRecordsBtn = document.getElementById("exportWorkstationRecordsBtn");
@@ -8029,6 +8364,9 @@ function showWorkTimeSubPanel(type) {
   if (type === "workstation") {
     if (workstationPanel) workstationPanel.style.display = "block";
     if (workstationBtn) workstationBtn.className = "green";
+
+    initializeWorkTimeWorkstationFilterDate();
+    renderWorkTimeWorkstationDashboard();
   }
 }
   function renderEmployeeEfficiencyBoard() {
