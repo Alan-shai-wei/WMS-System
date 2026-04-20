@@ -7091,7 +7091,9 @@ async function loadBatchMasterFromFirestore() {
         qty: String(data.qty || "").trim(),
         type: String(data.type || "").trim(),
         status: String(data.status || "未撿貨").trim(),
-        createdAt: String(data.createdAt || "").trim()
+        createdAt: String(data.createdAt || "").trim(),
+        createdByUsername: String(data.createdByUsername || "").trim(),
+        createdByName: String(data.createdByName || "").trim()
       });
     });
 
@@ -7159,7 +7161,9 @@ function subscribeBatchMasterRealtime() {
             qty: String(data.qty || "").trim(),
             type: String(data.type || "").trim(),
             status: String(data.status || "未撿貨").trim(),
-            createdAt: String(data.createdAt || "").trim()
+            createdAt: String(data.createdAt || "").trim(),
+            createdByUsername: String(data.createdByUsername || "").trim(),
+            createdByName: String(data.createdByName || "").trim()
           });
         });
 
@@ -7170,7 +7174,7 @@ function subscribeBatchMasterRealtime() {
         batchMaster = loadedBatchMaster;
         console.log("batchMaster 已啟動即時同步，最新筆數：", batchMaster.length);
 
-        refreshBatchMasterViews();
+        renderBatchMaster();
       },
       function(error) {
         console.error("batchMaster：即時同步失敗", error);
