@@ -89,7 +89,9 @@
       font-weight: bold;
     }
 
-    input[type="text"], select {
+    input[type="text"], 
+    input[type="time"],
+    select {
       width: 320px;
       max-width: 100%;
       padding: 10px;
@@ -507,31 +509,31 @@
 
   <div class="content">
     <div class="system-topbar">
-  <div class="company-header">MUYAO</div>
+      <div class="company-header">MUYAO</div>
 
-  <div id="userInfoArea" class="user-info-area">
-    <div class="user-avatar">
-      A
+      <div id="userInfoArea" class="user-info-area">
+        <div class="user-avatar">
+          A
+        </div>
+
+        <div id="loginUserName" class="user-name">
+          使用者
+        </div>
+
+        <button onclick="handleLogout()" class="logout-btn">
+          登出
+        </button>
+      </div>
     </div>
 
-    <div id="loginUserName" class="user-name">
-      使用者
+    <div class="department-bar">
+      <span class="department-tab active" data-department="logistics" onclick="switchDepartment('logistics')">物流管理部</span>
+      <span class="department-tab" data-department="marketing" onclick="switchDepartment('marketing')">行銷部</span>
+      <span class="department-tab" data-department="customerService" onclick="switchDepartment('customerService')">客服部</span>
+      <span class="department-tab" data-department="purchasing" onclick="switchDepartment('purchasing')">採購部</span>
+      <span class="department-tab" data-department="sales" onclick="switchDepartment('sales')">業務部</span>
+      <span class="department-tab" data-department="productDevelopment" onclick="switchDepartment('productDevelopment')">商品開發部</span>
     </div>
-
-    <button onclick="handleLogout()" class="logout-btn">
-      登出
-    </button>
-  </div>
-</div>
-
-<div class="department-bar">
-  <span class="department-tab active" data-department="logistics" onclick="switchDepartment('logistics')">物流管理部</span>
-  <span class="department-tab" data-department="marketing" onclick="switchDepartment('marketing')">行銷部</span>
-  <span class="department-tab" data-department="customerService" onclick="switchDepartment('customerService')">客服部</span>
-  <span class="department-tab" data-department="purchasing" onclick="switchDepartment('purchasing')">採購部</span>
-  <span class="department-tab" data-department="sales" onclick="switchDepartment('sales')">業務部</span>
-  <span class="department-tab" data-department="productDevelopment" onclick="switchDepartment('productDevelopment')">商品開發部</span>
-</div>
   
     <div id="employeePage" class="page active">
       <div class="card">
@@ -542,6 +544,12 @@
 
         <label for="employeeName">員工姓名</label>
         <input type="text" id="employeeName">
+
+        <label for="employeeStartTime">上班時間</label>
+        <input type="time" id="employeeStartTime">
+
+        <label for="employeeEndTime">下班時間</label>
+        <input type="time" id="employeeEndTime">
 
         <div class="button-row">
           <button onclick="addEmployee()">新增員工</button>
@@ -559,6 +567,8 @@
             <th>選擇</th>
             <th>員工編號</th>
             <th>員工姓名</th>
+            <th>上班時間</th>
+            <th>下班時間</th>
             <th>操作</th>
           </tr>
         </table>
@@ -1372,20 +1382,24 @@
 
           <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
             <div class="dashboard-card">
-              <div class="dashboard-title">指定日期實到人數</div>
+              <div class="dashboard-title">指定日期正常人數</div>
               <div class="dashboard-value" id="workTimeAttendancePresentCount">0</div>
             </div>
 
             <div class="dashboard-card">
-              <div class="dashboard-title">指定日期在班人數</div>
+              <div class="dashboard-title">指定日期遲到人數</div>
               <div class="dashboard-value" id="workTimeAttendanceWorkingCount">0</div>
             </div>
 
             <div class="dashboard-card">
-              <div class="dashboard-title">指定日期已下班人數</div>
+              <div class="dashboard-title">指定日期早退人數</div>
               <div class="dashboard-value" id="workTimeAttendanceCheckedOutCount">0</div>
             </div>
 
+            <div class="dashboard-card">
+              <div class="dashboard-title">指定日期加班人數</div>
+              <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
+            </div>
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期總工時</div>
               <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
@@ -1551,6 +1565,7 @@
           </div>
         </div>
       </div>
+    </div>
 
       <div id="employeePerformancePanel" style="display:none;">
         <div class="card" style="margin-top:16px;">
@@ -1752,7 +1767,6 @@
       </div>
     </div>
   </div>
-</div>
 
 <div id="attendancePage" class="page">
   <div class="card">
@@ -4936,6 +4950,8 @@ function canStartSortBatch(employee) {
       .set({
         code: employeeCode,
         name: String(employee.name || "").trim(),
+        shiftStart: String(employee.shiftStart || "").trim(),
+        shiftEnd: String(employee.shiftEnd || "").trim(),
         updatedAt: getNowString()
       });
 
@@ -5044,6 +5060,9 @@ async function saveSortBatchRecordToFirestore(record) {
     return;
   }
 
+  let createdByUsername = String(batch.createdByUsername || "").trim();
+  let createdByName = String(batch.createdByName || "").trim();
+
   try {
     await window.db
       .collection(FIRESTORE_COLLECTIONS.batchMaster)
@@ -5056,6 +5075,8 @@ async function saveSortBatchRecordToFirestore(record) {
         type: String(batch.type || "").trim(),
         status: String(batch.status || "未撿貨").trim(),
         createdAt: String(batch.createdAt || getNowString()).trim(),
+        createdByUsername: createdByUsername,
+        createdByName: createdByName,
         updatedAt: getNowString()
       });
 
@@ -5896,6 +5917,184 @@ function renderWorkTimeWorkstationDashboard() {
     `異常未結束：<strong>${summaryData.abnormalOpenCount || 0}</strong>`;
 }
 
+function parseShiftTimeToDate(baseDate, shiftTimeText) {
+  let safeShiftTimeText = String(shiftTimeText || "").trim();
+
+  if (!baseDate || !safeShiftTimeText || !safeShiftTimeText.includes(":")) {
+    return null;
+  }
+
+  let shiftParts = safeShiftTimeText.split(":");
+  let shiftHour = Number(shiftParts[0]);
+  let shiftMinute = Number(shiftParts[1]);
+
+  if (isNaN(shiftHour) || isNaN(shiftMinute)) {
+    return null;
+  }
+
+  let targetDate = new Date(baseDate);
+  targetDate.setHours(shiftHour, shiftMinute, 0, 0);
+
+  return targetDate;
+}
+
+function getEmployeeShiftByCode(employeeCode) {
+  let safeEmployeeCode = String(employeeCode || "").trim();
+
+  if (!safeEmployeeCode) {
+    return null;
+  }
+
+  return employees.find(emp => {
+    return String(emp.code || "").trim() === safeEmployeeCode;
+  }) || null;
+}
+
+function getAttendanceStatusText(judgement) {
+  if (!judgement) {
+    return "異常";
+  }
+
+  let hasCheckIn = !!judgement.hasCheckIn;
+  let hasCheckOut = !!judgement.hasCheckOut;
+
+  let shiftStart = String(judgement.shiftStart || "").trim();
+  let shiftEnd = String(judgement.shiftEnd || "").trim();
+
+  let hasShift = !!(shiftStart && shiftEnd);
+
+  let lateMinutes = Number(judgement.lateMinutes || 0);
+  let earlyLeaveMinutes = Number(judgement.earlyLeaveMinutes || 0);
+  let overtimeMinutes = Number(judgement.overtimeMinutes || 0);
+
+  // ❗ 沒打上班卡
+  if (!hasCheckIn) {
+    return "異常";
+  }
+
+  // ❗ 沒排班 → 不允許判正常
+  if (!hasShift) {
+    return "異常";
+  }
+
+  // ❗ 有上班但沒下班（非當天）
+  if (hasCheckIn && !hasCheckOut) {
+    return "異常";
+  }
+
+  let statusList = [];
+
+  if (lateMinutes > 0) {
+    statusList.push("遲到");
+  }
+
+  if (earlyLeaveMinutes > 0) {
+    statusList.push("早退");
+  }
+
+  if (overtimeMinutes > 0) {
+    statusList.push("加班");
+  }
+
+  if (statusList.length === 0) {
+    return "正常";
+  }
+
+  return statusList.join(" / ");
+}
+
+function buildAttendanceJudgement(record) {
+  let safeRecord = record || {};
+
+  let employeeCode = String(safeRecord.employeeCode || "").trim();
+  let employee = getEmployeeShiftByCode(employeeCode);
+
+  let checkInTimeText = String(safeRecord.checkInTime || "").trim();
+  let checkOutTimeText = String(safeRecord.checkOutTime || "").trim();
+
+  let checkInDate = parseAttendanceDateTime(checkInTimeText);
+  let checkOutDate = parseAttendanceDateTime(checkOutTimeText);
+
+  let shiftStartText = String(employee?.shiftStart || "").trim();
+  let shiftEndText = String(employee?.shiftEnd || "").trim();
+
+  let shiftStartDate = checkInDate
+    ? parseShiftTimeToDate(checkInDate, shiftStartText)
+    : null;
+
+  let shiftEndBaseDate = checkOutDate || checkInDate;
+  let shiftEndDate = shiftEndBaseDate
+    ? parseShiftTimeToDate(shiftEndBaseDate, shiftEndText)
+    : null;
+
+  let lateMinutes = 0;
+  let earlyLeaveMinutes = 0;
+  let overtimeMinutes = 0;
+
+  let actualStartDate = checkInDate;
+  let actualEndDate = checkOutDate;
+
+  if (checkInDate && shiftStartDate) {
+    if (checkInDate > shiftStartDate) {
+      lateMinutes = Math.floor(
+        (checkInDate.getTime() - shiftStartDate.getTime()) / 60000
+      );
+    }
+
+    actualStartDate = checkInDate > shiftStartDate
+      ? checkInDate
+      : shiftStartDate;
+  }
+
+  if (checkOutDate && shiftEndDate) {
+    if (checkOutDate < shiftEndDate) {
+      earlyLeaveMinutes = Math.floor(
+        (shiftEndDate.getTime() - checkOutDate.getTime()) / 60000
+      );
+    }
+
+    if (checkOutDate > shiftEndDate) {
+      overtimeMinutes = Math.floor(
+        (checkOutDate.getTime() - shiftEndDate.getTime()) / 60000
+      );
+    }
+
+    actualEndDate = checkOutDate < shiftEndDate
+      ? checkOutDate
+      : shiftEndDate;
+  }
+
+  let attendanceStatus = getAttendanceStatusText({
+    hasCheckIn: !!checkInDate,
+    lateMinutes: lateMinutes,
+    earlyLeaveMinutes: earlyLeaveMinutes,
+    overtimeMinutes: overtimeMinutes
+  });
+
+  return {
+    employeeCode: employeeCode,
+    employeeName: String(safeRecord.employeeName || "").trim(),
+
+    shiftStart: shiftStartText,
+    shiftEnd: shiftEndText,
+
+    checkInDate: checkInDate,
+    checkOutDate: checkOutDate,
+    shiftStartDate: shiftStartDate,
+    shiftEndDate: shiftEndDate,
+
+    actualStartDate: actualStartDate,
+    actualEndDate: actualEndDate,
+
+    hasCheckIn: !!checkInDate,
+    hasCheckOut: !!checkOutDate,
+
+    attendanceStatus: attendanceStatus,
+    lateMinutes: lateMinutes,
+    earlyLeaveMinutes: earlyLeaveMinutes,
+    overtimeMinutes: overtimeMinutes
+  };
+}
 function buildWorkTimeAttendanceSummaryRows(filterDate) {
   let normalizedFilterDate = String(filterDate || "")
     .trim()
@@ -5920,18 +6119,20 @@ function buildWorkTimeAttendanceSummaryRows(filterDate) {
     let checkInTime = String(record.checkInTime || "").trim();
     let checkOutTime = String(record.checkOutTime || "").trim();
 
-    let hasCheckIn = !!checkInTime;
-    let hasCheckOut = !!checkOutTime;
+    let judgement = buildAttendanceJudgement(record);
 
-    let checkInDate = hasCheckIn ? parseAttendanceDateTime(checkInTime) : null;
-    let checkOutDate = hasCheckOut ? parseAttendanceDateTime(checkOutTime) : null;
+    let hasCheckIn = !!judgement.hasCheckIn;
+    let hasCheckOut = !!judgement.hasCheckOut;
 
-    let endDate = null;
+    let actualStartDate = judgement.actualStartDate || null;
+    let actualEndDate = judgement.actualEndDate || null;
 
-    if (checkOutDate) {
-      endDate = checkOutDate;
-    } else if (checkInDate && isToday) {
-      endDate = now;
+    let workEndDate = null;
+
+    if (actualEndDate) {
+      workEndDate = actualEndDate;
+    } else if (actualStartDate && isToday && now) {
+      workEndDate = now;
     }
 
     let breakMinutes = 0;
@@ -5945,8 +6146,10 @@ function buildWorkTimeAttendanceSummaryRows(filterDate) {
       anomalyTypes.push("無打卡");
     }
 
-    if (checkInDate && endDate) {
-      let rawDiffMinutes = Math.floor((endDate.getTime() - checkInDate.getTime()) / 60000);
+    if (actualStartDate && workEndDate) {
+      let rawDiffMinutes = Math.floor(
+        (workEndDate.getTime() - actualStartDate.getTime()) / 60000
+      );
 
       if (rawDiffMinutes < 0) {
         anomalyTypes.push("負工時");
@@ -5957,9 +6160,10 @@ function buildWorkTimeAttendanceSummaryRows(filterDate) {
       }
 
       if (rawDiffMinutes > 0) {
-        breakMinutes = getAttendanceBreakMinutes(checkInDate, endDate);
+        breakMinutes = getAttendanceBreakMinutes(actualStartDate, workEndDate);
 
         workMinutesIncludingOpen = rawDiffMinutes - breakMinutes;
+
         if (workMinutesIncludingOpen < 0) {
           workMinutesIncludingOpen = 0;
         }
@@ -5971,7 +6175,7 @@ function buildWorkTimeAttendanceSummaryRows(filterDate) {
     }
 
     if (hasCheckOut) {
-      displayStatus = hasCheckIn ? "已下班" : "異常";
+      displayStatus = "已下班";
     } else if (hasCheckIn && isToday) {
       displayStatus = "上班中";
     } else if (hasCheckIn) {
@@ -5993,6 +6197,15 @@ function buildWorkTimeAttendanceSummaryRows(filterDate) {
       date: date,
       checkInTime: checkInTime,
       checkOutTime: checkOutTime,
+
+      shiftStart: judgement.shiftStart || "",
+      shiftEnd: judgement.shiftEnd || "",
+
+      attendanceStatus: judgement.attendanceStatus || "異常",
+      lateMinutes: judgement.lateMinutes || 0,
+      earlyLeaveMinutes: judgement.earlyLeaveMinutes || 0,
+      overtimeMinutes: judgement.overtimeMinutes || 0,
+
       breakMinutes: breakMinutes,
       breakText: formatAttendanceDurationMinutes(breakMinutes),
       workMinutesCompleted: workMinutesCompleted,
@@ -6124,17 +6337,19 @@ function renderWorkTimeOvertimeMonthBoard() {
 function renderWorkTimeAttendanceDashboard() {
   let filterDate = getWorkTimeAttendanceFilterDate();
 
-  let presentElement = document.getElementById("workTimeAttendancePresentCount");
-  let workingElement = document.getElementById("workTimeAttendanceWorkingCount");
-  let checkedOutElement = document.getElementById("workTimeAttendanceCheckedOutCount");
+  let normalElement = document.getElementById("workTimeAttendanceNormalCount");
+  let lateElement = document.getElementById("workTimeAttendanceLateCount");
+  let earlyLeaveElement = document.getElementById("workTimeAttendanceEarlyLeaveCount");
+  let overtimeElement = document.getElementById("workTimeAttendanceOvertimeCount");
   let totalWorkHoursElement = document.getElementById("workTimeAttendanceTotalWorkHours");
   let summaryElement = document.getElementById("workTimeAttendanceBoardSummary");
   let table = document.getElementById("workTimeAttendanceBoardTable");
 
   if (
-    !presentElement ||
-    !workingElement ||
-    !checkedOutElement ||
+    !normalElement ||
+    !lateElement ||
+    !earlyLeaveElement ||
+    !overtimeElement ||
     !totalWorkHoursElement ||
     !summaryElement ||
     !table
@@ -6144,34 +6359,58 @@ function renderWorkTimeAttendanceDashboard() {
 
   let summaryRows = buildWorkTimeAttendanceSummaryRows(filterDate);
 
-  let presentCount = summaryRows.length;
-  let workingCount = 0;
-  let checkedOutCount = 0;
+  let normalCount = 0;
+  let lateCount = 0;
+  let earlyLeaveCount = 0;
+  let overtimeCount = 0;
   let totalWorkMinutes = 0;
+  let checkedOutCount = 0;
+  let workingCount = 0;
 
   for (let i = 0; i < summaryRows.length; i++) {
     let row = summaryRows[i];
+    let attendanceStatusText = String(row.attendanceStatus || "").trim();
 
-    if (row.displayStatus === "上班中") {
-      workingCount += 1;
+    if (attendanceStatusText === "正常") {
+      normalCount += 1;
+    }
+
+    if (attendanceStatusText.includes("遲到")) {
+      lateCount += 1;
+    }
+
+    if (attendanceStatusText.includes("早退")) {
+      earlyLeaveCount += 1;
+    }
+
+    if (attendanceStatusText.includes("加班")) {
+      overtimeCount += 1;
     }
 
     if (row.displayStatus === "已下班") {
       checkedOutCount += 1;
     }
 
-    totalWorkMinutes += (row.workMinutesCompleted || 0);
+    if (row.displayStatus === "上班中") {
+      workingCount += 1;
+    }
+
+    totalWorkMinutes += Number(row.workMinutesCompleted || 0);
   }
 
-  presentElement.innerText = presentCount;
-  workingElement.innerText = workingCount;
-  checkedOutElement.innerText = checkedOutCount;
+  normalElement.innerText = normalCount;
+  lateElement.innerText = lateCount;
+  earlyLeaveElement.innerText = earlyLeaveCount;
+  overtimeElement.innerText = overtimeCount;
   totalWorkHoursElement.innerText = formatAttendanceDurationMinutes(totalWorkMinutes);
 
   summaryElement.innerHTML =
     `日期：<strong>${filterDate}</strong>｜` +
-    `實到 <strong>${presentCount}</strong> 人｜` +
-    `在班 <strong>${workingCount}</strong> 人｜` +
+    `正常 <strong>${normalCount}</strong> 人｜` +
+    `遲到 <strong>${lateCount}</strong> 人｜` +
+    `早退 <strong>${earlyLeaveCount}</strong> 人｜` +
+    `加班 <strong>${overtimeCount}</strong> 人｜` +
+    `上班中 <strong>${workingCount}</strong> 人｜` +
     `已下班 <strong>${checkedOutCount}</strong> 人`;
 
   table.innerHTML = `
@@ -6179,11 +6418,16 @@ function renderWorkTimeAttendanceDashboard() {
       <th>員工編號</th>
       <th>員工姓名</th>
       <th>日期</th>
+      <th>排班</th>
       <th>上班時間</th>
       <th>下班時間</th>
       <th>休息時間</th>
       <th>實際工時</th>
-      <th>狀態</th>
+      <th>出勤判斷</th>
+      <th>遲到</th>
+      <th>早退</th>
+      <th>加班</th>
+      <th>在班狀態</th>
     </tr>
   `;
 
@@ -6191,23 +6435,34 @@ function renderWorkTimeAttendanceDashboard() {
     let row = table.insertRow();
     let cell = row.insertCell(0);
 
-    cell.colSpan = 8;
+    cell.colSpan = 13;
     cell.innerText = `目前 ${filterDate} 沒有任何出勤紀錄`;
     return;
   }
 
   for (let i = 0; i < summaryRows.length; i++) {
-    let record = summaryRows[i];
+    let rowData = summaryRows[i];
     let row = table.insertRow();
 
-    row.insertCell(0).innerText = record.employeeCode || "";
-    row.insertCell(1).innerText = record.employeeName || "";
-    row.insertCell(2).innerText = record.date || "";
-    row.insertCell(3).innerText = record.checkInTime || "";
-    row.insertCell(4).innerText = record.checkOutTime || "";
-    row.insertCell(5).innerText = record.breakText || "";
-    row.insertCell(6).innerText = record.workHoursText || "";
-    row.insertCell(7).innerText = record.displayStatus || "";
+    let shiftText = "-";
+
+    if (rowData.shiftStart || rowData.shiftEnd) {
+      shiftText = `${rowData.shiftStart || "-"} ~ ${rowData.shiftEnd || "-"}`;
+    }
+
+    row.insertCell(0).innerText = rowData.employeeCode || "";
+    row.insertCell(1).innerText = rowData.employeeName || "";
+    row.insertCell(2).innerText = rowData.date || "";
+    row.insertCell(3).innerText = shiftText;
+    row.insertCell(4).innerText = rowData.checkInTime || "";
+    row.insertCell(5).innerText = rowData.checkOutTime || "";
+    row.insertCell(6).innerText = rowData.breakText || "";
+    row.insertCell(7).innerText = rowData.workHoursText || "";
+    row.insertCell(8).innerText = rowData.attendanceStatus || "";
+    row.insertCell(9).innerText = `${rowData.lateMinutes || 0}分`;
+    row.insertCell(10).innerText = `${rowData.earlyLeaveMinutes || 0}分`;
+    row.insertCell(11).innerText = `${rowData.overtimeMinutes || 0}分`;
+    row.insertCell(12).innerText = rowData.displayStatus || "";
   }
 }
 
@@ -6477,7 +6732,9 @@ async function loadEmployeesFromFirestore() {
 
       loadedEmployees.push({
         code: code,
-        name: name
+        name: name,
+        shiftStart: String(data.shiftStart || "").trim(),
+        shiftEnd: String(data.shiftEnd || "").trim()
       });
     });
 
@@ -6530,7 +6787,9 @@ function subscribeEmployeesRealtime() {
 
           loadedEmployees.push({
             code: code,
-            name: name
+            name: name,
+            shiftStart: String(data.shiftStart || "").trim(),
+            shiftEnd: String(data.shiftEnd || "").trim()
           });
         });
 
@@ -9034,29 +9293,44 @@ function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
 }
 
   function renderEmployees() {
-    let table = document.getElementById("employeeTable");
+  let table = document.getElementById("employeeTable");
+  if (!table) return;
 
-    table.innerHTML = `
-      <tr>
-        <th>選擇</th>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>操作</th>
-      </tr>
-    `;
+  table.innerHTML = `
+    <tr>
+      <th>選擇</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>上班時間</th>
+      <th>下班時間</th>
+      <th>操作</th>
+    </tr>
+  `;
 
-    employees.forEach((emp, index) => {
-      let row = table.insertRow();
-      row.insertCell(0).innerHTML = `<input type="checkbox" data-code="${emp.code}" class="check">`;
-      row.insertCell(1).innerText = emp.code;
-      row.insertCell(2).innerText = emp.name;
-      row.insertCell(3).innerHTML = `<button class="danger" onclick="deleteEmployee(${index})">刪除</button>`;
-    });
-  }
+  employees.forEach((emp, index) => {
+    let row = table.insertRow();
+
+    row.insertCell(0).innerHTML =
+      `<input type="checkbox" data-code="${emp.code}" class="check">`;
+
+    row.insertCell(1).innerText = emp.code || "";
+    row.insertCell(2).innerText = emp.name || "";
+    row.insertCell(3).innerText = emp.shiftStart || "-";
+    row.insertCell(4).innerText = emp.shiftEnd || "-";
+
+    row.insertCell(5).innerHTML =
+      `
+      <button onclick="editEmployee('${emp.code}')">編輯</button>
+      <button class="danger" onclick="deleteEmployee(${index})">刪除</button>
+      `;
+  });
+}
 
   async function addEmployee() {
   let code = document.getElementById("employeeCode").value.trim();
   let name = document.getElementById("employeeName").value.trim();
+  let startTime = document.getElementById("employeeStartTime").value;
+  let endTime = document.getElementById("employeeEndTime").value;
   let message = document.getElementById("employeeMessage");
 
   if (!code || !name) {
@@ -9065,22 +9339,59 @@ function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
     return;
   }
 
-  if (employees.find(e => e.code === code)) {
-    message.innerText = "員工編號已存在";
+  if (!startTime || !endTime) {
+    message.innerText = "請設定上班時間與下班時間";
     message.className = "message danger-text";
     return;
   }
 
-  let newEmployee = { code, name };
+  let existingEmployee = employees.find(e => String(e.code || "").trim() === code);
 
-  employees.push(newEmployee);
-  await saveEmployeeToFirestore(newEmployee);
+  if (existingEmployee) {
+    existingEmployee.name = name;
+    existingEmployee.shiftStart = startTime;
+    existingEmployee.shiftEnd = endTime;
+
+    await saveEmployeeToFirestore(existingEmployee);
+
+    message.innerText = "員工資料已更新";
+    message.className = "message";
+  } else {
+    let newEmployee = {
+      code: code,
+      name: name,
+      shiftStart: startTime,
+      shiftEnd: endTime
+    };
+
+    employees.push(newEmployee);
+    await saveEmployeeToFirestore(newEmployee);
+
+    message.innerText = "員工新增成功（含班別）";
+    message.className = "message";
+  }
 
   document.getElementById("employeeCode").value = "";
   document.getElementById("employeeName").value = "";
+  document.getElementById("employeeStartTime").value = "";
+  document.getElementById("employeeEndTime").value = "";
 
-  message.innerText = "員工新增成功（單筆上雲）";
-  message.className = "message";
+  renderEmployees();
+}
+function editEmployee(code) {
+  let employee = employees.find(emp => String(emp.code) === String(code));
+
+  if (!employee) {
+    alert("找不到員工資料");
+    return;
+  }
+
+  document.getElementById("employeeCode").value = employee.code || "";
+  document.getElementById("employeeName").value = employee.name || "";
+  document.getElementById("employeeStartTime").value = employee.shiftStart || "";
+  document.getElementById("employeeEndTime").value = employee.shiftEnd || "";
+
+  document.getElementById("employeeMessage").innerText = "已載入員工資料，請修改後重新儲存";
 }
 
   async function deleteEmployee(index) {
@@ -10068,15 +10379,25 @@ function exportWorkstationRecords() {
       return;
     }
 
-    rowsToCreate.push({
-      batchCode: batchCode,
-      workDate: workDate,
-      name: name,
-      qty: qty,
-      type: currentType,
-      status: "未撿貨",
-      createdAt: getNowString()
-    });
+        let loginUser = getCurrentLoginUser();
+        let createdByUsername = loginUser
+          ? String(loginUser.username || "").trim()
+          : "";
+        let createdByName = loginUser
+          ? String(loginUser.name || loginUser.username || "").trim()
+          : "";
+
+        rowsToCreate.push({
+          batchCode: batchCode,
+          workDate: workDate,
+          name: name,
+          qty: qty,
+          type: currentType,
+          status: "未撿貨",
+          createdAt: getNowString(),
+          createdByUsername: createdByUsername,
+          createdByName: createdByName
+        });
   }
 
   if (inputtedRowCount === 0) {
@@ -10085,10 +10406,17 @@ function exportWorkstationRecords() {
     return;
   }
 
-  for (let i = 0; i < rowsToCreate.length; i++) {
-    let newBatch = rowsToCreate[i];
-    batchMaster.push(newBatch);
-    await saveBatchMasterToFirestore(newBatch);
+    for (let i = 0; i < rowsToCreate.length; i++) {
+      let newBatch = rowsToCreate[i];
+
+      batchMaster.push(newBatch);
+      await saveBatchMasterToFirestore(newBatch);
+
+      addOperationLog(
+        "建立批次",
+        newBatch.batchCode,
+        `建立批次，workDate=${newBatch.workDate || ""}，type=${newBatch.type || ""}，qty=${newBatch.qty || ""}，name=${newBatch.name || ""}，建立者=${newBatch.createdByUsername || ""} / ${newBatch.createdByName || ""}`
+      );
   }
 
   message.innerText = `成功新增 ${rowsToCreate.length} 筆 ${currentType} 批次`;
@@ -10136,6 +10464,7 @@ function exportWorkstationRecords() {
       <th>數量</th>
       <th>類型</th>
       <th>狀態</th>
+      <th>建立者</th>
       <th>建立時間</th>
       <th>操作</th>
     </tr>
@@ -10144,6 +10473,18 @@ function exportWorkstationRecords() {
   filtered.forEach(item => {
     let row = table.insertRow();
 
+    let createdByUsername = String(item.createdByUsername || "").trim();
+    let createdByName = String(item.createdByName || "").trim();
+
+    let createdByText = "-";
+    if (createdByUsername && createdByName) {
+      createdByText = `${createdByUsername} / ${createdByName}`;
+    } else if (createdByUsername) {
+      createdByText = createdByUsername;
+    } else if (createdByName) {
+      createdByText = createdByName;
+    }
+
     row.insertCell(0).innerHTML = `<input type="checkbox" class="batchMasterCheck" data-code="${item.batchCode}">`;
     row.insertCell(1).innerText = item.workDate || "";
     row.insertCell(2).innerText = item.batchCode || "";
@@ -10151,8 +10492,9 @@ function exportWorkstationRecords() {
     row.insertCell(4).innerText = item.qty || "";
     row.insertCell(5).innerText = item.type || "";
     row.insertCell(6).innerHTML = getBatchStatusTag(item.status || "未撿貨");
-    row.insertCell(7).innerText = item.createdAt || "";
-    row.insertCell(8).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
+    row.insertCell(7).innerText = createdByText;
+    row.insertCell(8).innerText = item.createdAt || "";
+    row.insertCell(9).innerHTML = `<button class="danger" onclick="deleteBatchMaster('${item.batchCode.replace(/'/g, "\\'")}')">刪除</button>`;
   });
 }
 
