@@ -1383,22 +1383,22 @@
           <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期正常人數</div>
-              <div class="dashboard-value" id="workTimeAttendancePresentCount">0</div>
+              <div class="dashboard-value" id="workTimeAttendanceNormalCount">0</div>
             </div>
 
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期遲到人數</div>
-              <div class="dashboard-value" id="workTimeAttendanceWorkingCount">0</div>
+              <div class="dashboard-value" id="workTimeAttendanceLateCount">0</div>
             </div>
 
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期早退人數</div>
-              <div class="dashboard-value" id="workTimeAttendanceCheckedOutCount">0</div>
+              <div class="dashboard-value" id="workTimeAttendanceEarlyLeaveCount">0</div>
             </div>
 
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期加班人數</div>
-              <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
+              <div class="dashboard-value" id="workTimeAttendanceOvertimeCount">0H</div>
             </div>
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期總工時</div>
@@ -4751,46 +4751,62 @@ function addOperationLog(actionType, target, detail) {
   saveOperationLogToFirestore(log);
 }
 function handleWorkstationScan() {
-  let code = document.getElementById("workstationEmployeeCode").value.trim();
+  let input = document.getElementById("workstationEmployeeCode");
+  let code = input ? input.value.trim() : "";
   let message = document.getElementById("workstationMessage");
   let scanResult = document.getElementById("workstationScanResult");
-  let input = document.getElementById("workstationEmployeeCode");
+
+  if (!input || !message || !scanResult) {
+    return;
+  }
 
   if (!workstationMode) {
     message.innerText = "請先選擇工位模式";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
   if (workstationMode === "start" && !workstationGroup) {
     message.innerText = "請先選擇工位群組";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
   if (workstationMode === "start" && !workstationName) {
     message.innerText = "請先選擇工位";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
   if (!code) {
     message.innerText = "請先掃描或輸入員工編號";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
-  let employee = employees.find(emp => emp.code === code);
+  let employee = employees.find(emp => {
+    return String(emp.code || "").trim() === code;
+  });
 
   if (!employee) {
     scanResult.innerHTML = `<span class="danger-text">查無此員工</span>`;
-    message.innerText = "";
+    message.innerText = "員工編號錯誤，請重新刷碼";
+    message.className = "message danger-text";
     input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
@@ -4805,6 +4821,7 @@ function handleWorkstationScan() {
     openRecords.forEach(record => {
       record.endTime = currentTime;
       record.status = "已結束";
+      saveWorkstationRecordToFirestore(record);
     });
 
     let newRecord = {
@@ -4837,6 +4854,10 @@ function handleWorkstationScan() {
     }
 
     message.className = "message";
+    input.value = "";
+    input.focus();
+    input.select();
+    return;
   }
 
   if (workstationMode === "checkout") {
@@ -4855,6 +4876,7 @@ function handleWorkstationScan() {
       message.className = "message danger-text";
       input.value = "";
       input.focus();
+      input.select();
       return;
     }
 
@@ -4874,10 +4896,10 @@ function handleWorkstationScan() {
 
     message.innerText = "Check Out 成功";
     message.className = "message";
+    input.value = "";
+    input.focus();
+    input.select();
   }
-
-  input.value = "";
-  input.focus();
 }
 function canStartSortBatch(employee) {
 
@@ -7382,6 +7404,8 @@ function showAttendanceSubPanel(button, panelType) {
   let workstationMainPanel = pageElement.querySelector("#workstationMainPanel");
   let toggleAttendancePanelBtn = pageElement.querySelector("#toggleAttendancePanelBtn");
   let toggleWorkstationPanelBtn = pageElement.querySelector("#toggleWorkstationPanelBtn");
+  let attendanceInput = pageElement.querySelector("#attendanceEmployeeCode");
+  let workstationInput = pageElement.querySelector("#workstationEmployeeCode");
 
   if (!attendanceMainPanel || !workstationMainPanel) {
     console.error("attendancePage 切換失敗：找不到面板");
@@ -7400,6 +7424,12 @@ function showAttendanceSubPanel(button, panelType) {
       toggleWorkstationPanelBtn.innerText = "顯示工位打卡";
     }
 
+    if (attendanceInput) {
+      attendanceInput.value = "";
+      attendanceInput.focus();
+      attendanceInput.select();
+    }
+
     return;
   }
 
@@ -7413,6 +7443,12 @@ function showAttendanceSubPanel(button, panelType) {
 
     if (toggleWorkstationPanelBtn) {
       toggleWorkstationPanelBtn.innerText = "隱藏工位打卡";
+    }
+
+    if (workstationInput) {
+      workstationInput.value = "";
+      workstationInput.focus();
+      workstationInput.select();
     }
   }
 }
@@ -9755,6 +9791,7 @@ function setAttendanceMode(mode) {
   let modeResult = document.getElementById("attendanceModeResult");
   let message = document.getElementById("attendanceMessage");
   let scanResult = document.getElementById("attendanceScanResult");
+  let input = document.getElementById("attendanceEmployeeCode");
 
   attendanceMode = mode;
 
@@ -9766,24 +9803,35 @@ function setAttendanceMode(mode) {
 
   scanResult.innerHTML = "";
   message.innerText = "";
-  document.getElementById("attendanceEmployeeCode").value = "";
-  document.getElementById("attendanceEmployeeCode").focus();
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
 }
 
 function clearAttendanceMode() {
+  let input = document.getElementById("attendanceEmployeeCode");
+
   attendanceMode = "";
   document.getElementById("attendanceModeResult").innerHTML = "目前尚未選擇打卡模式";
   document.getElementById("attendanceEmployeeCode").value = "";
   document.getElementById("attendanceScanResult").innerHTML = "";
   document.getElementById("attendanceMessage").innerText = "";
+
+  if (input) {
+    input.focus();
+    input.select();
+  }
 }
 function setWorkstationMode(mode) {
+  workstationMode = mode;
+
   let modeResult = document.getElementById("workstationModeResult");
   let message = document.getElementById("workstationMessage");
   let scanResult = document.getElementById("workstationScanResult");
   let input = document.getElementById("workstationEmployeeCode");
-
-  workstationMode = mode;
 
   if (mode === "start") {
     modeResult.innerHTML = `<strong>目前模式：</strong>工位開始`;
@@ -9791,33 +9839,95 @@ function setWorkstationMode(mode) {
     modeResult.innerHTML = `<strong>目前模式：</strong>Check Out`;
   }
 
-  message.innerText = "";
-  scanResult.innerHTML = "";
-  input.value = "";
-  input.focus();
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+
+  if (scanResult) {
+    scanResult.innerHTML = "";
+  }
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
 }
 
 function clearWorkstationMode() {
   workstationMode = "";
-  document.getElementById("workstationModeResult").innerHTML = "目前尚未選擇工位模式";
-  document.getElementById("workstationEmployeeCode").value = "";
-  document.getElementById("workstationScanResult").innerHTML = "";
-  document.getElementById("workstationMessage").innerText = "";
-}
-function setWorkstationGroup(group) {
-  let result = document.getElementById("workstationGroupResult");
+  workstationGroup = "";
+  workstationName = "";
+
+  let modeResult = document.getElementById("workstationModeResult");
+  let groupResult = document.getElementById("workstationGroupResult");
+  let nameResult = document.getElementById("workstationNameResult");
+  let scanResult = document.getElementById("workstationScanResult");
+  let message = document.getElementById("workstationMessage");
+  let input = document.getElementById("workstationEmployeeCode");
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
 
-  // 記錄選擇
-  currentWorkstationGroup = group;
+  if (modeResult) {
+    modeResult.innerHTML = "目前尚未選擇工位模式";
+  }
 
-  // 顯示文字
+  if (groupResult) {
+    groupResult.innerHTML = "目前尚未選擇工位群組";
+  }
+
+  if (nameResult) {
+    nameResult.innerHTML = "目前尚未選擇工位";
+  }
+
+  if (scanResult) {
+    scanResult.innerHTML = "";
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+
+  if (inboundArea) {
+    inboundArea.style.display = "none";
+  }
+
+  if (outboundArea) {
+    outboundArea.style.display = "none";
+  }
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
+}
+function setWorkstationGroup(group) {
+  workstationGroup = group;
+  workstationName = "";
+
+  let result = document.getElementById("workstationGroupResult");
+  let nameResult = document.getElementById("workstationNameResult");
+  let message = document.getElementById("workstationMessage");
+  let input = document.getElementById("workstationEmployeeCode");
+  let inboundArea = document.getElementById("inboundWorkstationArea");
+  let outboundArea = document.getElementById("outboundWorkstationArea");
+
   if (result) {
     result.innerText = "目前群組：" + (group === "inbound" ? "進貨" : "出貨");
   }
 
-  // 🔥 核心修正（你缺的就是這段）
+  if (nameResult) {
+    nameResult.innerHTML = "目前尚未選擇工位";
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+
   if (inboundArea) inboundArea.style.display = "none";
   if (outboundArea) outboundArea.style.display = "none";
 
@@ -9828,15 +9938,34 @@ function setWorkstationGroup(group) {
   if (group === "outbound") {
     if (outboundArea) outboundArea.style.display = "block";
   }
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
 }
 function setWorkstationName(name) {
   workstationName = name;
 
   let result = document.getElementById("workstationNameResult");
   let message = document.getElementById("workstationMessage");
+  let input = document.getElementById("workstationEmployeeCode");
 
-  result.innerHTML = `<strong>目前工位：</strong>${name}`;
-  message.innerText = "";
+  if (result) {
+    result.innerHTML = `<strong>目前工位：</strong>${name}`;
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
 }
 function setWorkstationRecordFilter(filter) {
   workstationRecordFilter = filter;
@@ -9855,14 +9984,19 @@ function setWorkstationRecordFilter(filter) {
   renderTodayWorkstationBoard();
 }
 function handleAttendanceScan() {
-  let code = document.getElementById("attendanceEmployeeCode").value.trim();
+  let input = document.getElementById("attendanceEmployeeCode");
+  let code = input ? input.value.trim() : "";
   let message = document.getElementById("attendanceMessage");
   let scanResult = document.getElementById("attendanceScanResult");
-  let input = document.getElementById("attendanceEmployeeCode");
+
+  if (!input || !message || !scanResult) {
+    return;
+  }
 
   if (!attendanceMode) {
     message.innerText = "請先選擇上班模式或下班模式";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
     return;
   }
@@ -9870,18 +10004,26 @@ function handleAttendanceScan() {
   if (!code) {
     message.innerText = "請先掃描或輸入員工編號";
     message.className = "message danger-text";
+    input.value = "";
     input.focus();
     return;
   }
 
-  let employee = employees.find(emp => emp.code === code);
+  let employee = employees.find(emp => {
+    return String(emp.code || "").trim() === code;
+  });
 
   if (!employee) {
     scanResult.innerHTML = `<span class="danger-text">查無此員工</span>`;
-    message.innerText = "";
-    document.getElementById("attendanceEmployeeCode").value = "";
+    message.innerText = "員工編號錯誤，請重新刷碼";
+    message.className = "message danger-text";
+    input.value = "";
+    input.focus();
     return;
   }
+
+  message.innerText = "";
+  message.className = "message";
 
   if (attendanceMode === "checkin") {
     runAttendanceCheckIn(employee);
@@ -9892,6 +10034,11 @@ function handleAttendanceScan() {
     runAttendanceCheckOut(employee);
     return;
   }
+
+  message.innerText = "打卡模式異常，請重新選擇模式";
+  message.className = "message danger-text";
+  input.value = "";
+  input.focus();
 }
 
   function clearBatchEmployee() {
@@ -10793,6 +10940,15 @@ subscribeWorkstationRecordsRealtime();
       }
     });
   }
+  bindScannerInputAutoSelect([
+    "attendanceEmployeeCode",
+    "workstationEmployeeCode",
+    "batchEmployeeCode",
+    "batchCode",
+    "sortBatchEmployeeCode",
+    "sortBatchCode"
+  ]);
+  bindAttendanceInputAutoSelect();
   let sortBatchEmployeeInput = document.getElementById("sortBatchEmployeeCode");
 if (sortBatchEmployeeInput) {
   sortBatchEmployeeInput.addEventListener("keydown", function(event) {
@@ -10844,6 +11000,28 @@ window.addEventListener("pageshow", function (event) {
     checkLoginStatus();
   }
 });
+function bindScannerInputAutoSelect(inputIdList) {
+  if (!Array.isArray(inputIdList)) {
+    return;
+  }
+
+  inputIdList.forEach(function(inputId) {
+    let input = document.getElementById(inputId);
+
+    if (!input || input.dataset.autoSelectBound === "true") {
+      return;
+    }
+
+    input.addEventListener("focus", function() {
+      setTimeout(function() {
+        input.select();
+      }, 0);
+    });
+
+    input.dataset.autoSelectBound = "true";
+  });
+}
+
 window.addEventListener("storage", function (event) {
   if (event.key === LOGIN_STORAGE_KEY && !event.newValue) {
     performLogout();
