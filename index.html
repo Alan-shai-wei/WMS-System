@@ -1400,9 +1400,15 @@
               <div class="dashboard-title">指定日期加班人數</div>
               <div class="dashboard-value" id="workTimeAttendanceOvertimeCount">0H</div>
             </div>
+
             <div class="dashboard-card">
               <div class="dashboard-title">指定日期總工時</div>
               <div class="dashboard-value" id="workTimeAttendanceTotalWorkHours">0H</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">目前累計工時</div>
+              <div class="dashboard-value" id="workTimeAttendanceAccumulatedWorkHours">0H</div>
             </div>
           </div>
 
@@ -5617,10 +5623,12 @@ function renderAttendanceDashboard() {
   let table = document.getElementById("attendanceBoardTable");
 
   if (
-    !presentElement ||
-    !workingElement ||
-    !checkedOutElement ||
+    !normalElement ||
+    !lateElement ||
+    !earlyLeaveElement ||
+    !overtimeElement ||
     !totalWorkHoursElement ||
+    !accumulatedWorkHoursElement ||
     !summaryElement ||
     !table
   ) {
@@ -5999,9 +6007,14 @@ function getAttendanceStatusText(judgement) {
     return "異常";
   }
 
-  // ❗ 有上班但沒下班（非當天）
+  // ✅ 已上班但尚未下班，不直接判異常
+  // 先依照目前已知資訊判斷：正常 / 遲到
   if (hasCheckIn && !hasCheckOut) {
-    return "異常";
+    if (lateMinutes > 0) {
+      return "遲到";
+    }
+
+    return "正常";
   }
 
   let statusList = [];
@@ -6088,6 +6101,9 @@ function buildAttendanceJudgement(record) {
 
   let attendanceStatus = getAttendanceStatusText({
     hasCheckIn: !!checkInDate,
+    hasCheckOut: !!checkOutDate,
+    shiftStart: shiftStartText,
+    shiftEnd: shiftEndText,
     lateMinutes: lateMinutes,
     earlyLeaveMinutes: earlyLeaveMinutes,
     overtimeMinutes: overtimeMinutes
@@ -6364,6 +6380,7 @@ function renderWorkTimeAttendanceDashboard() {
   let earlyLeaveElement = document.getElementById("workTimeAttendanceEarlyLeaveCount");
   let overtimeElement = document.getElementById("workTimeAttendanceOvertimeCount");
   let totalWorkHoursElement = document.getElementById("workTimeAttendanceTotalWorkHours");
+  let accumulatedWorkHoursElement = document.getElementById("workTimeAttendanceAccumulatedWorkHours");
   let summaryElement = document.getElementById("workTimeAttendanceBoardSummary");
   let table = document.getElementById("workTimeAttendanceBoardTable");
 
@@ -6386,6 +6403,7 @@ function renderWorkTimeAttendanceDashboard() {
   let earlyLeaveCount = 0;
   let overtimeCount = 0;
   let totalWorkMinutes = 0;
+  let accumulatedWorkMinutes = 0;
   let checkedOutCount = 0;
   let workingCount = 0;
 
@@ -6418,6 +6436,7 @@ function renderWorkTimeAttendanceDashboard() {
     }
 
     totalWorkMinutes += Number(row.workMinutesCompleted || 0);
+    accumulatedWorkMinutes += Number(row.workMinutesIncludingOpen || 0);
   }
 
   normalElement.innerText = normalCount;
@@ -6425,6 +6444,7 @@ function renderWorkTimeAttendanceDashboard() {
   earlyLeaveElement.innerText = earlyLeaveCount;
   overtimeElement.innerText = overtimeCount;
   totalWorkHoursElement.innerText = formatAttendanceDurationMinutes(totalWorkMinutes);
+  accumulatedWorkHoursElement.innerText = formatAttendanceDurationMinutes(accumulatedWorkMinutes);
 
   summaryElement.innerHTML =
     `日期：<strong>${filterDate}</strong>｜` +
@@ -6434,6 +6454,7 @@ function renderWorkTimeAttendanceDashboard() {
     `加班 <strong>${overtimeCount}</strong> 人｜` +
     `上班中 <strong>${workingCount}</strong> 人｜` +
     `已下班 <strong>${checkedOutCount}</strong> 人`;
+    `目前累計工時 <strong>${formatAttendanceDurationMinutes(accumulatedWorkMinutes)}</strong>`;
 
   table.innerHTML = `
     <tr>
