@@ -10933,9 +10933,37 @@ subscribeWorkstationRecordsRealtime();
       let input = document.getElementById(`${prefix}${i}`);
       if (input) {
         input.addEventListener("keydown", function(event) {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            uploadBatchMaster();
+          if (event.key !== "Enter") {
+            return;
+          }
+
+          event.preventDefault();
+
+          let id = String(input.id || "");
+          let match = id.match(/^(gridBatchCode|gridBatchName|gridBatchQty)(\d+)$/);
+
+          if (!match) {
+            return;
+          }
+
+          let prefix = match[1];
+          let currentRow = Number(match[2]);
+
+          if (isNaN(currentRow)) {
+            return;
+          }
+
+          let nextRow = currentRow + 1;
+
+          if (nextRow > 20) {
+            return;
+          }
+
+          let nextInput = document.getElementById(`${prefix}${nextRow}`);
+
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
           }
         });
       }
