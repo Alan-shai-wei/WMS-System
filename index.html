@@ -5623,12 +5623,10 @@ function renderAttendanceDashboard() {
   let table = document.getElementById("attendanceBoardTable");
 
   if (
-    !normalElement ||
-    !lateElement ||
-    !earlyLeaveElement ||
-    !overtimeElement ||
+    !presentElement ||
+    !workingElement ||
+    !checkedOutElement ||
     !totalWorkHoursElement ||
-    !accumulatedWorkHoursElement ||
     !summaryElement ||
     !table
   ) {
@@ -5653,7 +5651,7 @@ function renderAttendanceDashboard() {
       checkedOutCount += 1;
     }
 
-    totalWorkMinutes += (rowData.workMinutesIncludingOpen || 0);
+    totalWorkMinutes += Number(rowData.workMinutesIncludingOpen || 0);
   }
 
   presentElement.innerText = presentCount;
@@ -5683,7 +5681,6 @@ function renderAttendanceDashboard() {
   if (summaryRows.length === 0) {
     let row = table.insertRow();
     let cell = row.insertCell(0);
-
     cell.colSpan = 8;
     cell.innerText = `目前 ${filterDate} 沒有任何出勤紀錄`;
     return;
