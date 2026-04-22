@@ -6059,6 +6059,11 @@ function buildAttendanceJudgement(record) {
     ? parseShiftTimeToDate(shiftEndBaseDate, shiftEndText)
     : null;
 
+  let overtimeGraceMinutes = 10;
+  let overtimeThresholdDate = shiftEndDate
+    ? new Date(shiftEndDate.getTime() + overtimeGraceMinutes * 60000)
+    : null;
+
   let lateMinutes = 0;
   let earlyLeaveMinutes = 0;
   let overtimeMinutes = 0;
@@ -6085,9 +6090,9 @@ function buildAttendanceJudgement(record) {
       );
     }
 
-    if (checkOutDate > shiftEndDate) {
+    if (overtimeThresholdDate && checkOutDate > overtimeThresholdDate) {
       overtimeMinutes = Math.floor(
-        (checkOutDate.getTime() - shiftEndDate.getTime()) / 60000
+        (checkOutDate.getTime() - overtimeThresholdDate.getTime()) / 60000
       );
     }
 
@@ -6117,6 +6122,7 @@ function buildAttendanceJudgement(record) {
     checkOutDate: checkOutDate,
     shiftStartDate: shiftStartDate,
     shiftEndDate: shiftEndDate,
+    overtimeThresholdDate: overtimeThresholdDate,
 
     actualStartDate: actualStartDate,
     actualEndDate: actualEndDate,
@@ -6292,12 +6298,12 @@ function buildOvertimeDaysSummary() {
     for (let j = 0; j < summaryRows.length; j++) {
       let row = summaryRows[j];
 
-      let targetMinutes =
-        row.displayStatus === "上班中"
-          ? (row.workMinutesIncludingOpen || 0)
-          : (row.workMinutesCompleted || 0);
+      let judgement = buildAttendanceJudgement(row);
 
-      if (targetMinutes > 480) {
+      let overtimeThresholdDate = judgement.overtimeThresholdDate;
+      let checkOutDate = judgement.checkOutDate;
+
+      if (checkOutDate && overtimeThresholdDate && checkOutDate > overtimeThresholdDate) {
         overtimeCount += 1;
       }
 
