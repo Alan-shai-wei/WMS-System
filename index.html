@@ -1296,6 +1296,16 @@
             <div class="dashboard-card"><div class="dashboard-title">印單</div><div id="ctCount印單" class="dashboard-value">0</div></div>
             <div class="dashboard-card"><div class="dashboard-title">出貨 Leader</div><div id="ctCountOutboundLeader" class="dashboard-value">0</div></div>
           </div>
+
+          <div class="dashboard-section-title">輔助工時目前人數</div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card"><div class="dashboard-title">盤點</div><div id="ctCount盤點" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">教育訓練</div><div id="ctCount教育訓練" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">環境整理</div><div id="ctCountSupport環境整理" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">加工</div><div id="ctCount加工" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">專案</div><div id="ctCount專案" class="dashboard-value">0</div></div>
+            <div class="dashboard-card"><div class="dashboard-title">其他</div><div id="ctCount其他" class="dashboard-value">0</div></div>
+          </div>
         </div>
       </div>
 
@@ -1854,6 +1864,7 @@
         <div class="button-row">
           <button class="orange" onclick="setWorkstationGroup('inbound')">進貨</button>
           <button class="purple" onclick="setWorkstationGroup('outbound')">出貨</button>
+          <button class="teal" onclick="setWorkstationGroup('support')">輔助工時</button>
         </div>
 
         <div id="workstationGroupResult" class="result-box">目前尚未選擇工位群組</div>
@@ -1865,6 +1876,7 @@
             <button onclick="setWorkstationName('驗收')">驗收</button>
             <button onclick="setWorkstationName('上架')">上架</button>
             <button onclick="setWorkstationName('補貨')">補貨</button>
+            <button onclick="setWorkstationName('環境整理')">環境整理</button>
             <button onclick="setWorkstationName('Leader')">Leader</button>
           </div>
         </div>
@@ -1878,7 +1890,20 @@
             <button onclick="setWorkstationName('包貨｜一般配')">包貨｜一般配</button>
             <button onclick="setWorkstationName('包貨｜宅配')">包貨｜宅配</button>
             <button onclick="setWorkstationName('印單')">印單</button>
+            <button onclick="setWorkstationName('環境整理')">環境整理</button>
             <button onclick="setWorkstationName('Leader')">Leader</button>
+          </div>
+        </div>
+
+        <div id="supportWorkstationArea" style="display:none;">
+          <label>輔助工時 工位</label>
+          <div class="button-row">
+            <button onclick="setWorkstationName('盤點')">盤點</button>
+            <button onclick="setWorkstationName('教育訓練')">教育訓練</button>
+            <button onclick="setWorkstationName('環境整理')">環境整理</button>
+            <button onclick="setWorkstationName('加工')">加工</button>
+            <button onclick="setWorkstationName('專案')">專案</button>
+            <button onclick="setWorkstationName('其他')">其他</button>
           </div>
         </div>
 
@@ -4848,7 +4873,15 @@ function handleWorkstationScan() {
       <strong>工位打卡成功</strong><br>
       員工編號：${employee.code}<br>
       員工姓名：${employee.name}<br>
-      群組：${workstationGroup === "inbound" ? "進貨" : "出貨"}<br>
+      群組：${
+        workstationGroup === "inbound"
+          ? "進貨"
+          : workstationGroup === "outbound"
+          ? "出貨"
+          : workstationGroup === "support"
+          ? "輔助工時"
+          : workstationGroup
+      }<br>
       工位：${workstationName}<br>
       開始時間：${newRecord.startTime}
     `;
@@ -4895,7 +4928,7 @@ function handleWorkstationScan() {
       <strong>Check Out 成功</strong><br>
       員工編號：${employee.code}<br>
       員工姓名：${employee.name}<br>
-      群組：${workingRecord.group === "inbound" ? "進貨" : "出貨"}<br>
+      群組：${workingRecord.group === "inbound" ? "進貨" : workingRecord.group === "outbound" ? "出貨" : workingRecord.group === "support" ? "輔助工時" : workingRecord.group}<br>
       工位：${workingRecord.workstation}<br>
       結束時間：${workingRecord.endTime}
     `;
@@ -7541,7 +7574,14 @@ function showAttendanceSubPanel(button, panelType) {
       let row = table.insertRow();
       row.insertCell(0).innerText = record.employeeCode || "";
       row.insertCell(1).innerText = record.employeeName || "";
-      row.insertCell(2).innerText = record.group === "inbound" ? "進貨" : "出貨";
+            row.insertCell(2).innerText =
+              record.group === "inbound"
+                ? "進貨"
+                : record.group === "outbound"
+                ? "出貨"
+                : record.group === "support"
+                ? "輔助工時"
+                : record.group || "";
       row.insertCell(3).innerText = record.workstation || "";
       row.insertCell(4).innerText = record.startTime || "";
       row.insertCell(5).innerText = record.status || "作業中";
@@ -7839,7 +7879,13 @@ function renderWorkstationCountBoard() {
     "包貨｜一般配": 0,
     "包貨｜宅配": 0,
     "印單": 0,
-    "OutboundLeader": 0
+    "OutboundLeader": 0,
+    "盤點": 0,
+    "教育訓練": 0,
+    "Support環境整理": 0,
+    "加工": 0,
+    "專案": 0,
+    "其他": 0
   };
 
   activeRecords.forEach(record => {
@@ -7847,6 +7893,8 @@ function renderWorkstationCountBoard() {
       counts["InboundLeader"]++;
     } else if (record.group === "outbound" && record.workstation === "Leader") {
       counts["OutboundLeader"]++;
+    } else if (record.group === "support" && record.workstation === "環境整理") {
+      counts["Support環境整理"]++;
     } else if (counts.hasOwnProperty(record.workstation)) {
       counts[record.workstation]++;
     }
@@ -7877,7 +7925,14 @@ function renderWorkstationCountBoard() {
     { id: "ctCount包貨一般配", value: counts["包貨｜一般配"] },
     { id: "ctCount包貨宅配", value: counts["包貨｜宅配"] },
     { id: "ctCount印單", value: counts["印單"] },
-    { id: "ctCountOutboundLeader", value: counts["OutboundLeader"] }
+    { id: "ctCountOutboundLeader", value: counts["OutboundLeader"] },
+
+    { id: "ctCount盤點", value: counts["盤點"] },
+    { id: "ctCount教育訓練", value: counts["教育訓練"] },
+    { id: "ctCountSupport環境整理", value: counts["Support環境整理"] },
+    { id: "ctCount加工", value: counts["加工"] },
+    { id: "ctCount專案", value: counts["專案"] },
+    { id: "ctCount其他", value: counts["其他"] }
   ];
 
   idMapList.forEach(item => {
@@ -9892,6 +9947,7 @@ function clearWorkstationMode() {
   let input = document.getElementById("workstationEmployeeCode");
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
+  let supportArea = document.getElementById("supportWorkstationArea");
 
   if (modeResult) {
     modeResult.innerHTML = "目前尚未選擇工位模式";
@@ -9922,6 +9978,10 @@ function clearWorkstationMode() {
     outboundArea.style.display = "none";
   }
 
+  if (supportArea) {
+    supportArea.style.display = "none";
+  }
+
   if (input) {
     input.value = "";
     input.focus();
@@ -9936,11 +9996,19 @@ function setWorkstationGroup(group) {
   let nameResult = document.getElementById("workstationNameResult");
   let message = document.getElementById("workstationMessage");
   let input = document.getElementById("workstationEmployeeCode");
+
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
+  let supportArea = document.getElementById("supportWorkstationArea");
+
+  let groupTextMap = {
+    inbound: "進貨",
+    outbound: "出貨",
+    support: "輔助工時"
+  };
 
   if (result) {
-    result.innerText = "目前群組：" + (group === "inbound" ? "進貨" : "出貨");
+    result.innerText = "目前群組：" + (groupTextMap[group] || group);
   }
 
   if (nameResult) {
@@ -9954,13 +10022,18 @@ function setWorkstationGroup(group) {
 
   if (inboundArea) inboundArea.style.display = "none";
   if (outboundArea) outboundArea.style.display = "none";
+  if (supportArea) supportArea.style.display = "none";
 
-  if (group === "inbound") {
-    if (inboundArea) inboundArea.style.display = "block";
+  if (group === "inbound" && inboundArea) {
+    inboundArea.style.display = "block";
   }
 
-  if (group === "outbound") {
-    if (outboundArea) outboundArea.style.display = "block";
+  if (group === "outbound" && outboundArea) {
+    outboundArea.style.display = "block";
+  }
+
+  if (group === "support" && supportArea) {
+    supportArea.style.display = "block";
   }
 
   if (input) {
