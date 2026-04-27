@@ -965,6 +965,25 @@
 
         <div id="batchMessage" class="message"></div>
 
+        <div class="flow-workboard-filter-row" style="margin-top:16px;">
+          <div>
+            <label for="batchRecordFilterDate">撿貨明細日期</label>
+            <input
+              type="date"
+              id="batchRecordFilterDate"
+              onchange="renderBatchRecords()"
+            >
+          </div>
+
+          <button type="button" class="gray" onclick="resetBatchRecordFilterDate()">
+            回到今天
+          </button>
+         </div>
+
+         <div class="info-box">
+          預設顯示今天的撿貨批次明細。切換日期後，只會影響下方明細表顯示，不會改 Firestore 資料。
+        </div>
+
         <table id="batchTable">
           <tr>
             <th>批次編號</th>
@@ -1075,10 +1094,32 @@
 
         <div id="manageBatchSubPage" class="sub-page">
           <div class="search-row">
-            <input type="text" id="batchSearchKeyword" placeholder="搜尋批次編號 / 名稱 / 類型">
-            <button onclick="renderBatchMaster()">搜尋</button>
-            <button class="gray" onclick="clearBatchSearch()">清空搜尋</button>
+          <div>
+            <label for="batchMasterFilterDate">目標作業日期</label>
+            <input
+              type="date"
+              id="batchMasterFilterDate"
+              onchange="renderBatchMaster()"
+            >
           </div>
+
+          <div>
+            <label for="batchMasterTypeFilter">批次類型</label>
+            <select id="batchMasterTypeFilter" onchange="renderBatchMaster()">
+              <option value="全部">全部</option>
+              <option value="一般配">一般配</option>
+              <option value="無包裝">無包裝</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="batchSearchKeyword">關鍵字搜尋</label>
+            <input type="text" id="batchSearchKeyword" placeholder="搜尋批次編號 / 名稱 / 類型">
+          </div>
+
+          <button onclick="renderBatchMaster()">搜尋</button>
+          <button class="gray" onclick="clearBatchSearch()">清空搜尋</button>
+        </div>
 
           <div class="button-row">
             <button class="purple" onclick="loadSelectedBatchToEdit()">載入修改</button>
@@ -8958,7 +8999,7 @@ function showWorkTimeSubPanel(type) {
   let displayRanking = [...normalRanking.slice(0, 5), ...noPackRanking.slice(0, 5)];
 
   if (displayRanking.length === 0) {
-    summary.innerHTML = `今天（${today}）沒有可計算的員工效率資料`;
+    summary.innerHTML = `目前選擇日期（${selectedDateText}）沒有可計算的員工效率資料`;
     return;
   }
 
@@ -10347,40 +10388,105 @@ function handleAttendanceScan() {
     document.getElementById("batchMessage").innerText = "";
     document.getElementById("batchCode").focus();
   }
+  
+  function getBatchRecordFilterDate() {
+    let input = document.getElementById("batchRecordFilterDate");
+
+    if (!input) {
+      return getTodayInputDateString();
+    }
+
+    let value = String(input.value || "").trim();
+
+    if (!value) {
+      return getTodayInputDateString();
+    }
+
+    return value;
+  }
+
+  function initializeBatchRecordFilterDate() {
+    let input = document.getElementById("batchRecordFilterDate");
+    if (!input) return;
+
+    if (!String(input.value || "").trim()) {
+      input.value = getTodayInputDateString();
+    }
+  }
+
+function resetBatchRecordFilterDate() {
+  let input = document.getElementById("batchRecordFilterDate");
+  if (!input) return;
+
+  input.value = getTodayInputDateString();
+  renderBatchRecords();
+}
 
   function renderBatchRecords() {
-    let table = document.getElementById("batchTable");
-    if (!table) return;
+  initializeBatchRecordFilterDate();
 
-    table.innerHTML = `
-      <tr>
-        <th>批次編號</th>
-        <th>批次名稱</th>
-        <th>數量</th>
-        <th>類型</th>
-        <th>員工編號</th>
-        <th>員工姓名</th>
-        <th>開始時間</th>
-        <th>結束時間</th>
-        <th>狀態</th>
-      </tr>
-    `;
+  let table = document.getElementById("batchTable");
+  if (!table) return;
 
-    batchRecords.forEach(record => {
-      let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+  let filterDate = getBatchRecordFilterDate();
+  let normalizedFilterDate = String(filterDate || "").trim().replaceAll("/", "-");
 
-      let row = table.insertRow();
-      row.insertCell(0).innerText = record.batchCode;
-      row.insertCell(1).innerText = master.name || "";
-      row.insertCell(2).innerText = master.qty || "";
-      row.insertCell(3).innerText = master.type || "";
-      row.insertCell(4).innerText = record.employeeCode;
-      row.insertCell(5).innerText = record.employeeName;
-      row.insertCell(6).innerText = record.startTime || "";
-      row.insertCell(7).innerText = record.endTime || "";
-      row.insertCell(8).innerHTML = getBatchStatusTag(record.status);
-    });
+  table.innerHTML = `
+    <tr>
+      <th>批次編號</th>
+      <th>批次名稱</th>
+      <th>數量</th>
+      <th>類型</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>開始時間</th>
+      <th>結束時間</th>
+      <th>狀態</th>
+    </tr>
+  `;
+
+  let filteredRecords = batchRecords.filter(record => {
+    let startTimeText = String(record.startTime || "").trim();
+
+    if (!startTimeText) {
+      return false;
+    }
+
+    let recordDate = startTimeText.split(" ")[0].replaceAll("/", "-");
+
+    return recordDate === normalizedFilterDate;
+  });
+
+  filteredRecords.sort((a, b) => {
+    let aKey = `${a.startTime || ""} ${a.batchCode || ""} ${a.employeeCode || ""}`;
+    let bKey = `${b.startTime || ""} ${b.batchCode || ""} ${b.employeeCode || ""}`;
+
+    return aKey.localeCompare(bKey);
+  });
+
+  if (filteredRecords.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+    cell.colSpan = 9;
+    cell.innerText = `目前 ${normalizedFilterDate} 沒有撿貨批次明細`;
+    return;
   }
+
+  filteredRecords.forEach(record => {
+    let master = batchMaster.find(item => item.batchCode === record.batchCode) || {};
+
+    let row = table.insertRow();
+    row.insertCell(0).innerText = record.batchCode || "";
+    row.insertCell(1).innerText = master.name || "";
+    row.insertCell(2).innerText = master.qty || "";
+    row.insertCell(3).innerText = master.type || "";
+    row.insertCell(4).innerText = record.employeeCode || "";
+    row.insertCell(5).innerText = record.employeeName || "";
+    row.insertCell(6).innerText = record.startTime || "";
+    row.insertCell(7).innerText = record.endTime || "";
+    row.insertCell(8).innerHTML = getBatchStatusTag(record.status);
+  });
+}
   function renderSortBatchRecords() {
   let table = document.getElementById("sortBatchTable");
   if (!table) return;
@@ -10674,32 +10780,100 @@ function exportWorkstationRecords() {
 }
 
   function clearBatchSearch() {
-    document.getElementById("batchSearchKeyword").value = "";
-    renderBatchMaster();
+  let keywordInput = document.getElementById("batchSearchKeyword");
+  let dateInput = document.getElementById("batchMasterFilterDate");
+  let typeInput = document.getElementById("batchMasterTypeFilter");
+
+  if (keywordInput) {
+    keywordInput.value = "";
   }
+
+  if (dateInput) {
+    dateInput.value = getTodayInputDateString();
+  }
+
+  if (typeInput) {
+    typeInput.value = "全部";
+  }
+
+  renderBatchMaster();
+}
 
   function renderBatchMaster() {
   let table = document.getElementById("batchMasterTable");
   if (!table) return;
 
   let keywordInput = document.getElementById("batchSearchKeyword");
+  let dateInput = document.getElementById("batchMasterFilterDate");
+  let typeInput = document.getElementById("batchMasterTypeFilter");
+
+  if (dateInput && !String(dateInput.value || "").trim()) {
+    dateInput.value = getTodayInputDateString();
+  }
+
   let keyword = keywordInput
     ? String(keywordInput.value || "").trim().toLowerCase()
     : "";
 
+  let filterDate = dateInput
+    ? String(dateInput.value || "").trim()
+    : getTodayInputDateString();
+
+  let filterType = typeInput
+    ? String(typeInput.value || "全部").trim()
+    : "全部";
+
   let filtered = batchMaster.filter(item => {
+    let workDateText = String(item.workDate || "").trim();
+    let typeText = String(item.type || "").trim();
+
+    if (filterDate && workDateText !== filterDate) {
+      return false;
+    }
+
+    if (filterType !== "全部" && typeText !== filterType) {
+      return false;
+    }
+
     if (!keyword) {
       return true;
     }
 
     let batchCodeText = String(item.batchCode || "").toLowerCase();
     let nameText = String(item.name || "").toLowerCase();
-    let typeText = String(item.type || "").toLowerCase();
+    let keywordTypeText = String(item.type || "").toLowerCase();
 
     return (
       batchCodeText.includes(keyword) ||
       nameText.includes(keyword) ||
-      typeText.includes(keyword)
+      keywordTypeText.includes(keyword)
+    );
+  });
+
+  filtered.sort(function(a, b) {
+    let aWorkDate = String(a.workDate || "").trim();
+    let bWorkDate = String(b.workDate || "").trim();
+
+    if (aWorkDate !== bWorkDate) {
+      return bWorkDate.localeCompare(aWorkDate);
+    }
+
+    let typeOrder = {
+      "一般配": 1,
+      "無包裝": 2
+    };
+
+    let aTypeOrder = typeOrder[String(a.type || "").trim()] || 99;
+    let bTypeOrder = typeOrder[String(b.type || "").trim()] || 99;
+
+    if (aTypeOrder !== bTypeOrder) {
+      return aTypeOrder - bTypeOrder;
+    }
+
+    return String(a.batchCode || "").localeCompare(
+      String(b.batchCode || ""),
+      "zh-Hant",
+      { numeric: true }
     );
   });
 
@@ -10717,6 +10891,14 @@ function exportWorkstationRecords() {
       <th>操作</th>
     </tr>
   `;
+
+  if (filtered.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+    cell.colSpan = 10;
+    cell.innerText = `目前沒有符合條件的批次｜日期：${filterDate || "全部"}｜類型：${filterType}`;
+    return;
+  }
 
   filtered.forEach(item => {
     let row = table.insertRow();
