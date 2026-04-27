@@ -1347,6 +1347,14 @@
             <div class="dashboard-card"><div class="dashboard-title">專案</div><div id="ctCount專案" class="dashboard-value">0</div></div>
             <div class="dashboard-card"><div class="dashboard-title">其他</div><div id="ctCount其他" class="dashboard-value">0</div></div>
           </div>
+
+          <div class="dashboard-section-title">客服退貨目前人數</div>
+          <div class="dashboard-grid">
+            <div class="dashboard-card">
+              <div class="dashboard-title">拆退貨</div>
+              <div id="ctCount拆退貨" class="dashboard-value">0</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1618,6 +1626,11 @@
             <div class="dashboard-card">
               <div class="dashboard-title">出貨 Leader</div>
               <div class="dashboard-value" id="workTimeWS_出貨Leader">0H</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">拆退貨</div>
+              <div class="dashboard-value" id="workTimeWS_拆退貨">0H</div>
             </div>
           </div>
         </div>
@@ -1906,6 +1919,7 @@
           <button class="orange" onclick="setWorkstationGroup('inbound')">進貨</button>
           <button class="purple" onclick="setWorkstationGroup('outbound')">出貨</button>
           <button class="teal" onclick="setWorkstationGroup('support')">輔助工時</button>
+          <button class="orange" onclick="setWorkstationGroup('customerReturn')">客服退貨</button>
         </div>
 
         <div id="workstationGroupResult" class="result-box">目前尚未選擇工位群組</div>
@@ -1945,6 +1959,13 @@
             <button onclick="setWorkstationName('加工')">加工</button>
             <button onclick="setWorkstationName('專案')">專案</button>
             <button onclick="setWorkstationName('其他')">其他</button>
+          </div>
+        </div>
+
+        <div id="customerReturnWorkstationArea" style="display:none;">
+          <label>客服退貨 工位</label>
+          <div class="button-row">
+            <button onclick="setWorkstationName('拆退貨')">拆退貨</button>
           </div>
         </div>
 
@@ -5821,7 +5842,8 @@ const WORK_TIME_WORKSTATION_CARD_CONFIG = [
   { workstationKey: "包貨｜宅配", elementId: "workTimeWS_包貨宅配" },
   { workstationKey: "印單", elementId: "workTimeWS_印單" },
   { workstationKey: "進貨Leader", elementId: "workTimeWS_進貨Leader" },
-  { workstationKey: "出貨Leader", elementId: "workTimeWS_出貨Leader" }
+  { workstationKey: "出貨Leader", elementId: "workTimeWS_出貨Leader" },
+  { workstationKey: "拆退貨", elementId: "workTimeWS_拆退貨" }
 ];
 
 function getWorkTimeWorkstationFilterDate() {
@@ -9989,6 +10011,7 @@ function clearWorkstationMode() {
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
   let supportArea = document.getElementById("supportWorkstationArea");
+  
 
   if (modeResult) {
     modeResult.innerHTML = "目前尚未選擇工位模式";
@@ -10041,11 +10064,13 @@ function setWorkstationGroup(group) {
   let inboundArea = document.getElementById("inboundWorkstationArea");
   let outboundArea = document.getElementById("outboundWorkstationArea");
   let supportArea = document.getElementById("supportWorkstationArea");
+  let customerReturnArea = document.getElementById("customerReturnWorkstationArea");
 
   let groupTextMap = {
     inbound: "進貨",
     outbound: "出貨",
-    support: "輔助工時"
+    support: "輔助工時",
+    customerReturn: "客服退貨"
   };
 
   if (result) {
@@ -10064,6 +10089,7 @@ function setWorkstationGroup(group) {
   if (inboundArea) inboundArea.style.display = "none";
   if (outboundArea) outboundArea.style.display = "none";
   if (supportArea) supportArea.style.display = "none";
+  if (customerReturnArea) customerReturnArea.style.display = "none";
 
   if (group === "inbound" && inboundArea) {
     inboundArea.style.display = "block";
@@ -10075,6 +10101,10 @@ function setWorkstationGroup(group) {
 
   if (group === "support" && supportArea) {
     supportArea.style.display = "block";
+  }
+
+  if (group === "customerReturn" && customerReturnArea) {
+    customerReturnArea.style.display = "block";
   }
 
   if (input) {
