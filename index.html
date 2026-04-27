@@ -5027,7 +5027,7 @@ function addOperationLog(actionType, target, detail) {
   operationLogs.unshift(log);
   saveOperationLogToFirestore(log);
 }
-function handleWorkstationScan() {
+async function handleWorkstationScan() {
   let input = document.getElementById("workstationEmployeeCode");
   let code = input ? input.value.trim() : "";
   let message = document.getElementById("workstationMessage");
@@ -5095,11 +5095,34 @@ function handleWorkstationScan() {
       !record.endTime
     );
 
-    openRecords.forEach(record => {
+    let sameWorkingRecord = openRecords.find(record =>
+      String(record.group || "").trim() === String(workstationGroup || "").trim() &&
+      String(record.workstation || "").trim() === String(workstationName || "").trim()
+    );
+
+    if (sameWorkingRecord) {
+      scanResult.innerHTML = `
+        <strong>員工已在此工位作業中</strong><br>
+        員工編號：${employee.code}<br>
+        員工姓名：${employee.name}<br>
+        工位：${sameWorkingRecord.workstation}<br>
+        開始時間：${sameWorkingRecord.startTime}
+      `;
+
+      message.innerText = "此員工已在相同工位作業中，系統不重複新增";
+      message.className = "message danger-text";
+
+      input.value = "";
+      input.focus();
+      input.select();
+      return;
+    }
+
+    for (let record of openRecords) {
       record.endTime = currentTime;
       record.status = "已結束";
-      saveWorkstationRecordToFirestore(record);
-    });
+      await saveWorkstationRecordToFirestore(record);
+    }
 
     let newRecord = {
       employeeCode: employee.code,
@@ -5112,7 +5135,7 @@ function handleWorkstationScan() {
     };
 
     workstationRecords.push(newRecord);
-    saveWorkstationRecordToFirestore(newRecord);
+    await saveWorkstationRecordToFirestore(newRecord);
     refreshWorkstationRecordsViews();
 
     scanResult.innerHTML = `
@@ -5167,7 +5190,7 @@ function handleWorkstationScan() {
 
     workingRecord.endTime = getNowString();
     workingRecord.status = "已結束";
-    saveWorkstationRecordToFirestore(workingRecord);
+    await saveWorkstationRecordToFirestore(workingRecord);
     refreshWorkstationRecordsViews();
 
     scanResult.innerHTML = `
