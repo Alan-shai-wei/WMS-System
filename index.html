@@ -8469,7 +8469,8 @@ function renderWorkstationCountBoard() {
     "Support環境整理": 0,
     "加工": 0,
     "專案": 0,
-    "其他": 0
+    "其他": 0,
+    "拆退貨": 0
   };
 
   activeRecords.forEach(record => {
@@ -8516,7 +8517,8 @@ function renderWorkstationCountBoard() {
     { id: "ctCountSupport環境整理", value: counts["Support環境整理"] },
     { id: "ctCount加工", value: counts["加工"] },
     { id: "ctCount專案", value: counts["專案"] },
-    { id: "ctCount其他", value: counts["其他"] }
+    { id: "ctCount其他", value: counts["其他"] },
+    { id: "ctCount拆退貨", value: counts["拆退貨"] }
   ];
 
   idMapList.forEach(item => {
