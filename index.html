@@ -2001,9 +2001,59 @@
 
         <div id="employeePerformancePackNoPackPanel" style="display:none;">
           <div class="card" style="margin-top:16px;">
-            <h3>包貨｜無包裝績效</h3>
-            <div class="info-box">此模組後續建立</div>
+            <h3>包貨｜無包裝績效日期篩選</h3>
+
+            <div class="flow-workboard-filter-row">
+              <div>
+                <label for="employeePerformancePackNoPackWorkDate">選擇日期</label>
+                <input
+                  type="date"
+                  id="employeePerformancePackNoPackWorkDate"
+                  onchange="handleEmployeePerformancePackNoPackWorkDateChange()"
+                >
+              </div>
+            </div>
+
+            <div class="info-box">
+              預設帶入今天。切換日期後，後續會刷新包貨｜無包裝績效摘要卡與排名表。<br>
+              Step 1 只建立 UI，不接資料、不計算、不寫 Firestore。
+            </div>
           </div>
+
+          <div id="employeePerformancePackNoPackSummary" class="message"></div>
+
+          <div class="dashboard-grid" style="margin-top:16px; margin-bottom:16px;">
+            <div class="dashboard-card">
+              <div class="dashboard-title">有排名人數</div>
+              <div class="dashboard-value" id="packNoPackCountValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">最高效率</div>
+              <div class="dashboard-value" id="packNoPackTopValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">平均效率</div>
+              <div class="dashboard-value" id="packNoPackAvgValue">0</div>
+            </div>
+
+            <div class="dashboard-card">
+              <div class="dashboard-title">最低效率</div>
+              <div class="dashboard-value" id="packNoPackMinValue">0</div>
+            </div>
+          </div>
+
+          <table id="employeePerformancePackNoPackTable">
+            <tr>
+              <th>排名</th>
+              <th>員工編號</th>
+              <th>員工姓名</th>
+              <th>完成批次數</th>
+              <th>包貨工時</th>
+              <th>效率值</th>
+            </tr>
+          </table>
         </div>
       </div>
     </div>
@@ -4853,6 +4903,10 @@ function refreshWorkstationRecordsViews() {
     document.getElementById("employeePerformancePanel").style.display === "block"
   ) {
     renderEmployeeEfficiencyBoard();
+
+    if (window.employeePerformanceType === "packNoPack") {
+      renderEmployeePerformancePackNoPackBoard();
+    }
   }
 }
 
@@ -8560,7 +8614,7 @@ function renderWorkstationCountBoard() {
         後續會補上包貨｜無包裝績效的摘要卡、排名表、異常名單與明細內容。
       `;
     }
-
+    renderEmployeePerformancePackNoPackBoard();
     return;
   }
 }
@@ -11687,6 +11741,204 @@ function resetPackBatchRecordFilterDate() {
 
 function refreshPackBatchRecordsViews() {
   renderPackBatchRecords();
+
+  if (window.employeePerformanceType === "packNoPack") {
+    renderEmployeePerformancePackNoPackBoard();
+  }
+}
+
+function getEmployeePerformancePackNoPackWorkDate() {
+  let input = document.getElementById("employeePerformancePackNoPackWorkDate");
+
+  if (!input) {
+    return getTodayInputDateString();
+  }
+
+  let value = String(input.value || "").trim();
+
+  if (!value) {
+    return getTodayInputDateString();
+  }
+
+  return value;
+}
+
+function initializeEmployeePerformancePackNoPackWorkDate() {
+  let input = document.getElementById("employeePerformancePackNoPackWorkDate");
+  if (!input) return;
+
+  if (!String(input.value || "").trim()) {
+    input.value = getTodayInputDateString();
+  }
+}
+
+function handleEmployeePerformancePackNoPackWorkDateChange() {
+  renderEmployeePerformancePackNoPackBoard();
+}
+
+function renderEmployeePerformancePackNoPackBoard() {
+  initializeEmployeePerformancePackNoPackWorkDate();
+
+  let filterDate = getEmployeePerformancePackNoPackWorkDate();
+  let summary = document.getElementById("employeePerformancePackNoPackSummary");
+  let table = document.getElementById("employeePerformancePackNoPackTable");
+
+  if (!summary || !table) return;
+
+  let normalizedFilterDate = String(filterDate || "").trim().replaceAll("/", "-");
+
+  let filteredRecords = packBatchRecords.filter(record => {
+    let packType = String(record.packType || "").trim();
+    let endTime = String(record.endTime || "").trim();
+
+    if (!endTime) return false;
+
+    let recordDate = endTime.split(" ")[0].replaceAll("/", "-");
+
+    return packType === "無包裝" &&
+           recordDate === normalizedFilterDate;
+  });
+
+  let employeeWorkTimeMap = {};
+
+  let filteredWorkstations = workstationRecords.filter(record => {
+    let workstation = String(record.workstation || "").trim();
+    let endTime = String(record.endTime || "").trim();
+
+    if (!endTime) return false;
+
+    let recordDate = endTime.split(" ")[0].replaceAll("/", "-");
+
+    return workstation === "包貨｜無包裝" &&
+           recordDate === normalizedFilterDate;
+  });
+
+  filteredWorkstations.forEach(record => {
+    let code = String(record.employeeCode || "").trim();
+    let name = String(record.employeeName || "").trim();
+
+    let start = parseDateTime(record.startTime);
+    let end = parseDateTime(record.endTime);
+
+    if (!code || !start || !end) return;
+
+    let diffHours = (end - start) / (1000 * 60 * 60);
+
+    if (diffHours <= 0) return;
+
+    if (!employeeWorkTimeMap[code]) {
+      employeeWorkTimeMap[code] = {
+        employeeCode: code,
+        employeeName: name,
+        workHours: 0
+      };
+    }
+
+    employeeWorkTimeMap[code].workHours += diffHours;
+  });
+
+  let employeePackCountMap = {};
+
+  filteredRecords.forEach(record => {
+    let code = String(record.employeeCode || "").trim();
+    let name = String(record.employeeName || "").trim();
+
+    if (!code) return;
+
+    if (!employeePackCountMap[code]) {
+      employeePackCountMap[code] = {
+        employeeCode: code,
+        employeeName: name,
+        completedBatchCount: 0
+      };
+    }
+
+    employeePackCountMap[code].completedBatchCount += 1;
+  });
+
+  let rankingRows = Object.keys(employeePackCountMap).map(code => {
+    let packData = employeePackCountMap[code];
+    let workData = employeeWorkTimeMap[code] || {
+      employeeCode: code,
+      employeeName: packData.employeeName || "",
+      workHours: 0
+    };
+
+    let completedBatchCount = Number(packData.completedBatchCount || 0);
+    let workHours = Number(workData.workHours || 0);
+    let efficiency = workHours > 0
+      ? completedBatchCount / workHours
+      : 0;
+
+    return {
+      employeeCode: code,
+      employeeName: packData.employeeName || workData.employeeName || "",
+      completedBatchCount: completedBatchCount,
+      workHours: workHours,
+      efficiency: efficiency
+    };
+  });
+
+  rankingRows = rankingRows.filter(row => {
+    return row.completedBatchCount > 0 && row.workHours > 0;
+  });
+
+  rankingRows.sort((a, b) => {
+    return b.efficiency - a.efficiency;
+  });
+
+  let countValue = document.getElementById("packNoPackCountValue");
+  let topValue = document.getElementById("packNoPackTopValue");
+  let avgValue = document.getElementById("packNoPackAvgValue");
+  let minValue = document.getElementById("packNoPackMinValue");
+
+  let rankCount = rankingRows.length;
+  let topEfficiency = rankCount > 0 ? rankingRows[0].efficiency : 0;
+  let minEfficiency = rankCount > 0 ? rankingRows[rankCount - 1].efficiency : 0;
+  let avgEfficiency = rankCount > 0
+    ? rankingRows.reduce((sum, row) => sum + row.efficiency, 0) / rankCount
+    : 0;
+
+  if (countValue) countValue.innerText = rankCount;
+  if (topValue) topValue.innerText = topEfficiency.toFixed(2);
+  if (avgValue) avgValue.innerText = avgEfficiency.toFixed(2);
+  if (minValue) minValue.innerText = minEfficiency.toFixed(2);
+
+  table.innerHTML = `
+    <tr>
+      <th>排名</th>
+      <th>員工編號</th>
+      <th>員工姓名</th>
+      <th>完成批次數</th>
+      <th>包貨工時</th>
+      <th>效率值</th>
+    </tr>
+  `;
+
+  if (rankingRows.length === 0) {
+    let row = table.insertRow();
+    let cell = row.insertCell(0);
+    cell.colSpan = 6;
+    cell.innerText = "目前沒有可排名資料";
+  } else {
+    rankingRows.forEach((item, index) => {
+      let row = table.insertRow();
+
+      row.insertCell(0).innerText = index + 1;
+      row.insertCell(1).innerText = item.employeeCode || "";
+      row.insertCell(2).innerText = item.employeeName || "";
+      row.insertCell(3).innerText = item.completedBatchCount;
+      row.insertCell(4).innerText = `${item.workHours.toFixed(2)}H`;
+      row.insertCell(5).innerText = item.efficiency.toFixed(2);
+    });
+  }
+
+  summary.innerText =
+    `Step 5：包貨｜無包裝績效排名已完成。日期：${normalizedFilterDate}，` +
+    `完成紀錄 ${filteredRecords.length} 筆，` +
+    `有排名人數 ${rankCount} 人。效率 = 完成批次數 / 包貨工時。`;
+
+  summary.className = "message";
 }
 
 function renderPackBatchRecords() {
