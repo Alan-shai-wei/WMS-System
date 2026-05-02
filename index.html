@@ -4449,13 +4449,21 @@ async function generateSingleProductLabelJpg() {
     let safeCode = productCode.replace(/[\/\\#?%&]/g, "_");
     let path = `product-labels/${safeCode}.jpg`;
 
-    let ref = window.storage.ref().child(path);
+    let formData = new FormData();
+    formData.append("file", blob);
+    formData.append("upload_preset", "unsigned_preset");
 
-    console.log("開始上傳");
-    await ref.put(blob, { contentType: "image/jpeg" });
-    console.log("上傳完成");
+    let response = await fetch(
+      "https://api.cloudinary.com/v1_1/dayhbzbea/image/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
 
-    let url = await ref.getDownloadURL();
+    let data = await response.json();
+
+    let url = data.secure_url;
 
     item.imageUrl = url;
 
