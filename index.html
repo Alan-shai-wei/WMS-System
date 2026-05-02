@@ -5,6 +5,7 @@
   <!-- deploy refresh 2026-04-05 -->
   <title>MUYAO</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     * {
@@ -479,6 +480,57 @@
   </style>
 </head>
 <body>
+<!-- Mobile Scan Center（第一階段） -->
+<div id="mobileHomePage" class="page" style="display:none; min-height:100vh; background:#f5f6f8; padding:20px;">
+  <div class="card" style="max-width:520px; margin:0 auto;">
+    <h2>Mobile Scan Center</h2>
+
+    <div class="info-box">
+      <div>員工：<strong id="mobileUserName">-</strong></div>
+      <div>帳號：<strong id="mobileUsername">-</strong></div>
+      <div>權限：<strong id="mobileAccessLevel">-</strong></div>
+      <div>作業角色：<strong id="mobileWorkRoles">-</strong></div>
+    </div>
+
+    <div class="result-box">
+      目前狀態：<br>
+      <strong>手機版入口已建立</strong>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>作業模式</h3>
+
+      <div class="button-row">
+        <button type="button" onclick="setMobileWorkMode('撿貨作業')">
+          撿貨作業
+        </button>
+
+        <button type="button" onclick="setMobileWorkMode('配貨作業')">
+          配貨作業
+        </button>
+
+        <button type="button" onclick="setMobileWorkMode('包貨｜無包裝')">
+          包貨｜無包裝
+        </button>
+
+        <button type="button" onclick="setMobileWorkMode('包貨｜一般配')">
+          包貨｜一般配
+        </button>
+      </div>
+
+      <div id="mobileCurrentModeBox" class="result-box">
+        目前選擇模式：<strong id="mobileCurrentModeText">尚未選擇</strong>
+      </div>
+
+      <div id="mobileModeMessage" class="message"></div>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="gray" onclick="switchMode('desktop')">返回桌機版</button>
+      <button type="button" class="danger" onclick="handleLogout()">登出</button>
+    </div>
+  </div>
+</div>
 
 <div class="layout">
   <div class="sidebar">
@@ -506,6 +558,17 @@
         目前此部門尚未建立功能頁面
       </div>
     </div>
+
+    <div id="purchasingMenuArea" style="display:none;">
+      <button
+        class="menu-btn"
+        data-page="productLabelGeneratorPage"
+        onclick="showPage('productLabelGeneratorPage', this)"
+      >
+        商品標籤生成
+      </button>
+    </div>
+
   </div>
 
   <div class="content">
@@ -869,6 +932,90 @@
   </div>
    </div>
  </div>
+
+    <div id="productLabelGeneratorPage" class="page">
+      <div class="card">
+        <h2>商品標籤生成</h2>
+
+        <div class="info-box">
+          本模組用途：Excel 匯入商品資料後，轉成商品標籤並批量輸出 JPG。<br><br>
+          目前 Step 2 只建立頁面 UI。<br>
+          不上傳雲端、不存 Firestore、不產網址、不改其他模組。
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Excel 匯入</h3>
+
+        <div class="info-box">
+          欄位對應：<br>
+          B欄＝品名<br>
+          D欄＝產地<br>
+          E欄＝規格 / 成分<br>
+          F欄＝進口商<br>
+          G欄＝電話<br>
+          H欄＝地址
+        </div>
+
+        <label for="productLabelFileName">已選擇檔案</label>
+        <input
+          type="text"
+          id="productLabelFileName"
+          placeholder="尚未選擇檔案"
+          readonly
+        >
+
+        <div class="button-row">
+          <button type="button" id="selectProductLabelFileBtn">選擇 Excel 檔案</button>
+          <button type="button" class="green" id="startProductLabelImportBtn">開始匯入</button>
+          <button type="button" class="gray" id="clearProductLabelBtn">清空</button>
+        </div>
+
+        <input
+          type="file"
+          id="productLabelFile"
+          accept=".xlsx,.xls"
+          style="display:none"
+        >
+
+        <div id="productLabelMessage" class="message"></div>
+      </div>
+
+      <div class="card">
+        <h3>標籤預覽</h3>
+
+        <div class="info-box">
+          下一步會把 Excel 第一筆資料帶入這裡，確認標籤樣式。
+        </div>
+
+        <div id="productLabelPreviewArea" class="result-box">
+          <div id="productLabelPreviewCard" style="
+            width: 300px;
+            border: 2px solid #000;
+            padding: 12px;
+            background: #fff;
+            font-size: 14px;
+            line-height: 1.6;
+          ">
+            尚未預覽
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>批量產圖</h3>
+
+        <div class="button-row">
+          <button type="button" class="purple" id="generateProductLabelJpgBtn">
+            批量產生 JPG
+          </button>
+        </div>
+
+        <div id="productLabelExportResult" class="result-box">
+          尚未產生圖片
+        </div>
+      </div>
+    </div> 
 
     <div id="batchPage" class="page">
       <div class="card">
@@ -2209,6 +2356,7 @@ let LOGIN_STORAGE_KEY = "warehouseCurrentUser";
 let LAST_ACTIVE_STORAGE_KEY = "warehouseLastActiveTime";
 let accounts = [];
 let currentUser = null;
+let currentMobileWorkMode = "";
 let IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 分鐘
 let idleTimeoutHandle = null;
 let idleTrackingEnabled = false;
@@ -2518,6 +2666,62 @@ function findAccount(username, password) {
 
 function getCurrentLoginUser() {
   return JSON.parse(localStorage.getItem(LOGIN_STORAGE_KEY)) || null;
+}
+// ================================
+// Mode 控制層（Mobile / Desktop）
+// ================================
+
+function getQueryParam(name) {
+  let urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
+function detectDeviceMode() {
+  let width = window.innerWidth || document.documentElement.clientWidth;
+
+  if (width <= 768) {
+    return "mobile";
+  }
+
+  return "desktop";
+}
+
+function getSystemMode() {
+  // 1. 手動指定（URL）
+  let queryMode = getQueryParam("mode");
+  if (queryMode === "mobile" || queryMode === "desktop") {
+    localStorage.setItem("systemMode", queryMode);
+    return queryMode;
+  }
+
+  // 2. localStorage 記錄
+  let savedMode = localStorage.getItem("systemMode");
+  if (savedMode === "mobile" || savedMode === "desktop") {
+    return savedMode;
+  }
+
+  // 3. 自動判斷
+  let detectedMode = detectDeviceMode();
+  localStorage.setItem("systemMode", detectedMode);
+
+  return detectedMode;
+}
+
+function isMobileMode() {
+  return getSystemMode() === "mobile";
+}
+
+function switchMode(mode) {
+  if (mode !== "mobile" && mode !== "desktop") {
+    return;
+  }
+
+  localStorage.setItem("systemMode", mode);
+
+  let url = new URL(window.location.href);
+  url.searchParams.set("mode", mode);
+
+  window.location.href = url.toString();
 }
 
 function saveCurrentLoginUser(user) {
@@ -3222,18 +3426,30 @@ function ensureLoginPage() {
 function showLoginPage() {
   let layout = document.querySelector(".layout");
   let loginPage = ensureLoginPage();
+  let mobileHomePage = document.getElementById("mobileHomePage");
 
+  // 隱藏桌機主系統
   if (layout) {
     layout.style.display = "none";
   }
 
+  // 隱藏手機首頁
+  if (mobileHomePage) {
+    mobileHomePage.style.display = "none";
+  }
+
+  // 顯示登入頁
   if (loginPage) {
     loginPage.style.display = "flex";
   }
 
+  // 自動 focus + Enter 綁定
   setTimeout(() => {
     let usernameInput = document.getElementById("loginUsername");
-    if (usernameInput) usernameInput.focus();
+    if (usernameInput) {
+      usernameInput.focus();
+      usernameInput.select();
+    }
 
     bindLoginEnterEvent();
   }, 0);
@@ -3444,9 +3660,99 @@ function hasPagePermission(user, pageId) {
 
   return false;
 }
-function showSystemPage() {
+function resetMobileWorkMode() {
+  currentMobileWorkMode = "";
+
+  let currentModeText = document.getElementById("mobileCurrentModeText");
+  let message = document.getElementById("mobileModeMessage");
+
+  if (currentModeText) {
+    currentModeText.innerText = "尚未選擇";
+  }
+
+  if (message) {
+    message.innerText = "";
+    message.className = "message";
+  }
+}
+function setMobileWorkMode(modeName) {
+  currentMobileWorkMode = String(modeName || "").trim();
+
+  let currentModeText = document.getElementById("mobileCurrentModeText");
+  let message = document.getElementById("mobileModeMessage");
+
+  if (currentModeText) {
+    currentModeText.innerText = currentMobileWorkMode || "尚未選擇";
+  }
+
+  if (message) {
+    message.innerText = `${currentMobileWorkMode}：此作業模式尚未啟用`;
+    message.className = "message danger-text";
+  }
+}
+function renderMobileHomeUserInfo() {
+  let currentUser = getCurrentLoginUser();
+
+  if (!currentUser) {
+    return;
+  }
+
+  let workRolesText = Array.isArray(currentUser.workRoles) && currentUser.workRoles.length > 0
+    ? currentUser.workRoles.join(", ")
+    : "-";
+
+  let mobileUserName = document.getElementById("mobileUserName");
+  let mobileUsername = document.getElementById("mobileUsername");
+  let mobileAccessLevel = document.getElementById("mobileAccessLevel");
+  let mobileWorkRoles = document.getElementById("mobileWorkRoles");
+
+  if (mobileUserName) {
+    mobileUserName.innerText = currentUser.name || currentUser.username || "-";
+  }
+
+  if (mobileUsername) {
+    mobileUsername.innerText = currentUser.username || "-";
+  }
+
+  if (mobileAccessLevel) {
+    mobileAccessLevel.innerText = currentUser.accessLevel || "-";
+  }
+
+  if (mobileWorkRoles) {
+    mobileWorkRoles.innerText = workRolesText;
+  }
+}
+
+function showMobileHomePage() {
   let layout = document.querySelector(".layout");
   let loginPage = document.getElementById("loginPage");
+  let mobileHomePage = document.getElementById("mobileHomePage");
+
+  if (layout) {
+    layout.style.display = "none";
+  }
+
+  if (loginPage) {
+    loginPage.style.display = "none";
+  }
+
+  if (mobileHomePage) {
+    mobileHomePage.style.display = "block";
+  }
+
+  resetMobileWorkMode();
+  renderMobileHomeUserInfo();
+  startIdleTracking();
+}
+function showSystemPage() {
+    let mobileHomePage = document.getElementById("mobileHomePage");
+
+    if (mobileHomePage) {
+      mobileHomePage.style.display = "none";
+    }
+
+    let layout = document.querySelector(".layout");
+    let loginPage = document.getElementById("loginPage");
 
   if (layout) {
     layout.style.display = "flex";
@@ -3478,7 +3784,8 @@ function showSystemPage() {
   }
 
       bindAccountPageEvents();
-  renderAccounts();
+      bindProductLabelGeneratorEvents();
+      renderAccounts();
 
   let loginDepartment = currentUser && currentUser.systemDepartment
     ? currentUser.systemDepartment
@@ -3526,6 +3833,11 @@ function handleLogin() {
   if (matchedAccount) {
     saveCurrentLoginUser(matchedAccount);
     currentUser = matchedAccount;
+
+    if (isMobileMode()) {
+      showMobileHomePage();
+      return;
+    }
     showSystemPage();
 
     if (loginMessage) {
@@ -3580,6 +3892,12 @@ function checkLoginStatus() {
   }
 
   currentUser = savedUser;
+
+  if (isMobileMode()) {
+    showMobileHomePage();
+    return;
+  }
+
   showSystemPage();
 }
 
@@ -3612,6 +3930,9 @@ let workstationName = "";
 let workstationRecordFilter = "today";
 let currentDepartment = "logistics";
 let selectedOrderImportFile = null;
+let selectedProductLabelFile = null;
+let productLabelRows = [];
+
 let orderClassificationRuleRows = [];
 let orderClassificationRuleMap = {};
 let orderClassificationRulesLoaded = false;
@@ -3793,6 +4114,189 @@ function handleOrderImportFileSelect(event) {
   setOrderImportMessage(`已選擇檔案：${file.name}`, false);
 }
 
+function setProductLabelMessage(text, isError) {
+  let message = document.getElementById("productLabelMessage");
+  if (!message) return;
+
+  message.innerText = text || "";
+  message.className = isError ? "message danger-text" : "message";
+}
+
+function setProductLabelFileName(fileName) {
+  let fileNameInput = document.getElementById("productLabelFileName");
+  if (!fileNameInput) return;
+
+  fileNameInput.value = fileName || "";
+}
+
+function handleProductLabelFileSelect(event) {
+  let input = event ? event.target : null;
+  let file = input && input.files && input.files[0]
+    ? input.files[0]
+    : null;
+
+  if (!file) {
+    selectedProductLabelFile = null;
+    setProductLabelFileName("");
+    setProductLabelMessage("尚未選擇檔案", true);
+    return;
+  }
+
+  selectedProductLabelFile = file;
+  setProductLabelFileName(file.name || "");
+  setProductLabelMessage(`已選擇檔案：${file.name}`, false);
+}
+
+function triggerProductLabelFilePicker() {
+  let fileInput = document.getElementById("productLabelFile");
+  if (!fileInput) return;
+
+  fileInput.click();
+}
+
+function clearProductLabelEntry() {
+  let fileInput = document.getElementById("productLabelFile");
+  let previewArea = document.getElementById("productLabelPreviewArea");
+  let exportResult = document.getElementById("productLabelExportResult");
+
+  selectedProductLabelFile = null;
+  productLabelRows = [];
+
+  if (fileInput) {
+    fileInput.value = "";
+  }
+
+  setProductLabelFileName("");
+
+  if (previewArea) {
+    previewArea.innerHTML = `
+      <div id="productLabelPreviewCard" style="
+        width: 300px;
+        border: 2px solid #000;
+        padding: 12px;
+        background: #fff;
+        font-size: 14px;
+        line-height: 1.6;
+      ">
+        尚未預覽
+      </div>
+      `;
+  }
+
+  if (exportResult) {
+    exportResult.innerText = "尚未產生圖片";
+  }
+
+  setProductLabelMessage("已清空商品標籤匯入資料", false);
+}
+
+function readProductLabelExcelFile(file) {
+  return new Promise(function(resolve, reject) {
+    let reader = new FileReader();
+
+    reader.onload = function(event) {
+      try {
+        let data = event.target.result;
+        let workbook = XLSX.read(data, { type: "array" });
+        resolve(workbook);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = function(error) {
+      reject(error);
+    };
+
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function getProductLabelSheetRows(workbook) {
+  if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+    return [];
+  }
+
+  let firstSheetName = workbook.SheetNames[0];
+  let worksheet = workbook.Sheets[firstSheetName];
+
+  if (!worksheet) {
+    return [];
+  }
+
+  return XLSX.utils.sheet_to_json(worksheet, {
+    header: 1,
+    defval: "",
+    blankrows: false
+  });
+}
+
+async function startProductLabelImport() {
+  if (!selectedProductLabelFile) {
+    setProductLabelMessage("請先選擇 Excel 檔案", true);
+    return;
+  }
+
+  try {
+    setProductLabelMessage("Excel 檔案讀取中，請稍候...", false);
+
+    let workbook = await readProductLabelExcelFile(selectedProductLabelFile);
+    let sheetRows = getProductLabelSheetRows(workbook);
+
+    if (!sheetRows || sheetRows.length === 0) {
+      productLabelRows = [];
+      setProductLabelMessage("檔案內容為空，無法匯入", true);
+      return;
+    }
+
+    let parsedRows = [];
+
+    for (let i = 1; i < sheetRows.length; i++) {
+      let row = sheetRows[i];
+
+      if (!row || row.length === 0) continue;
+
+      let productCode = String(row[0] || "").trim(); // A欄
+      let name = String(row[1] || "").trim();      // B欄
+      let origin = String(row[3] || "").trim();    // D欄
+      let spec = String(row[4] || "").trim();      // E欄
+      let importer = String(row[5] || "").trim();  // F欄
+      let phone = String(row[6] || "").trim();     // G欄
+      let address = String(row[7] || "").trim();   // H欄
+
+      // 過濾空白資料（至少要有品名）
+      if (!productCode || !name) continue;
+
+      parsedRows.push({
+        productCode: productCode,
+        name: name,
+        origin: origin,
+        spec: spec,
+        importer: importer,
+        phone: phone,
+        address: address,
+      });
+    }
+
+    if (parsedRows.length === 0) {
+      productLabelRows = [];
+      setProductLabelMessage("沒有可用的資料（B欄品名為空）", true);
+      return;
+    }
+
+    productLabelRows = parsedRows;
+
+    setProductLabelMessage(
+      `解析完成，共 ${productLabelRows.length} 筆標籤資料。下一步進入預覽。`,
+      false
+    );
+    renderProductLabelPreview();
+  } catch (error) {
+    console.error("商品標籤 Excel 匯入失敗：", error);
+    setProductLabelMessage(`匯入失敗：${error.message || error}`, true);
+  }
+}
+
 function triggerOrderImportFilePicker() {
   let fileInput = document.getElementById("orderImportFile");
   if (!fileInput) return;
@@ -3897,6 +4401,144 @@ function renderOrderClassificationSubTypeButtons() {
 
     buttonGroup.appendChild(button);
   });
+}
+
+async function generateSingleProductLabelJpg() {
+  let card = document.getElementById("productLabelPreviewCard");
+  let exportResult = document.getElementById("productLabelExportResult");
+
+  if (!window.storage) {
+    alert("Firebase Storage 尚未初始化");
+    return;
+  }
+
+  if (!card) {
+    alert("找不到標籤預覽區");
+    return;
+  }
+
+  if (!productLabelRows || productLabelRows.length === 0) {
+    alert("請先匯入 Excel");
+    return;
+  }
+
+  let item = productLabelRows[0];
+  let productCode = String(item.productCode || "").trim();
+
+  if (!productCode) {
+    alert("缺少產編");
+    return;
+  }
+
+  try {
+    if (exportResult) {
+      exportResult.innerText = "產圖與上傳中...";
+    }
+
+    let canvas = await html2canvas(card, {
+      backgroundColor: "#ffffff",
+      scale: 2
+    });
+    console.log("canvas OK");
+
+    let blob = await new Promise(resolve => {
+      canvas.toBlob(resolve, "image/jpeg", 0.95);
+    });
+    console.log("blob:", blob);
+
+    let safeCode = productCode.replace(/[\/\\#?%&]/g, "_");
+    let path = `product-labels/${safeCode}.jpg`;
+
+    let ref = window.storage.ref().child(path);
+
+    console.log("開始上傳");
+    await ref.put(blob, { contentType: "image/jpeg" });
+    console.log("上傳完成");
+
+    let url = await ref.getDownloadURL();
+
+    item.imageUrl = url;
+
+    if (exportResult) {
+      exportResult.innerHTML = `
+        <div><strong>上傳完成</strong></div>
+        <div>產編：${productCode}</div>
+
+        <a href="${url}" target="_blank">開啟圖片</a>
+
+        <input value="${url}" readonly onclick="this.select()" style="width:100%; margin-top:8px;">
+
+        <button onclick="navigator.clipboard.writeText('${url}')">
+          複製網址
+        </button>
+      `;
+    }
+
+  } catch (err) {
+    console.error(err);
+    if (exportResult) {
+      exportResult.innerText = "上傳失敗";
+    }
+  }
+}
+
+function renderProductLabelPreview() {
+  let previewCard = document.getElementById("productLabelPreviewCard");
+
+  if (!previewCard) return;
+
+  if (!productLabelRows || productLabelRows.length === 0) {
+    previewCard.innerHTML = "尚未預覽";
+    return;
+  }
+
+  let item = productLabelRows[0];
+
+  previewCard.innerHTML = `
+    <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">
+      ${item.name}
+    </div>
+
+    <div>產地：${item.origin}</div>
+    <div>規格 / 成分：${item.spec}</div>
+
+    <div style="margin-top:8px;">
+      進口商：${item.importer}
+    </div>
+    <div>地址：${item.address}</div>
+    <div>電話：${item.phone}</div>
+  `;
+}
+
+function bindProductLabelGeneratorEvents() {
+  if (window.productLabelGeneratorEventsBound) return;
+
+  let fileInput = document.getElementById("productLabelFile");
+  let selectFileBtn = document.getElementById("selectProductLabelFileBtn");
+  let startImportBtn = document.getElementById("startProductLabelImportBtn");
+  let clearBtn = document.getElementById("clearProductLabelBtn");
+  let generateBtn = document.getElementById("generateProductLabelJpgBtn");
+
+  if (fileInput) {
+    fileInput.addEventListener("change", handleProductLabelFileSelect);
+  }
+
+  if (selectFileBtn) {
+    selectFileBtn.onclick = triggerProductLabelFilePicker;
+  }
+
+  if (startImportBtn) {
+    startImportBtn.onclick = startProductLabelImport;
+  }
+
+  if (clearBtn) {
+    clearBtn.onclick = clearProductLabelEntry;
+  }
+  if (generateBtn) {
+    generateBtn.onclick = generateSingleProductLabelJpg;
+  }
+
+  window.productLabelGeneratorEventsBound = true;
 }
 
 function bindOrderClassificationPlatformButtons() {
@@ -4726,6 +5368,7 @@ function switchDepartment(department) {
   let sidebarDepartmentTitle = document.getElementById("sidebarDepartmentTitle");
   let logisticsMenuArea = document.getElementById("logisticsMenuArea");
   let emptyDepartmentMenuArea = document.getElementById("emptyDepartmentMenuArea");
+  let purchasingMenuArea = document.getElementById("purchasingMenuArea");
   let departmentTabs = document.querySelectorAll(".department-tab");
   let menuButtons = document.querySelectorAll(".sidebar .menu-btn");
   let pages = document.querySelectorAll(".page");
@@ -4769,6 +5412,7 @@ function switchDepartment(department) {
   if (targetDepartment === "logistics") {
     if (logisticsMenuArea) logisticsMenuArea.style.display = "block";
     if (emptyDepartmentMenuArea) emptyDepartmentMenuArea.style.display = "none";
+    if (purchasingMenuArea) purchasingMenuArea.style.display = "none";
 
     let activePage = document.querySelector(".page.active");
     let activeButton = document.querySelector(".sidebar .menu-btn.active");
@@ -4782,9 +5426,24 @@ function switchDepartment(department) {
         matchedButton.classList.add("active");
       }
     }
+
+  } else if (targetDepartment === "purchasing") {
+    if (logisticsMenuArea) logisticsMenuArea.style.display = "none";
+    if (emptyDepartmentMenuArea) emptyDepartmentMenuArea.style.display = "none";
+    if (purchasingMenuArea) purchasingMenuArea.style.display = "block";
+
+    pages.forEach(page => {
+      page.classList.remove("active");
+    });
+
+    menuButtons.forEach(button => {
+      button.classList.remove("active");
+    });
+
   } else {
     if (logisticsMenuArea) logisticsMenuArea.style.display = "none";
     if (emptyDepartmentMenuArea) emptyDepartmentMenuArea.style.display = "block";
+    if (purchasingMenuArea) purchasingMenuArea.style.display = "none";
 
     pages.forEach(page => {
       page.classList.remove("active");
@@ -7951,6 +8610,7 @@ function showPage(pageId, btn) {
       initializeOrderImportTargetWorkDate();
       ensureOrderClassificationRulesLoaded();
       initializeOrderClassificationBoardSwitch();
+      bindProductLabelGeneratorEvents();
       renderOrderClassificationBoard();
     }
     if (pageId === "flowControlPage") {
@@ -12957,6 +13617,7 @@ window.addEventListener("storage", function (event) {
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
 <script>
   const firebaseConfig = {
@@ -12974,6 +13635,7 @@ window.addEventListener("storage", function (event) {
 
   // 初始化 Firestore
   window.db = firebase.firestore();
+  window.storage = firebase.storage();
 
   // Firestore collection 名稱集中管理
   const FIRESTORE_COLLECTIONS = {
@@ -12990,6 +13652,7 @@ window.addEventListener("storage", function (event) {
 
   console.log("Firebase 初始化完成");
   console.log("Firestore 初始化完成", window.db);
+  console.log("Firebase Storage 初始化完成", window.storage);
 </script>
 </body>
 </html>
