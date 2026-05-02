@@ -4407,11 +4407,6 @@ async function generateSingleProductLabelJpg() {
   let card = document.getElementById("productLabelPreviewCard");
   let exportResult = document.getElementById("productLabelExportResult");
 
-  if (!window.storage) {
-    alert("Firebase Storage 尚未初始化");
-    return;
-  }
-
   if (!card) {
     alert("找不到標籤預覽區");
     return;
@@ -4439,19 +4434,21 @@ async function generateSingleProductLabelJpg() {
       backgroundColor: "#ffffff",
       scale: 2
     });
-    console.log("canvas OK");
 
     let blob = await new Promise(resolve => {
       canvas.toBlob(resolve, "image/jpeg", 0.95);
     });
-    console.log("blob:", blob);
+
+    if (!blob) {
+      throw new Error("圖片轉換失敗，沒有產生 blob");
+    }
 
     let safeCode = productCode.replace(/[\/\\#?%&]/g, "_");
-    let path = `product-labels/${safeCode}.jpg`;
 
     let formData = new FormData();
     formData.append("file", blob);
     formData.append("upload_preset", "unsigned_preset");
+    formData.append("public_id", `product-labels/${safeCode}`);
 
     let response = await fetch(
       "https://api.cloudinary.com/v1_1/dayhbzbea/image/upload",
@@ -4463,8 +4460,20 @@ async function generateSingleProductLabelJpg() {
 
     let data = await response.json();
 
-    let url = data.secure_url;
+    console.log("Cloudinary response:", data);
 
+    if (!data.secure_url) {
+      if (exportResult) {
+        exportResult.innerHTML = `
+          <div style="color:red;">
+            上傳失敗：${data.error && data.error.message ? data.error.message : "未知錯誤"}
+          </div>
+        `;
+      }
+      return;
+    }
+
+    let url = data.secure_url;
     item.imageUrl = url;
 
     if (exportResult) {
@@ -4474,18 +4483,28 @@ async function generateSingleProductLabelJpg() {
 
         <a href="${url}" target="_blank">開啟圖片</a>
 
-        <input value="${url}" readonly onclick="this.select()" style="width:100%; margin-top:8px;">
+        <input
+          value="${url}"
+          readonly
+          onclick="this.select()"
+          style="width:100%; margin-top:8px;"
+        >
 
-        <button onclick="navigator.clipboard.writeText('${url}')">
+        <button type="button" onclick="navigator.clipboard.writeText('${url}')">
           複製網址
         </button>
       `;
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("Cloudinary 上傳失敗：", err);
+
     if (exportResult) {
-      exportResult.innerText = "上傳失敗";
+      exportResult.innerHTML = `
+        <div style="color:red;">
+          上傳失敗：${err.message || err}
+        </div>
+      `;
     }
   }
 }
