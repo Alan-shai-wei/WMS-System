@@ -4427,7 +4427,10 @@ async function generateSingleProductLabelJpg() {
     if (exportResult) {
       exportResult.innerText = "產圖與上傳中...";
     }
-
+    
+    card.style.boxShadow = "none";
+    card.style.border = "none";
+    
     let canvas = await html2canvas(card, {
       backgroundColor: "#ffffff",
       scale: 2
