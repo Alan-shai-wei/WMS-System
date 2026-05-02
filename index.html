@@ -969,6 +969,9 @@
           <button type="button" id="selectProductLabelFileBtn">選擇 Excel 檔案</button>
           <button type="button" class="green" id="startProductLabelImportBtn">開始匯入</button>
           <button type="button" class="gray" id="clearProductLabelBtn">清空</button>
+          <button type="button" class="teal" id="downloadProductLabelTemplateBtn">
+            下載匯入範本
+          </button>
         </div>
 
         <input
@@ -4401,112 +4404,219 @@ function renderOrderClassificationSubTypeButtons() {
   });
 }
 
-async function generateSingleProductLabelJpg() {
+function sleepProductLabelBatch(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getSafeProductLabelCode(productCode) {
+  return String(productCode || "")
+    .trim()
+    .replace(/[\/\\#?%&]/g, "_");
+}
+
+function renderProductLabelPreviewByItem(item) {
+  let previewCard = document.getElementById("productLabelPreviewCard");
+
+  if (!previewCard || !item) return;
+
+  previewCard.innerHTML = `
+    <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">
+      ${item.name || ""}
+    </div>
+
+    <div>產地：${item.origin || ""}</div>
+    <div>規格 / 成分：${item.spec || ""}</div>
+
+    <div style="margin-top:8px;">
+      進口商：${item.importer || ""}
+    </div>
+    <div>地址：${item.address || ""}</div>
+    <div>電話：${item.phone || ""}</div>
+  `;
+}
+
+async function uploadProductLabelItemToCloudinary(item) {
   let card = document.getElementById("productLabelPreviewCard");
-  let exportResult = document.getElementById("productLabelExportResult");
 
   if (!card) {
-    alert("找不到標籤預覽區");
-    return;
+    throw new Error("找不到標籤預覽區");
   }
+
+  let productCode = String(item.productCode || "").trim();
+
+  if (!productCode) {
+    throw new Error("缺少產編");
+  }
+
+  renderProductLabelPreviewByItem(item);
+
+  card.style.boxShadow = "none";
+  card.style.border = "none";
+
+  await sleepProductLabelBatch(80);
+
+  let canvas = await html2canvas(card, {
+    backgroundColor: "#ffffff",
+    scale: 2
+  });
+
+  let blob = await new Promise(resolve => {
+    canvas.toBlob(resolve, "image/jpeg", 0.95);
+  });
+
+  if (!blob) {
+    throw new Error("圖片轉換失敗，沒有產生 blob");
+  }
+
+  let safeCode = getSafeProductLabelCode(productCode);
+
+  let formData = new FormData();
+  formData.append("file", blob);
+  formData.append("upload_preset", "unsigned_preset");
+  formData.append("public_id", `product-labels/${safeCode}`);
+
+  let response = await fetch(
+    "https://api.cloudinary.com/v1_1/dayhbzbea/image/upload",
+    {
+      method: "POST",
+      body: formData
+    }
+  );
+
+  let data = await response.json();
+
+  if (!data.secure_url) {
+    throw new Error(data.error && data.error.message ? data.error.message : "Cloudinary 上傳失敗");
+  }
+
+  item.imageUrl = data.secure_url;
+
+  return data.secure_url;
+}
+
+async function generateBatchProductLabelJpg() {
+  let exportResult = document.getElementById("productLabelExportResult");
 
   if (!productLabelRows || productLabelRows.length === 0) {
     alert("請先匯入 Excel");
     return;
   }
 
-  let item = productLabelRows[0];
-  let productCode = String(item.productCode || "").trim();
+  if (exportResult) {
+    exportResult.innerHTML = `
+      <div><strong>批量產圖準備開始</strong></div>
 
-  if (!productCode) {
-    alert("缺少產編");
-    return;
+      <div style="margin-top:10px;">
+        進度：<strong id="productLabelBatchProgressText">0 / ${productLabelRows.length}</strong>
+      </div>
+
+      <div style="
+        width:100%;
+        height:18px;
+        background:#e5e7eb;
+        border-radius:999px;
+        overflow:hidden;
+        margin-top:8px;
+        margin-bottom:12px;
+      ">
+        <div id="productLabelBatchProgressBar" style="
+          width:0%;
+          height:100%;
+          background:#2563eb;
+          transition:width 0.2s ease;
+        "></div>
+      </div>
+
+      <table>
+        <tr>
+          <th>產編</th>
+          <th>品名</th>
+          <th>網址</th>
+          <th>開啟圖片</th>
+          <th>複製</th>
+          <th>狀態</th>
+        </tr>
+      </table>
+    `;
   }
 
-  try {
-    if (exportResult) {
-      exportResult.innerText = "產圖與上傳中...";
-    }
-    
-    card.style.boxShadow = "none";
-    card.style.border = "none";
-    
-    let canvas = await html2canvas(card, {
-      backgroundColor: "#ffffff",
-      scale: 2
-    });
+  for (let i = 0; i < productLabelRows.length; i++) {
+    let item = productLabelRows[i];
+    let productCode = String(item.productCode || "").trim();
+    let name = String(item.name || "").trim();
 
-    let blob = await new Promise(resolve => {
-      canvas.toBlob(resolve, "image/jpeg", 0.95);
-    });
-
-    if (!blob) {
-      throw new Error("圖片轉換失敗，沒有產生 blob");
-    }
-
-    let safeCode = productCode.replace(/[\/\\#?%&]/g, "_");
-
-    let formData = new FormData();
-    formData.append("file", blob);
-    formData.append("upload_preset", "unsigned_preset");
-    formData.append("public_id", `product-labels/${safeCode}`);
-
-    let response = await fetch(
-      "https://api.cloudinary.com/v1_1/dayhbzbea/image/upload",
-      {
-        method: "POST",
-        body: formData
-      }
-    );
-
-    let data = await response.json();
-
-    console.log("Cloudinary response:", data);
-
-    if (!data.secure_url) {
+    try {
       if (exportResult) {
-        exportResult.innerHTML = `
-          <div style="color:red;">
-            上傳失敗：${data.error && data.error.message ? data.error.message : "未知錯誤"}
-          </div>
-        `;
+        let progressText = document.getElementById("productLabelBatchProgressText");
+        let progressBar = document.getElementById("productLabelBatchProgressBar");
+
+        let doneCount = i + 1;
+        let totalCount = productLabelRows.length;
+        let percent = Math.round((doneCount / totalCount) * 100);
+
+        if (progressText) {
+          progressText.innerText = `${doneCount} / ${totalCount}`;
+        }
+
+        if (progressBar) {
+          progressBar.style.width = `${percent}%`;
+        }
+}
+
+      let url = await uploadProductLabelItemToCloudinary(item);
+
+      if (exportResult) {
+        let table = exportResult.querySelector("table");
+
+        if (table) {
+          let row = table.insertRow();
+          row.insertCell(0).innerText = productCode;
+          row.insertCell(1).innerText = name;
+          row.insertCell(2).innerHTML = `
+            <input value="${url}" readonly onclick="this.select()" style="width:100%;">
+          `;
+          row.insertCell(3).innerHTML = `
+            <a href="${url}" target="_blank">開啟圖片</a>
+          `;
+          row.insertCell(4).innerHTML = `
+            <button type="button" onclick="navigator.clipboard.writeText('${url}')">
+              複製
+            </button>
+          `;
+          row.insertCell(5).innerText = "成功";
+        }
       }
-      return;
+
+      await sleepProductLabelBatch(120);
+
+    } catch (error) {
+      console.error("商品標籤批量產圖失敗：", item, error);
+
+      if (exportResult) {
+        let table = exportResult.querySelector("table");
+
+        if (table) {
+          let row = table.insertRow();
+          row.insertCell(0).innerText = productCode;
+          row.insertCell(1).innerText = name;
+          row.insertCell(2).innerText = "-";
+          row.insertCell(3).innerText = "-";
+          row.insertCell(4).innerText = "-";
+          row.insertCell(5).innerHTML = `<span class="danger-text">${error.message || error}</span>`;
+        }
+      }
+
+      await sleepProductLabelBatch(120);
     }
+  }
 
-    let url = data.secure_url;
-    item.imageUrl = url;
+  if (exportResult) {
+    let successCount = productLabelRows.filter(row => row.imageUrl).length;
 
-    if (exportResult) {
-      exportResult.innerHTML = `
-        <div><strong>上傳完成</strong></div>
-        <div>產編：${productCode}</div>
-
-        <a href="${url}" target="_blank">開啟圖片</a>
-
-        <input
-          value="${url}"
-          readonly
-          onclick="this.select()"
-          style="width:100%; margin-top:8px;"
-        >
-
-        <button type="button" onclick="navigator.clipboard.writeText('${url}')">
-          複製網址
-        </button>
-      `;
-    }
-
-  } catch (err) {
-    console.error("Cloudinary 上傳失敗：", err);
-
-    if (exportResult) {
-      exportResult.innerHTML = `
-        <div style="color:red;">
-          上傳失敗：${err.message || err}
-        </div>
-      `;
-    }
+    exportResult.insertAdjacentHTML(
+      "afterbegin",
+      `<div><strong>批量產圖完成：成功 ${successCount} / ${productLabelRows.length}</strong></div>`
+    );
   }
 }
 
@@ -4538,6 +4648,20 @@ function renderProductLabelPreview() {
   `;
 }
 
+function downloadProductLabelTemplate() {
+  let templateRows = [
+    ["產編", "品名", "", "產地", "規格 / 成分", "進口商", "電話", "地址"],
+    ["A001", "範例商品名稱", "", "台灣", "100g / 棉 100%", "範例進口商有限公司", "02-12345678", "台北市範例區範例路1號"]
+  ];
+
+  let worksheet = XLSX.utils.aoa_to_sheet(templateRows);
+  let workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "商品標籤匯入範本");
+
+  XLSX.writeFile(workbook, "商品標籤匯入範本.xlsx");
+}
+
 function bindProductLabelGeneratorEvents() {
   if (window.productLabelGeneratorEventsBound) return;
 
@@ -4546,6 +4670,7 @@ function bindProductLabelGeneratorEvents() {
   let startImportBtn = document.getElementById("startProductLabelImportBtn");
   let clearBtn = document.getElementById("clearProductLabelBtn");
   let generateBtn = document.getElementById("generateProductLabelJpgBtn");
+  let templateBtn = document.getElementById("downloadProductLabelTemplateBtn");
 
   if (fileInput) {
     fileInput.addEventListener("change", handleProductLabelFileSelect);
@@ -4563,7 +4688,10 @@ function bindProductLabelGeneratorEvents() {
     clearBtn.onclick = clearProductLabelEntry;
   }
   if (generateBtn) {
-    generateBtn.onclick = generateSingleProductLabelJpg;
+    generateBtn.addEventListener("click", generateBatchProductLabelJpg);
+  }
+  if (templateBtn) {
+    templateBtn.onclick = downloadProductLabelTemplate;
   }
 
   window.productLabelGeneratorEventsBound = true;
