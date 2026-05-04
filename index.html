@@ -532,6 +532,40 @@
   </div>
 </div>
 
+<!-- Mobile Scan Center（第二階段：統一掃碼頁） -->
+<div id="mobileScanPage" class="page" style="display:none; min-height:100vh; background:#f5f6f8; padding:20px;">
+  <div class="card" style="max-width:520px; margin:0 auto;">
+    <h2>Mobile Scan Center</h2>
+
+    <div class="info-box">
+      作業模式：<strong id="mobileScanModeText">尚未選擇</strong>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>主掃碼欄位</h3>
+
+      <label for="mobileMainScanInput">掃描條碼</label>
+      <input
+        type="text"
+        id="mobileMainScanInput"
+        placeholder="請掃描條碼"
+        autocomplete="off"
+      >
+
+      <div id="mobileScanResult" class="result-box">
+        尚未掃碼
+      </div>
+
+      <div id="mobileScanMessage" class="message"></div>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="gray" onclick="showMobileHomePage()">返回作業模式</button>
+      <button type="button" class="danger" onclick="handleLogout()">登出</button>
+    </div>
+  </div>
+</div>
+
 <div class="layout">
   <div class="sidebar">
     <h2 id="sidebarDepartmentTitle">物流管理部</h2>
@@ -2359,6 +2393,7 @@ let LAST_ACTIVE_STORAGE_KEY = "warehouseLastActiveTime";
 let accounts = [];
 let currentUser = null;
 let currentMobileWorkMode = "";
+let mobileScanProcessing = false;
 let IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 分鐘
 let idleTimeoutHandle = null;
 let idleTrackingEnabled = false;
@@ -3680,17 +3715,606 @@ function resetMobileWorkMode() {
 function setMobileWorkMode(modeName) {
   currentMobileWorkMode = String(modeName || "").trim();
 
-  let currentModeText = document.getElementById("mobileCurrentModeText");
-  let message = document.getElementById("mobileModeMessage");
+  let mobileHomePage = document.getElementById("mobileHomePage");
+  let mobileScanPage = document.getElementById("mobileScanPage");
+  let homeModeText = document.getElementById("mobileCurrentModeText");
+  let homeMessage = document.getElementById("mobileModeMessage");
+  let scanModeText = document.getElementById("mobileScanModeText");
+  let scanInput = document.getElementById("mobileMainScanInput");
+  let scanResult = document.getElementById("mobileScanResult");
+  let scanMessage = document.getElementById("mobileScanMessage");
 
-  if (currentModeText) {
-    currentModeText.innerText = currentMobileWorkMode || "尚未選擇";
+  if (homeModeText) {
+    homeModeText.innerText = currentMobileWorkMode || "尚未選擇";
   }
 
-  if (message) {
-    message.innerText = `${currentMobileWorkMode}：此作業模式尚未啟用`;
-    message.className = "message danger-text";
+  if (homeMessage) {
+    homeMessage.innerText = "";
+    homeMessage.className = "message";
   }
+
+  if (scanModeText) {
+    scanModeText.innerText = currentMobileWorkMode || "尚未選擇";
+  }
+
+  if (scanResult) {
+    scanResult.innerText = "尚未掃碼";
+  }
+
+  if (scanMessage) {
+    scanMessage.innerText = "";
+    scanMessage.className = "message";
+  }
+
+  if (scanInput) {
+    scanInput.value = "";
+  }
+
+  if (mobileHomePage) {
+    mobileHomePage.style.display = "none";
+  }
+
+  if (mobileScanPage) {
+    mobileScanPage.style.display = "block";
+  }
+
+  setTimeout(function() {
+    if (scanInput) {
+      scanInput.focus();
+      scanInput.select();
+    }
+  }, 0);
+}
+function getMobileScanContext(scanValue) {
+  let loginUser = getCurrentLoginUser();
+
+  return {
+    scanValue: String(scanValue || "").trim(),
+    workMode: String(currentMobileWorkMode || "").trim(),
+    operatorUsername: loginUser ? String(loginUser.username || "").trim() : "",
+    operatorName: loginUser ? String(loginUser.name || loginUser.username || "").trim() : "",
+    accessLevel: loginUser ? String(loginUser.accessLevel || "").trim() : "",
+    workRoles: loginUser && Array.isArray(loginUser.workRoles)
+      ? loginUser.workRoles
+      : []
+  };
+}
+function getMobileOperatorAccount(scanContext) {
+  if (!scanContext) {
+    return null;
+  }
+
+  let operatorUsername = String(scanContext.operatorUsername || "").trim();
+
+  if (!operatorUsername) {
+    return null;
+  }
+
+  return getAccounts().find(account => {
+    return String(account.username || "").trim() === operatorUsername;
+  }) || null;
+}
+function hasMobileWorkModePermission(scanContext) {
+  if (!scanContext) {
+    return false;
+  }
+
+  let accessLevel = String(scanContext.accessLevel || "").trim();
+  let workMode = String(scanContext.workMode || "").trim();
+  let workRoles = Array.isArray(scanContext.workRoles)
+    ? scanContext.workRoles
+    : [];
+
+  if (accessLevel === "Admin") {
+    return true;
+  }
+
+  if (workMode === "撿貨作業") {
+    return workRoles.includes("Picker");
+  }
+
+  if (workMode === "配貨作業") {
+    return workRoles.includes("Sorter");
+  }
+
+  if (workMode === "包貨｜無包裝") {
+    return workRoles.includes("Packer");
+  }
+
+  if (workMode === "包貨｜一般配") {
+    return workRoles.includes("Packer");
+  }
+
+  return false;
+}
+function hasMobileActiveWorkstation(scanContext) {
+  if (!scanContext) {
+    return false;
+  }
+
+  let employeeCode = String(scanContext.employeeCode || scanContext.operatorUsername || "").trim();
+  let workMode = String(scanContext.workMode || "").trim();
+
+  let requiredWorkstation = "";
+
+  if (workMode === "撿貨作業") {
+    requiredWorkstation = "撿貨";
+  }
+
+  if (workMode === "配貨作業") {
+    requiredWorkstation = "配貨";
+  }
+
+  if (workMode === "包貨｜無包裝") {
+    requiredWorkstation = "包貨｜無包裝";
+  }
+
+  if (workMode === "包貨｜一般配") {
+    requiredWorkstation = "包貨｜一般配";
+  }
+
+  if (!employeeCode || !requiredWorkstation) {
+    return false;
+  }
+
+  return workstationRecords.some(record => {
+    let recordEmployeeCode = String(record.employeeCode || "").trim();
+    let recordStatus = String(record.status || "").trim();
+    let recordEndTime = String(record.endTime || "").trim();
+    let recordWorkstation = String(record.workstation || "").trim();
+
+    return (
+      recordEmployeeCode === employeeCode &&
+      !recordEndTime &&
+      recordStatus === "作業中" &&
+      recordWorkstation === requiredWorkstation
+    );
+  });
+}
+async function processMobilePickScan(scanContext) {
+  if (!scanContext) {
+    return {
+      success: false,
+      message: "掃碼資料錯誤",
+      detailHtml: `<span class="danger-text">掃碼資料錯誤</span>`
+    };
+  }
+
+  let employeeCode = String(scanContext.employeeCode || "").trim();
+  let employeeName = String(scanContext.employeeName || "").trim();
+  let batchCode = String(scanContext.scanValue || "").trim();
+
+  if (!employeeCode || !batchCode) {
+    return {
+      success: false,
+      message: "資料不完整",
+      detailHtml: `<span class="danger-text">員工或批次錯誤</span>`
+    };
+  }
+
+  if (!window.db) {
+    return {
+      success: false,
+      message: "Firestore 未初始化",
+      detailHtml: `<span class="danger-text">系統錯誤：Firestore 未初始化</span>`
+    };
+  }
+
+  if (!hasMobileActiveWorkstation(scanContext)) {
+    return {
+      success: false,
+      message: "目前沒有撿貨工位作業中",
+      detailHtml: `
+        <span class="danger-text">工位驗證失敗</span><br>
+        員工：${employeeName || employeeCode}<br>
+        需要先在工位打卡進入：撿貨
+      `
+    };
+  }
+
+  let masterRef = window.db
+    .collection(FIRESTORE_COLLECTIONS.batchMaster)
+    .doc(batchCode);
+
+  let recordRef = window.db
+    .collection(FIRESTORE_COLLECTIONS.batchRecords)
+    .doc(`${batchCode}__${employeeCode}`);
+
+  try {
+    let actionResult = await window.db.runTransaction(async function(transaction) {
+      let masterDoc = await transaction.get(masterRef);
+      let recordDoc = await transaction.get(recordRef);
+
+      if (!masterDoc.exists) {
+        return {
+          success: false,
+          message: "找不到此批次",
+          detailHtml: `
+            <span class="danger-text">批次不存在</span><br>
+            批次：${batchCode}
+          `
+        };
+      }
+
+      let master = masterDoc.data() || {};
+      let batchType = String(master.type || "").trim();
+      let masterStatus = String(master.status || "未撿貨").trim();
+      let now = getNowString();
+
+      if (batchType !== "一般配" && batchType !== "無包裝") {
+        return {
+          success: false,
+          message: "批次類型錯誤",
+          detailHtml: `
+            <span class="danger-text">批次類型錯誤</span><br>
+            批次：${batchCode}<br>
+            類型：${batchType || "未設定"}
+          `
+        };
+      }
+
+      // ✅ 第二次掃描（完成撿貨）
+      if (recordDoc.exists) {
+        let existedRecord = recordDoc.data() || {};
+        let existedEndTime = String(existedRecord.endTime || "").trim();
+
+        if (existedEndTime) {
+          return {
+            success: false,
+            message: "此批次已完成撿貨",
+            detailHtml: `
+              <span class="danger-text">重複掃描失敗</span><br>
+              批次：${batchCode}
+            `
+          };
+        }
+
+        let nextStatus = batchType === "一般配" ? "待配貨" : "待包貨";
+
+        transaction.set(recordRef, {
+          ...existedRecord,
+          endTime: now,
+          status: nextStatus,
+          updatedAt: now
+        });
+
+        transaction.set(masterRef, {
+          ...master,
+          status: nextStatus,
+          updatedAt: now
+        });
+
+        return {
+          success: true,
+          message: "撿貨完成",
+          nextStatus: nextStatus
+        };
+      }
+
+      // ✅ 第一次掃描（開始撿貨）
+      transaction.set(recordRef, {
+        batchCode: batchCode,
+        type: batchType,
+        employeeCode: employeeCode,
+        employeeName: employeeName,
+        startTime: now,
+        endTime: "",
+        status: "開始撿貨",
+        source: "mobile",
+        createdAt: now,
+        updatedAt: now
+      });
+
+      transaction.set(masterRef, {
+        ...master,
+        status: "開始撿貨",
+        updatedAt: now
+      });
+
+      return {
+        success: true,
+        message: "開始撿貨",
+        nextStatus: "開始撿貨"
+      };
+    });
+
+    // 🔥 Step 25：本機同步（關鍵）
+    if (actionResult && actionResult.success) {
+      let now = getNowString();
+
+      // 更新 batchMaster（本機）
+      let masterIndex = batchMaster.findIndex(m => m.batchCode === batchCode);
+
+      if (masterIndex !== -1) {
+        batchMaster[masterIndex] = {
+          ...batchMaster[masterIndex],
+          status: actionResult.nextStatus,
+          updatedAt: now
+        };
+      }
+
+      // 更新 batchRecords（本機）
+      let recordIndex = batchRecords.findIndex(r =>
+        r.batchCode === batchCode &&
+        r.employeeCode === employeeCode
+      );
+
+      if (recordIndex !== -1) {
+        batchRecords[recordIndex] = {
+          ...batchRecords[recordIndex],
+          endTime: actionResult.message === "撿貨完成" ? now : "",
+          status: actionResult.nextStatus,
+          updatedAt: now
+        };
+      } else {
+        batchRecords.push({
+          batchCode: batchCode,
+          employeeCode: employeeCode,
+          employeeName: employeeName,
+          startTime: now,
+          endTime: "",
+          status: "開始撿貨",
+          source: "mobile",
+          createdAt: now,
+          updatedAt: now
+        });
+      }
+    }
+
+    return actionResult;
+
+  } catch (error) {
+    console.error("手機撿貨掃碼失敗：", error);
+
+    return {
+      success: false,
+      message: "寫入失敗",
+      detailHtml: `<span class="danger-text">Firestore 寫入失敗</span>`
+    };
+  }
+}
+async function processMobileSortScan(scanContext) {
+  if (!scanContext) {
+    return {
+      success: false,
+      message: "掃碼資料錯誤",
+      detailHtml: `<span class="danger-text">掃碼資料錯誤</span>`
+    };
+  }
+
+  let employeeCode = String(scanContext.employeeCode || "").trim();
+  let employeeName = String(scanContext.employeeName || "").trim();
+  let batchCode = String(scanContext.scanValue || "").trim();
+
+  if (!employeeCode || !batchCode) {
+    return {
+      success: false,
+      message: "資料不完整",
+      detailHtml: `<span class="danger-text">員工或批次錯誤</span>`
+    };
+  }
+
+  if (!window.db) {
+    return {
+      success: false,
+      message: "Firestore 未初始化",
+      detailHtml: `<span class="danger-text">系統錯誤：Firestore 未初始化</span>`
+    };
+  }
+
+  if (!hasMobileActiveWorkstation(scanContext)) {
+    return {
+      success: false,
+      message: "目前沒有配貨工位作業中",
+      detailHtml: `
+        <span class="danger-text">工位驗證失敗</span><br>
+        員工：${employeeName || employeeCode}<br>
+        需要先在工位打卡進入：配貨
+      `
+    };
+  }
+
+  return {
+    success: false,
+    message: "手機配貨掃碼骨架已建立，尚未接 Firestore",
+    detailHtml: `
+      <strong>配貨作業｜掃碼資料已接收</strong><br>
+      批次：${batchCode}<br>
+      員工：${employeeName || employeeCode}<br>
+      下一步會接 sortBatchRecords 與 batchMaster 狀態流轉
+    `
+  };
+}
+async function processMobileScanByMode(scanContext) {
+  if (!scanContext || !scanContext.workMode) {
+    return {
+      success: false,
+      message: "尚未選擇作業模式",
+      detailHtml: `<span class="danger-text">尚未選擇作業模式</span>`
+    };
+  }
+
+      let mobileOperatorAccount = getMobileOperatorAccount(scanContext);
+
+      if (!mobileOperatorAccount) {
+        return {
+          success: false,
+          message: "找不到登入者帳號資料",
+          detailHtml: `
+            <span class="danger-text">帳號資料未對應</span><br>
+            操作人：${scanContext.operatorUsername || "-"}<br>
+            請確認帳號管理內是否存在此登入帳號
+          `
+        };
+      }
+
+      scanContext.employeeCode = String(mobileOperatorAccount.username || "").trim();
+      scanContext.employeeName = String(
+        mobileOperatorAccount.name ||
+        mobileOperatorAccount.username ||
+        ""
+      ).trim();
+
+    if (!hasMobileWorkModePermission(scanContext)) {
+      return {
+        success: false,
+        message: "你沒有此手機作業模式的權限",
+        detailHtml: `
+          <span class="danger-text">權限不足</span><br>
+          作業模式：${scanContext.workMode || "-"}<br>
+          權限：${scanContext.accessLevel || "-"}<br>
+          角色：${scanContext.workRoles && scanContext.workRoles.length > 0 ? scanContext.workRoles.join(", ") : "-"}
+        `
+      };
+    }
+
+    if (scanContext.workMode === "撿貨作業") {
+      return await processMobilePickScan(scanContext);
+    }
+
+  if (scanContext.workMode === "配貨作業") {
+    return {
+      success: false,
+      message: "配貨掃碼功能尚未啟用",
+      detailHtml: `
+        <strong>配貨作業｜掃碼資料已接收</strong><br>
+        掃碼內容：${scanContext.scanValue}
+      `
+    };
+  }
+
+  if (scanContext.workMode === "包貨｜無包裝") {
+    return {
+      success: false,
+      message: "包貨｜無包裝掃碼功能尚未啟用",
+      detailHtml: `
+        <strong>包貨｜無包裝｜掃碼資料已接收</strong><br>
+        掃碼內容：${scanContext.scanValue}
+      `
+    };
+  }
+
+  if (scanContext.workMode === "包貨｜一般配") {
+    return {
+      success: false,
+      message: "包貨｜一般配掃碼功能尚未啟用",
+      detailHtml: `
+        <strong>包貨｜一般配｜掃碼資料已接收</strong><br>
+        掃碼內容：${scanContext.scanValue}
+      `
+    };
+  }
+
+  return {
+    success: false,
+    message: "未知的手機作業模式",
+    detailHtml: `<span class="danger-text">未知的手機作業模式：${scanContext.workMode}</span>`
+  };
+}
+async function handleMobileMainScanEnter() {
+  if (mobileScanProcessing) {
+    return;
+  }
+
+  mobileScanProcessing = true;
+
+  let input = document.getElementById("mobileMainScanInput");
+  let result = document.getElementById("mobileScanResult");
+  let message = document.getElementById("mobileScanMessage");
+
+  let scanValue = input ? String(input.value || "").trim() : "";
+  let scanContext = getMobileScanContext(scanValue);
+
+  if (!input) {
+    return;
+  }
+
+  if (!scanContext.workMode) {
+    if (result) {
+      result.innerHTML = `<span class="danger-text">尚未選擇作業模式</span>`;
+    }
+
+    if (message) {
+      message.innerText = "請先返回作業模式頁，選擇要執行的作業";
+      message.className = "message danger-text";
+    }
+
+    input.value = "";
+    input.focus();
+    input.select();
+    return;
+  }
+
+  if (!scanContext.operatorUsername) {
+    if (result) {
+      result.innerHTML = `<span class="danger-text">尚未取得登入者身份</span>`;
+    }
+
+    if (message) {
+      message.innerText = "請重新登入後再掃碼";
+      message.className = "message danger-text";
+    }
+
+    input.value = "";
+    input.focus();
+    input.select();
+    return;
+  }
+
+  if (!scanContext.scanValue) {
+    if (result) {
+      result.innerHTML = `<span class="danger-text">請先掃描或輸入條碼</span>`;
+    }
+
+    if (message) {
+      message.innerText = "條碼不可空白";
+      message.className = "message danger-text";
+    }
+
+    input.value = "";
+    input.focus();
+    input.select();
+    return;
+  }
+
+    let scanResult = await processMobileScanByMode(scanContext);
+
+    if (result) {
+      result.innerHTML = scanResult.detailHtml || "";
+    }
+
+    if (message) {
+      message.innerText = scanResult.message || "";
+      message.className = scanResult.success ? "message" : "message danger-text";
+    }
+
+  input.value = "";
+  input.focus();
+  input.select();
+  input.value = "";
+}
+
+function bindMobileMainScanInput() {
+  if (window.mobileMainScanInputBound) return;
+
+  let input = document.getElementById("mobileMainScanInput");
+
+  if (!input) {
+    return;
+  }
+
+  input.addEventListener("focus", function() {
+    input.select();
+  });
+
+  input.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleMobileMainScanEnter();
+    }
+  });
+
+  window.mobileMainScanInputBound = true;
 }
 function renderMobileHomeUserInfo() {
   let currentUser = getCurrentLoginUser();
@@ -3744,6 +4368,7 @@ function showMobileHomePage() {
 
   resetMobileWorkMode();
   renderMobileHomeUserInfo();
+  bindMobileMainScanInput();
   startIdleTracking();
 }
 function showSystemPage() {
@@ -7055,6 +7680,65 @@ function renderAttendanceDashboard() {
     row.insertCell(7).innerText = rowData.displayStatus || "";
   }
 }
+async function importManualAttendance(records) {
+  if (!window.db) {
+    alert("Firestore 尚未初始化");
+    return;
+  }
+
+  if (!Array.isArray(records) || records.length === 0) {
+    alert("沒有補登資料");
+    return;
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < records.length; i++) {
+    let item = records[i];
+
+    let employeeCode = String(item.employeeCode || "").trim();
+    let employeeName = String(item.employeeName || "").trim();
+    let date = String(item.date || "").trim();
+    let checkInTime = String(item.checkInTime || "").trim();
+    let checkOutTime = String(item.checkOutTime || "").trim();
+
+    if (!employeeCode || !date || !checkInTime) {
+      failCount++;
+      console.warn("補登略過：缺少 employeeCode / date / checkInTime", item);
+      continue;
+    }
+
+    let docId = `${employeeCode}__${date.replace(/\//g, "-")}`;
+
+    try {
+      await window.db
+        .collection(FIRESTORE_COLLECTIONS.attendance)
+        .doc(docId)
+        .set({
+          employeeCode: employeeCode,
+          employeeName: employeeName,
+          date: date,
+          checkInTime: checkInTime,
+          checkOutTime: checkOutTime,
+          status: checkOutTime ? "已下班" : "上班中",
+          isManualFix: true,
+          fixReason: "2026-05-04 Firestore Rules 權限異常補登",
+          updatedAt: getNowString()
+        }, { merge: true });
+
+      successCount++;
+    } catch (error) {
+      failCount++;
+      console.error("補登失敗：", item, error);
+    }
+  }
+
+  attendanceRecords = await loadAttendanceRecordsFromFirestore();
+  refreshAttendanceRecordsViews();
+
+  alert(`補登完成：成功 ${successCount} 筆，失敗 ${failCount} 筆`);
+}
 function getWorkTimeAttendanceFilterDate() {
   let input = document.getElementById("workTimeAttendanceFilterDate");
 
@@ -8101,6 +8785,101 @@ function subscribeAccountsRealtime() {
       }
     );
 }
+async function rescueLegacyEmployeesAndAccountsFromMainDocs() {
+  if (!window.db) {
+    console.warn("救援轉換：Firestore 尚未初始化");
+    return;
+  }
+
+  let rescueResult = {
+    employeeCount: 0,
+    accountCount: 0
+  };
+
+  try {
+    let employeesMainDoc = await window.db
+      .collection(FIRESTORE_COLLECTIONS.employees)
+      .doc("main")
+      .get();
+
+    if (employeesMainDoc.exists) {
+      let employeesMainData = employeesMainDoc.data() || {};
+      let legacyEmployees = Array.isArray(employeesMainData.records)
+        ? employeesMainData.records
+        : [];
+
+      for (let i = 0; i < legacyEmployees.length; i++) {
+        let item = legacyEmployees[i] || {};
+        let code = String(item.code || item.employeeCode || "").trim();
+        let name = String(item.name || item.employeeName || "").trim();
+
+        if (!code || !name) {
+          continue;
+        }
+
+        await window.db
+          .collection(FIRESTORE_COLLECTIONS.employees)
+          .doc(code)
+          .set({
+            code: code,
+            name: name,
+            shiftStart: String(item.shiftStart || item.startTime || "").trim(),
+            shiftEnd: String(item.shiftEnd || item.endTime || "").trim(),
+            rescuedFromMain: true,
+            rescuedAt: getNowString(),
+            updatedAt: getNowString()
+          }, { merge: true });
+
+        rescueResult.employeeCount++;
+      }
+    }
+
+    let accountsMainDoc = await window.db
+      .collection(FIRESTORE_COLLECTIONS.accounts)
+      .doc("main")
+      .get();
+
+    if (accountsMainDoc.exists) {
+      let accountsMainData = accountsMainDoc.data() || {};
+      let legacyAccounts = Array.isArray(accountsMainData.records)
+        ? accountsMainData.records
+        : [];
+
+      for (let i = 0; i < legacyAccounts.length; i++) {
+        let item = legacyAccounts[i] || {};
+        let username = String(item.username || item.account || "").trim();
+
+        if (!username) {
+          continue;
+        }
+
+        let normalizedAccount = normalizeAccount({
+          ...item,
+          username: username
+        }, i);
+
+        await window.db
+          .collection(FIRESTORE_COLLECTIONS.accounts)
+          .doc(username)
+          .set({
+            ...normalizedAccount,
+            username: username,
+            rescuedFromMain: true,
+            rescuedAt: getNowString(),
+            updatedAt: getNowString()
+          }, { merge: true });
+
+        rescueResult.accountCount++;
+      }
+    }
+
+    console.log(
+      `救援轉換完成：員工 ${rescueResult.employeeCount} 筆，帳號 ${rescueResult.accountCount} 筆`
+    );
+  } catch (error) {
+    console.error("救援轉換失敗：", error);
+  }
+}
 async function loadEmployeesFromFirestore() {
   if (!window.db) {
     console.warn("employees：Firestore 尚未初始化");
@@ -8514,6 +9293,53 @@ async function loadPackBatchRecordsFromFirestore() {
     return [];
   }
 }
+async function rescueLegacyBatchMasterFromMainDoc() {
+  if (!window.db) {
+    console.warn("batchMaster 救援：Firestore 尚未初始化");
+    return;
+  }
+
+  try {
+    let mainDoc = await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchMaster)
+      .doc("main")
+      .get();
+
+    if (!mainDoc.exists) {
+      console.log("batchMaster：沒有 main 舊資料");
+      return;
+    }
+
+    let data = mainDoc.data() || {};
+    let records = Array.isArray(data.records) ? data.records : [];
+
+    let count = 0;
+
+    for (let i = 0; i < records.length; i++) {
+      let item = records[i] || {};
+      let batchCode = String(item.batchCode || "").trim();
+
+      if (!batchCode) continue;
+
+      await window.db
+        .collection(FIRESTORE_COLLECTIONS.batchMaster)
+        .doc(batchCode)
+        .set({
+          ...item,
+          batchCode: batchCode,
+          rescuedFromMain: true,
+          rescuedAt: getNowString(),
+          updatedAt: getNowString()
+        }, { merge: true });
+
+      count++;
+    }
+
+    console.log(`batchMaster 救援完成：${count} 筆`);
+  } catch (error) {
+    console.error("batchMaster 救援失敗：", error);
+  }
+}
 async function loadBatchMasterFromFirestore() {
   if (!window.db) {
     console.warn("batchMaster：Firestore 尚未初始化");
@@ -8634,7 +9460,7 @@ function subscribeBatchMasterRealtime() {
         batchMaster = loadedBatchMaster;
         console.log("batchMaster 已啟動即時同步，最新筆數：", batchMaster.length);
 
-        renderBatchMaster();
+        refreshBatchMasterViews();
       },
       function(error) {
         console.error("batchMaster：即時同步失敗", error);
