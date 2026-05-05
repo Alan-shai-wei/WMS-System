@@ -6283,8 +6283,13 @@ async function loadWorkstationRecordsFromFirestore() {
   }
 
   try {
+    let today = getTodayInputDateString();
+    let todaySlash = today.replace(/-/g, "/");
+
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.workstation)
+      .where("startTime", ">=", `${todaySlash} 00:00:00`)
+      .where("startTime", "<=", `${todaySlash} 23:59:59`)
       .get();
 
     if (snapshot.empty) {
@@ -8995,8 +9000,11 @@ async function loadBatchRecordsFromFirestore() {
   }
 
   try {
+    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .where("workDate", "==", today)
       .get();
 
     if (snapshot.empty) {
@@ -9118,8 +9126,11 @@ async function loadSortBatchRecordsFromFirestore() {
   }
 
   try {
+    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
+      .where("workDate", "==", today)
       .get();
 
     if (snapshot.empty) {
@@ -9242,8 +9253,11 @@ async function loadPackBatchRecordsFromFirestore() {
   }
 
   try {
+    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.packBatchRecords)
+      .where("workDate", "==", today)
       .get();
 
     if (snapshot.empty) {
@@ -9347,8 +9361,11 @@ async function loadBatchMasterFromFirestore() {
   }
 
   try {
+    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.batchMaster)
+      .where("workDate", "==", today)
       .get();
 
     if (snapshot.empty) {
@@ -14359,26 +14376,29 @@ updateBatchDashboard();
       }
 
   document.addEventListener("DOMContentLoaded", async function () {
-    accounts = await loadAccountsFromFirestore();
-    await initializeDefaultAccounts();
-    subscribeAccountsRealtime();
-    checkLoginStatus();
+  accounts = await loadAccountsFromFirestore();
+  await initializeDefaultAccounts();
+  checkLoginStatus();
 
-  // ===== employees：Firestore 單筆文件模式 =====
+  // 基礎資料保留
   employees = await loadEmployeesFromFirestore();
-  subscribeEmployeesRealtime();
-    // ===== operationLogs：Firestore 單筆文件模式 =====
-operationLogs = await loadOperationLogsFromFirestore();
-    // ===== attendanceRecords：Firestore 單筆文件模式 =====
-subscribeAttendanceRecordsRealtime();
-      // ===== workstationRecords：Firestore 單筆文件模式 =====
-subscribeWorkstationRecordsRealtime();
-    subscribeBatchRecordsRealtime();
 
-    packBatchRecords = await loadPackBatchRecordsFromFirestore();
+  // 手機掃碼需要判斷目前工位，所以先保留「一次性讀取」
+  // 不開 onSnapshot，避免持續燒 Read
+  workstationRecords = await loadWorkstationRecordsFromFirestore();
 
-    subscribeSortBatchRecordsRealtime();
-    subscribeBatchMasterRealtime();
+  // Read 止血版：暫停大量即時監聽
+  // subscribeAccountsRealtime();
+  // subscribeEmployeesRealtime();
+  // operationLogs = await loadOperationLogsFromFirestore();
+  // subscribeAttendanceRecordsRealtime();
+  // subscribeWorkstationRecordsRealtime();
+  // subscribeBatchRecordsRealtime();
+  // packBatchRecords = await loadPackBatchRecordsFromFirestore();
+  // subscribeSortBatchRecordsRealtime();
+  // subscribeBatchMasterRealtime();
+
+  console.warn("目前為 Firestore Read 止血模式：已暫停大量即時監聽，但保留工位一次性讀取");
 
     renderEmployees();
     renderBatchGrid();
