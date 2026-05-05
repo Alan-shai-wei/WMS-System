@@ -7108,6 +7108,7 @@ function canStartSortBatch(employee) {
       .doc(docId)
       .set({
         batchCode: batchCode,
+        workDate: String(record.workDate || getTodayInputDateString()).trim(),
         employeeCode: employeeCode,
         employeeName: String(record.employeeName || "").trim(),
         startTime: String(record.startTime || "").trim(),
@@ -9130,58 +9131,76 @@ function subscribeEmployeesRealtime() {
 }
 async function loadBatchRecordsFromFirestore() {
   if (!window.db) {
-    console.warn("batchRecords：Firestore 尚未初始化");
+    console.warn("batchRecords：Firestore 尚未初始化，無法讀取");
     return [];
   }
 
-  try {
-    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+  let today = getTodayInputDateString();
+  let todaySlash = today.replace(/-/g, "/");
 
-    let snapshot = await window.db
+  let loadedBatchRecords = [];
+  let recordMap = {};
+
+  function addBatchRecordFromDoc(doc) {
+    if (!doc || doc.id === "main") return;
+
+    let data = doc.data() || {};
+    let batchCode = String(data.batchCode || "").trim();
+    let employeeCode = String(data.employeeCode || "").trim();
+
+    if (!batchCode || !employeeCode) return;
+
+    let key = `${batchCode}__${employeeCode}`;
+
+    if (recordMap[key]) return;
+
+    recordMap[key] = true;
+
+    loadedBatchRecords.push({
+      ...data,
+      batchCode: batchCode,
+      workDate: String(data.workDate || today).trim(),
+      employeeCode: employeeCode,
+      employeeName: String(data.employeeName || "").trim(),
+      startTime: String(data.startTime || "").trim(),
+      endTime: String(data.endTime || "").trim(),
+      status: String(data.status || "").trim()
+    });
+  }
+
+  try {
+    let workDateSnapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.batchRecords)
       .where("workDate", "==", today)
       .get();
 
-    if (snapshot.empty) {
-      console.warn("batchRecords：Firestore 裡沒有單筆批次紀錄資料");
-      return [];
-    }
+    workDateSnapshot.forEach(addBatchRecordFromDoc);
 
-    let loadedBatchRecords = [];
+    let dashTimeSnapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .where("startTime", ">=", `${today} 00:00:00`)
+      .where("startTime", "<=", `${today} 23:59:59`)
+      .get();
 
-    snapshot.forEach(doc => {
-      if (doc.id === "main") {
-        return;
-      }
+    dashTimeSnapshot.forEach(addBatchRecordFromDoc);
 
-      let data = doc.data() || {};
-      let batchCode = String(data.batchCode || "").trim();
-      let employeeCode = String(data.employeeCode || "").trim();
+    let slashTimeSnapshot = await window.db
+      .collection(FIRESTORE_COLLECTIONS.batchRecords)
+      .where("startTime", ">=", `${todaySlash} 00:00:00`)
+      .where("startTime", "<=", `${todaySlash} 23:59:59`)
+      .get();
 
-      if (!batchCode || !employeeCode) {
-        return;
-      }
-
-      loadedBatchRecords.push({
-        batchCode: batchCode,
-        employeeCode: employeeCode,
-        employeeName: String(data.employeeName || "").trim(),
-        startTime: String(data.startTime || "").trim(),
-        endTime: String(data.endTime || "").trim(),
-        status: String(data.status || "").trim()
-      });
-    });
+    slashTimeSnapshot.forEach(addBatchRecordFromDoc);
 
     loadedBatchRecords.sort((a, b) => {
-      let aTime = String(a.startTime || "");
-      let bTime = String(b.startTime || "");
-      return aTime.localeCompare(bTime);
+      return String(b.startTime || "").localeCompare(String(a.startTime || ""));
     });
 
-    console.log("batchRecords 已從 Firestore 單筆文件載入");
+    console.log("batchRecords 今日載入筆數：", loadedBatchRecords.length);
+
     return loadedBatchRecords;
   } catch (error) {
-    console.error("batchRecords：讀取單筆 Firestore 文件失敗", error);
+    console.error("batchRecords 從 Firestore 載入失敗：", error);
     return [];
   }
 }
@@ -9261,7 +9280,7 @@ async function loadSortBatchRecordsFromFirestore() {
   }
 
   try {
-    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+    let today = getTodayInputDateString();
 
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.sortBatchRecords)
@@ -9388,7 +9407,7 @@ async function loadPackBatchRecordsFromFirestore() {
   }
 
   try {
-    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+    let today = getTodayInputDateString();
 
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.packBatchRecords)
@@ -9496,7 +9515,7 @@ async function loadBatchMasterFromFirestore() {
   }
 
   try {
-    let today = getTodayString ? getTodayString() : getNowString().slice(0, 10);
+    let today = getTodayInputDateString();
 
     let snapshot = await window.db
       .collection(FIRESTORE_COLLECTIONS.batchMaster)
@@ -10713,7 +10732,7 @@ function renderEmployeePerformanceSortingBoard() {
 
   let selectedRecords = sortBatchRecords.filter(record => {
     if (!record.startTime) return false;
-    if (!record.startTime.startsWith(selectedDateText)) return false;
+    if (!String(record.startTime || "").replace(/-/g, "/").startsWith(selectedDateText)) return false;
     if (!record.endTime) return false;
     return true;
   });
@@ -11178,7 +11197,7 @@ function showWorkTimeSubPanel(type) {
 
     let selectedRecords = batchRecords.filter(record => {
       if (!record.startTime) return false;
-      return record.startTime.startsWith(selectedDateText);
+      return record.startTime.replace(/-/g, "/").startsWith(selectedDateText)
     });
 
     if (selectedRecords.length === 0) {
@@ -11285,15 +11304,24 @@ function showWorkTimeSubPanel(type) {
       employeeMap[employeeCode] = {
         employeeCode: employeeCode,
         employeeName: record.employeeName || "",
-        totalQty: 0,
-        batchCount: 0,
+
+        normalBatchCount: 0,
+        noPackBatchCount: 0,
+
+        normalQty: 0,
+        noPackQty: 0,
+
+        pickingHours: Number((pickingHoursMap[employeeCode] || 0).toFixed(2)),
         sortingHours: Number((sortingHoursMap[employeeCode] || 0).toFixed(2)),
-        efficiency: 0
+
+        judgeType: "",
+        judgeValue: 0
       };
     }
+  
 
-    employeeMap[employeeCode].totalQty += qty;
-    employeeMap[employeeCode].batchCount += 1;
+    employeeMap[employeeCode].normalQty += qty;
+    employeeMap[employeeCode].normalBatchCount += 1;
   }
 
   let rankingData = Object.values(employeeMap).map(emp => {
