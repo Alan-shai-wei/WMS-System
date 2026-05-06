@@ -7285,18 +7285,27 @@ async function deleteBatchMasterFromFirestore(batchCode) {
     console.error("batchMaster 刪除 Firestore 失敗：", error);
   }
 }
+function normalizeAttendanceDateText(value) {
+  return String(value || "").trim().replace(/\//g, "-");
+}
+
 function runAttendanceCheckIn(employee) {
   let message = document.getElementById("attendanceMessage");
   let scanResult = document.getElementById("attendanceScanResult");
   let input = document.getElementById("attendanceEmployeeCode");
-  let today = formatDate(new Date());
 
-  let todayRecord = attendanceRecords.find(record =>
-    record.employeeCode === employee.code &&
-    record.date === today
-  );
+  let today = normalizeAttendanceDateText(formatDate(new Date()));
+  let employeeCode = String(employee.code || "").trim();
 
-  if (todayRecord && todayRecord.checkInTime) {
+  let todayRecord = attendanceRecords.find(record => {
+    let recordEmployeeCode = String(record.employeeCode || "").trim();
+    let recordDate = normalizeAttendanceDateText(record.date);
+
+    return recordEmployeeCode === employeeCode &&
+           recordDate === today;
+  });
+
+  if (todayRecord && String(todayRecord.checkInTime || "").trim()) {
     scanResult.innerHTML = `
       <strong>刷卡員工</strong><br>
       員工編號：${employee.code}<br>
@@ -7306,12 +7315,13 @@ function runAttendanceCheckIn(employee) {
     message.className = "message danger-text";
     input.value = "";
     input.focus();
+    input.select();
     return;
   }
 
   let newRecord = {
-    employeeCode: employee.code,
-    employeeName: employee.name,
+    employeeCode: employeeCode,
+    employeeName: String(employee.name || "").trim(),
     date: today,
     checkInTime: getNowString(),
     checkOutTime: "",
@@ -7336,80 +7346,101 @@ function runAttendanceCheckIn(employee) {
   message.className = "message";
   input.value = "";
   input.focus();
+  input.select();
 }
 
 function runAttendanceCheckOut(employee) {
   let message = document.getElementById("attendanceMessage");
   let scanResult = document.getElementById("attendanceScanResult");
   let input = document.getElementById("attendanceEmployeeCode");
-  let today = formatDate(new Date());
 
-  let todayRecord = attendanceRecords.find(record =>
-    record.employeeCode === employee.code &&
-    record.date === today
-  );
+  let today = normalizeAttendanceDateText(formatDate(new Date()));
+  let employeeCode = String(employee.code || "").trim();
 
-  if (!todayRecord || !todayRecord.checkInTime) {
-    scanResult.innerHTML = `
-      <strong>刷卡員工</strong><br>
-      員工編號：${employee.code}<br>
-      員工姓名：${employee.name}
-    `;
-    message.innerText = "今天尚未上班，無法下班打卡";
-    message.className = "message danger-text";
-    input.value = "";
-    input.focus();
+  let todayRecord = attendanceRecords.find(record => {
+    let recordEmployeeCode = String(record.employeeCode || "").trim();
+    let recordDate = normalizeAttendanceDateText(record.date);
+
+    return recordEmployeeCode === employeeCode &&
+           recordDate === today;
+  });
+
+  if (!todayRecord || !String(todayRecord.checkInTime || "").trim()) {
+    if (scanResult) {
+      scanResult.innerHTML = `
+        <strong>刷卡員工</strong><br>
+        員工編號：${employee.code}<br>
+        員工姓名：${employee.name}
+      `;
+    }
+
+    if (message) {
+      message.innerText = "今天尚未上班，無法下班打卡";
+      message.className = "message danger-text";
+    }
+
+    if (input) {
+      input.value = "";
+      input.focus();
+      input.select();
+    }
+
     return;
   }
 
-  if (todayRecord.checkOutTime) {
-    scanResult.innerHTML = `
-      <strong>刷卡員工</strong><br>
-      員工編號：${employee.code}<br>
-      員工姓名：${employee.name}
-    `;
-    message.innerText = "今天已完成下班打卡，不可重複打卡";
-    message.className = "message danger-text";
-    input.value = "";
-    input.focus();
+  if (String(todayRecord.checkOutTime || "").trim()) {
+    if (scanResult) {
+      scanResult.innerHTML = `
+        <strong>刷卡員工</strong><br>
+        員工編號：${employee.code}<br>
+        員工姓名：${employee.name}
+      `;
+    }
+
+    if (message) {
+      message.innerText = "今天已完成下班打卡，不可重複打卡";
+      message.className = "message danger-text";
+    }
+
+    if (input) {
+      input.value = "";
+      input.focus();
+      input.select();
+    }
+
     return;
   }
 
   let checkoutTime = getNowString();
+
   todayRecord.checkOutTime = checkoutTime;
   todayRecord.status = "已下班";
-
-  let workingRecord = workstationRecords.find(record =>
-    record.employeeCode === employee.code &&
-    !record.endTime
-  );
-
-  if (workingRecord) {
-    workingRecord.endTime = checkoutTime;
-    workingRecord.status = "已結束";
-    saveWorkstationRecordToFirestore(workingRecord);
-  }
 
   saveAttendanceRecordToFirestore(todayRecord);
 
   renderAttendanceDashboard();
   renderWorkTimeAttendanceDashboard();
-  renderWorkstationCountBoard();
-  renderActiveWorkstationBoard();
-  renderTodayWorkstationBoard();
 
-  scanResult.innerHTML = `
-    <strong>刷卡成功</strong><br>
-    員工編號：${employee.code}<br>
-    員工姓名：${employee.name}<br>
-    模式：下班模式<br>
-    下班時間：${todayRecord.checkOutTime}
-  `;
+  if (scanResult) {
+    scanResult.innerHTML = `
+      <strong>刷卡成功</strong><br>
+      員工編號：${employee.code}<br>
+      員工姓名：${employee.name}<br>
+      模式：下班模式<br>
+      下班時間：${todayRecord.checkOutTime}
+    `;
+  }
 
-  message.innerText = "下班打卡成功";
-  message.className = "message";
-  input.value = "";
-  input.focus();
+  if (message) {
+    message.innerText = "下班打卡成功";
+    message.className = "message";
+  }
+
+  if (input) {
+    input.value = "";
+    input.focus();
+    input.select();
+  }
 }
   async function saveAttendanceRecordToFirestore(record) {
   if (!window.db) {
@@ -7966,6 +7997,8 @@ function buildWorkTimeWorkstationSummary(filterDate) {
 
   let filteredRecords = [];
   let cardHoursMap = {};
+  let intervalGroupMap = {};
+
   let totalMinutes = 0;
   let completedMinutes = 0;
   let workingMinutes = 0;
@@ -7993,11 +8026,12 @@ function buildWorkTimeWorkstationSummary(filterDate) {
         workstationKey = "出貨Leader";
       }
     }
+
     let startTimeText = String(record.startTime || "").trim();
     let endTimeText = String(record.endTime || "").trim();
     let status = String(record.status || "").trim();
 
-    if (!startTimeText) {
+    if (!employeeCode || !startTimeText) {
       continue;
     }
 
@@ -8018,6 +8052,8 @@ function buildWorkTimeWorkstationSummary(filterDate) {
     let workMinutes = 0;
     let displayStatus = "";
     let isCounted = false;
+    let isWorking = false;
+    let isCompleted = false;
 
     if (endTimeText) {
       endDate = parseAttendanceDateTime(endTimeText);
@@ -8028,18 +8064,20 @@ function buildWorkTimeWorkstationSummary(filterDate) {
         if (diffMinutes > 0) {
           workMinutes = diffMinutes;
           isCounted = true;
-          completedMinutes += workMinutes;
+          isCompleted = true;
         }
       }
 
       displayStatus = "已結束";
     } else if (isToday && now) {
+      endDate = now;
+
       let diffMinutes = Math.floor((now.getTime() - startDate.getTime()) / 60000);
 
       if (diffMinutes > 0) {
         workMinutes = diffMinutes;
         isCounted = true;
-        workingMinutes += workMinutes;
+        isWorking = true;
       }
 
       displayStatus = "作業中";
@@ -8048,13 +8086,25 @@ function buildWorkTimeWorkstationSummary(filterDate) {
       abnormalOpenCount += 1;
     }
 
-    if (isCounted) {
-      totalMinutes += workMinutes;
-      countedRecordCount += 1;
+    if (isCounted && endDate) {
+      let intervalKey = `${employeeCode}__${workstationKey}`;
 
-      if (Object.prototype.hasOwnProperty.call(cardHoursMap, workstationKey)) {
-        cardHoursMap[workstationKey] += workMinutes;
+      if (!intervalGroupMap[intervalKey]) {
+        intervalGroupMap[intervalKey] = {
+          employeeCode: employeeCode,
+          workstationKey: workstationKey,
+          intervals: []
+        };
       }
+
+      intervalGroupMap[intervalKey].intervals.push({
+        startMs: startDate.getTime(),
+        endMs: endDate.getTime(),
+        isCompleted: isCompleted,
+        isWorking: isWorking
+      });
+
+      countedRecordCount += 1;
     }
 
     filteredRecords.push({
@@ -8071,6 +8121,63 @@ function buildWorkTimeWorkstationSummary(filterDate) {
       isCounted: isCounted
     });
   }
+
+  Object.values(intervalGroupMap).forEach(groupItem => {
+    let intervals = groupItem.intervals || [];
+
+    intervals.sort(function(a, b) {
+      return a.startMs - b.startMs;
+    });
+
+    let mergedIntervals = [];
+
+    intervals.forEach(item => {
+      if (mergedIntervals.length === 0) {
+        mergedIntervals.push({
+          startMs: item.startMs,
+          endMs: item.endMs,
+          hasCompleted: item.isCompleted === true,
+          hasWorking: item.isWorking === true
+        });
+        return;
+      }
+
+      let last = mergedIntervals[mergedIntervals.length - 1];
+
+      if (item.startMs <= last.endMs) {
+        last.endMs = Math.max(last.endMs, item.endMs);
+        last.hasCompleted = last.hasCompleted || item.isCompleted === true;
+        last.hasWorking = last.hasWorking || item.isWorking === true;
+      } else {
+        mergedIntervals.push({
+          startMs: item.startMs,
+          endMs: item.endMs,
+          hasCompleted: item.isCompleted === true,
+          hasWorking: item.isWorking === true
+        });
+      }
+    });
+
+    mergedIntervals.forEach(item => {
+      let mergedMinutes = Math.floor((item.endMs - item.startMs) / 60000);
+
+      if (mergedMinutes <= 0) {
+        return;
+      }
+
+      totalMinutes += mergedMinutes;
+
+      if (item.hasWorking) {
+        workingMinutes += mergedMinutes;
+      } else {
+        completedMinutes += mergedMinutes;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(cardHoursMap, groupItem.workstationKey)) {
+        cardHoursMap[groupItem.workstationKey] += mergedMinutes;
+      }
+    });
+  });
 
   filteredRecords.sort(function(a, b) {
     if (a.startTime !== b.startTime) {
@@ -11233,30 +11340,22 @@ function showWorkTimeSubPanel(type) {
 
     let pickingHoursMap = {};
 
-  for (let i = 0; i < workstationRecords.length; i++) {
-    let stationRecord = workstationRecords[i];
+    workstationRecords.forEach(record => {
+      let employeeCode = String(record.employeeCode || "").trim();
+      let workstationName = String(record.workstation || "").trim();
+      let startTime = String(record.startTime || "").trim().replaceAll("-", "/");
 
-    let stationEmployeeCode = String(stationRecord.employeeCode || "").trim();
-    let workstationName = String(stationRecord.workstation || "").trim();
-    let startTime = String(stationRecord.startTime || "").trim();
+      if (!employeeCode) return;
+      if (workstationName !== "撿貨") return;
+      if (!startTime.startsWith(selectedDateText)) return;
 
-    if (!stationEmployeeCode) continue;
-    if (workstationName !== "撿貨") continue;
-    if (!startTime.startsWith(selectedDateText)) continue;
-
-    let endTime = String(stationRecord.endTime || "").trim();
-    if (!endTime) {
-      endTime = getNowString();
-    }
-
-    let durationHours = getDurationHours(startTime, endTime);
-
-    if (!pickingHoursMap[stationEmployeeCode]) {
-      pickingHoursMap[stationEmployeeCode] = 0;
-    }
-
-    pickingHoursMap[stationEmployeeCode] += durationHours;
-  }
+      if (!Object.prototype.hasOwnProperty.call(pickingHoursMap, employeeCode)) {
+        pickingHoursMap[employeeCode] = getPickingHoursByEmployeeAndDate(
+          employeeCode,
+          selectedDateText
+        );
+      }
+    });
 
     let sortingHoursMap = {};
 
@@ -11325,42 +11424,33 @@ function showWorkTimeSubPanel(type) {
   }
 
   let rankingData = Object.values(employeeMap).map(emp => {
-    let normalEfficiency = emp.pickingHours > 0
+    emp.normalEfficiency = emp.pickingHours > 0
       ? Number((emp.normalQty / emp.pickingHours).toFixed(2))
       : 0;
 
-    let noPackEfficiency = emp.pickingHours > 0
+    emp.noPackEfficiency = emp.pickingHours > 0
       ? Number((emp.noPackQty / emp.pickingHours).toFixed(2))
       : 0;
-
-    if (emp.noPackBatchCount > emp.normalBatchCount) {
-      emp.judgeType = "無包裝";
-      emp.judgeValue = noPackEfficiency;
-    } else if (emp.normalBatchCount > emp.noPackBatchCount) {
-      emp.judgeType = "一般配";
-      emp.judgeValue = normalEfficiency;
-    } else {
-      if (emp.noPackQty > emp.normalQty) {
-        emp.judgeType = "無包裝";
-        emp.judgeValue = noPackEfficiency;
-      } else {
-        emp.judgeType = "一般配";
-        emp.judgeValue = normalEfficiency;
-      }
-    }
-
-    emp.normalEfficiency = normalEfficiency;
-    emp.noPackEfficiency = noPackEfficiency;
 
     return emp;
   });
 
   let normalRanking = rankingData
-    .filter(emp => emp.judgeType === "一般配")
+    .filter(emp => emp.normalBatchCount > 0)
+    .map(emp => ({
+      ...emp,
+      judgeType: "一般配",
+      judgeValue: emp.normalEfficiency
+    }))
     .sort((a, b) => b.judgeValue - a.judgeValue);
 
   let noPackRanking = rankingData
-    .filter(emp => emp.judgeType === "無包裝")
+    .filter(emp => emp.noPackBatchCount > 0)
+    .map(emp => ({
+      ...emp,
+      judgeType: "無包裝",
+      judgeValue: emp.noPackEfficiency
+    }))
     .sort((a, b) => b.judgeValue - a.judgeValue);
 
   let displayRanking = [...normalRanking.slice(0, 5), ...noPackRanking.slice(0, 5)];
@@ -11637,15 +11727,14 @@ function getTodayPickingHoursByEmployee(employeeCode) {
 }
 function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
   let safeEmployeeCode = String(employeeCode || "").trim();
-  let safeDateText = String(targetDateText || "").trim();
+  let safeDateText = String(targetDateText || "").trim().replaceAll("-", "/");
 
   if (!safeEmployeeCode || !safeDateText) {
     return 0;
   }
 
-  let totalHours = 0;
-  let nowString = "";
-  let nowStringLoaded = false;
+  let intervals = [];
+  let nowString = getNowString();
 
   for (let i = 0; i < workstationRecords.length; i++) {
     let record = workstationRecords[i];
@@ -11658,7 +11747,7 @@ function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
       continue;
     }
 
-    let startTime = String(record.startTime || "").trim();
+    let startTime = String(record.startTime || "").trim().replaceAll("-", "/");
     if (!startTime.startsWith(safeDateText)) {
       continue;
     }
@@ -11666,29 +11755,78 @@ function getPickingHoursByEmployeeAndDate(employeeCode, targetDateText) {
     let endTime = String(record.endTime || "").trim();
 
     if (!endTime) {
-      if (!nowStringLoaded) {
-        nowString = getNowString();
-        nowStringLoaded = true;
-      }
       endTime = nowString;
     }
 
-    totalHours += getDurationHours(startTime, endTime);
+    let startDate = parseDateTimeString(startTime);
+    let endDate = parseDateTimeString(endTime);
+
+    if (!startDate || !endDate) {
+      continue;
+    }
+
+    let startMs = startDate.getTime();
+    let endMs = endDate.getTime();
+
+    if (endMs <= startMs) {
+      continue;
+    }
+
+    intervals.push({
+      startMs: startMs,
+      endMs: endMs
+    });
   }
 
-  return Number(totalHours.toFixed(2));
+  intervals.sort(function(a, b) {
+    return a.startMs - b.startMs;
+  });
+
+  let mergedIntervals = [];
+
+  intervals.forEach(item => {
+    if (mergedIntervals.length === 0) {
+      mergedIntervals.push({
+        startMs: item.startMs,
+        endMs: item.endMs
+      });
+      return;
+    }
+
+    let last = mergedIntervals[mergedIntervals.length - 1];
+
+    if (item.startMs <= last.endMs) {
+      last.endMs = Math.max(last.endMs, item.endMs);
+    } else {
+      mergedIntervals.push({
+        startMs: item.startMs,
+        endMs: item.endMs
+      });
+    }
+  });
+
+  let totalMinutes = 0;
+
+  mergedIntervals.forEach(item => {
+    let diffMinutes = Math.floor((item.endMs - item.startMs) / 60000);
+
+    if (diffMinutes > 0) {
+      totalMinutes += diffMinutes;
+    }
+  });
+
+  return Number((totalMinutes / 60).toFixed(2));
 }
 function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
   let safeEmployeeCode = String(employeeCode || "").trim();
-  let safeDateText = String(targetDateText || "").trim();
+  let safeDateText = String(targetDateText || "").trim().replaceAll("-", "/");
 
   if (!safeEmployeeCode || !safeDateText) {
     return 0;
   }
 
-  let totalHours = 0;
-  let nowString = "";
-  let nowStringLoaded = false;
+  let intervals = [];
+  let nowString = getNowString();
 
   for (let i = 0; i < workstationRecords.length; i++) {
     let record = workstationRecords[i];
@@ -11701,7 +11839,7 @@ function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
       continue;
     }
 
-    let startTime = String(record.startTime || "").trim();
+    let startTime = String(record.startTime || "").trim().replaceAll("-", "/");
     if (!startTime.startsWith(safeDateText)) {
       continue;
     }
@@ -11709,17 +11847,66 @@ function getSortingHoursByEmployeeAndDate(employeeCode, targetDateText) {
     let endTime = String(record.endTime || "").trim();
 
     if (!endTime) {
-      if (!nowStringLoaded) {
-        nowString = getNowString();
-        nowStringLoaded = true;
-      }
       endTime = nowString;
     }
 
-    totalHours += getDurationHours(startTime, endTime);
+    let startDate = parseDateTimeString(startTime);
+    let endDate = parseDateTimeString(endTime);
+
+    if (!startDate || !endDate) {
+      continue;
+    }
+
+    let startMs = startDate.getTime();
+    let endMs = endDate.getTime();
+
+    if (endMs <= startMs) {
+      continue;
+    }
+
+    intervals.push({
+      startMs: startMs,
+      endMs: endMs
+    });
   }
 
-  return Number(totalHours.toFixed(2));
+  intervals.sort(function(a, b) {
+    return a.startMs - b.startMs;
+  });
+
+  let mergedIntervals = [];
+
+  intervals.forEach(item => {
+    if (mergedIntervals.length === 0) {
+      mergedIntervals.push({
+        startMs: item.startMs,
+        endMs: item.endMs
+      });
+      return;
+    }
+
+    let last = mergedIntervals[mergedIntervals.length - 1];
+
+    if (item.startMs <= last.endMs) {
+      last.endMs = Math.max(last.endMs, item.endMs);
+    } else {
+      mergedIntervals.push({
+        startMs: item.startMs,
+        endMs: item.endMs
+      });
+    }
+  });
+
+  let totalMinutes = 0;
+
+  mergedIntervals.forEach(item => {
+    let diffMinutes = Math.floor((item.endMs - item.startMs) / 60000);
+    if (diffMinutes > 0) {
+      totalMinutes += diffMinutes;
+    }
+  });
+
+  return Number((totalMinutes / 60).toFixed(2));
 }
   function sumQtyBy(filterFn) {
     return batchMaster
