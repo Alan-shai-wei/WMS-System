@@ -6663,7 +6663,7 @@ function addOperationLog(actionType, target, detail) {
 }
 async function handleWorkstationScan() {
   let input = document.getElementById("workstationEmployeeCode");
-  let code = input ? input.value.trim() : "";
+  let code = input ? String(input.value || "").trim() : "";
   let message = document.getElementById("workstationMessage");
   let scanResult = document.getElementById("workstationScanResult");
 
@@ -6721,13 +6721,17 @@ async function handleWorkstationScan() {
     return;
   }
 
+  let employeeCode = String(employee.code || "").trim();
+
   if (workstationMode === "start") {
     let currentTime = getNowString();
 
-    let openRecords = workstationRecords.filter(record =>
-      record.employeeCode === employee.code &&
-      !record.endTime
-    );
+    let openRecords = workstationRecords.filter(record => {
+      let recordEmployeeCode = String(record.employeeCode || "").trim();
+      let recordEndTime = String(record.endTime || "").trim();
+
+      return recordEmployeeCode === employeeCode && !recordEndTime;
+    });
 
     let sameWorkingRecord = openRecords.find(record =>
       String(record.group || "").trim() === String(workstationGroup || "").trim() &&
@@ -6759,8 +6763,8 @@ async function handleWorkstationScan() {
     }
 
     let newRecord = {
-      employeeCode: employee.code,
-      employeeName: employee.name,
+      employeeCode: employeeCode,
+      employeeName: String(employee.name || "").trim(),
       group: workstationGroup,
       workstation: workstationName,
       startTime: currentTime,
@@ -6774,7 +6778,7 @@ async function handleWorkstationScan() {
 
     scanResult.innerHTML = `
       <strong>工位打卡成功</strong><br>
-      員工編號：${employee.code}<br>
+      員工編號：${employeeCode}<br>
       員工姓名：${employee.name}<br>
       群組：${
         workstationGroup === "inbound"
@@ -6783,6 +6787,8 @@ async function handleWorkstationScan() {
           ? "出貨"
           : workstationGroup === "support"
           ? "輔助工時"
+          : workstationGroup === "customerReturn"
+          ? "客服退貨"
           : workstationGroup
       }<br>
       工位：${workstationName}<br>
@@ -6803,15 +6809,17 @@ async function handleWorkstationScan() {
   }
 
   if (workstationMode === "checkout") {
-    let workingRecord = workstationRecords.find(record =>
-      record.employeeCode === employee.code &&
-      !record.endTime
-    );
+    let workingRecords = workstationRecords.filter(record => {
+      let recordEmployeeCode = String(record.employeeCode || "").trim();
+      let recordEndTime = String(record.endTime || "").trim();
 
-    if (!workingRecord) {
+      return recordEmployeeCode === employeeCode && !recordEndTime;
+    });
+
+    if (workingRecords.length === 0) {
       scanResult.innerHTML = `
         <strong>刷卡員工</strong><br>
-        員工編號：${employee.code}<br>
+        員工編號：${employeeCode}<br>
         員工姓名：${employee.name}
       `;
       message.innerText = "目前沒有進行中的工位，無法 Check Out";
@@ -6822,25 +6830,30 @@ async function handleWorkstationScan() {
       return;
     }
 
-    workingRecord.endTime = getNowString();
-    workingRecord.status = "已結束";
-    await saveWorkstationRecordToFirestore(workingRecord);
+    let checkoutTime = getNowString();
+
+    for (let record of workingRecords) {
+      record.endTime = checkoutTime;
+      record.status = "已結束";
+      await saveWorkstationRecordToFirestore(record);
+    }
+
     refreshWorkstationRecordsViews();
 
     scanResult.innerHTML = `
       <strong>Check Out 成功</strong><br>
-      員工編號：${employee.code}<br>
+      員工編號：${employeeCode}<br>
       員工姓名：${employee.name}<br>
-      群組：${workingRecord.group === "inbound" ? "進貨" : workingRecord.group === "outbound" ? "出貨" : workingRecord.group === "support" ? "輔助工時" : workingRecord.group}<br>
-      工位：${workingRecord.workstation}<br>
-      結束時間：${workingRecord.endTime}
+      已結束工位筆數：${workingRecords.length}<br>
+      結束時間：${checkoutTime}
     `;
 
-    message.innerText = "Check Out 成功";
+    message.innerText = `Check Out 成功，已結束 ${workingRecords.length} 筆工位`;
     message.className = "message";
     input.value = "";
     input.focus();
     input.select();
+    return;
   }
 }
 function setPackBatchMessage(text, isError) {
@@ -14736,6 +14749,7 @@ updateBatchDashboard();
   // 手機掃碼需要判斷目前工位，所以先保留「一次性讀取」
   // 不開 onSnapshot，避免持續燒 Read
   workstationRecords = await loadWorkstationRecordsFromFirestore();
+  attendanceRecords = await loadAttendanceRecordsFromFirestore();
   
   batchMaster = await loadBatchMasterFromFirestore();
   batchRecords = await loadBatchRecordsFromFirestore();
